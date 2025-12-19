@@ -1,0 +1,8 @@
+{
+  "name": "CloudHop Platform",
+  "description": "A next-generation unified communication platform merging HD meetings, modern messaging, community hubs, and powerful AI tools into one seamless cloud application.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
