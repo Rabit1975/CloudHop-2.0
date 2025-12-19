@@ -44,7 +44,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
              <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">CloudHop v2.5 is now live</span>
           </div>
           <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[1] italic">
-            Hop into the <br /> <span className="text-[#53C8FF] drop-shadow-[0_0_15px_rgba(83,200,255,0.4)]">Next Cloud.</span>
+            Hop In, <br /> <span className="text-[#53C8FF] drop-shadow-[0_0_15px_rgba(83,200,255,0.4)]">Cloud On.</span>
           </h1>
           <p className="text-xl lg:text-2xl text-[#DDE3FF]/60 max-w-xl font-medium leading-relaxed italic">
             Messaging, meetings, and spaces reimagined for the generation that lives in the cloud.
@@ -57,7 +57,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               Start Hopping
             </button>
             <button className="text-lg font-bold text-white/40 hover:text-white transition-all flex items-center gap-2">
-              {/* Comment: Icons.Chat is now correctly identified via the added import */}
               Learn More <Icons.Chat className="w-5 h-5 rotate-90" />
             </button>
           </div>

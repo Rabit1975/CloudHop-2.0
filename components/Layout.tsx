@@ -102,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
           {isSidebarOpen && (
              <div className="space-y-4">
                 <div className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] text-center">
-                   Enterprise Cloud Relay
+                   Enterprise Cloud Workspace
                 </div>
                 <div className="flex justify-center gap-4 text-white/30 text-[9px] font-black uppercase">
                    <a href={`https://support.${DOMAIN}`} className="hover:text-[#53C8FF] transition-colors">Support</a>
@@ -173,7 +173,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
           </div>
           <footer className="h-10 bg-[#080C22] border-t border-white/5 flex items-center justify-between px-8 text-[8px] font-black uppercase tracking-[0.2em] text-white/20">
              <div className="flex items-center gap-4">
-                <span>CloudHop Relay © 2025</span>
+                <span>CloudHop © 2025</span>
                 <span className="opacity-30">•</span>
                 <span className="italic">Pro Tier Architecture</span>
              </div>

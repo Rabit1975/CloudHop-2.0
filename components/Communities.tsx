@@ -68,7 +68,7 @@ const Communities: React.FC = () => {
                                <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">Project Update</span>
                                <span className="text-[8px] font-black text-white/20 uppercase">2h ago</span>
                             </div>
-                            <p className="text-sm font-medium leading-relaxed italic">CloudHop Relay 2.5 architecture has been successfully deployed to the edge clusters.</p>
+                            <p className="text-sm font-medium leading-relaxed italic">CloudHop 2.5 architecture has been successfully deployed to the edge clusters.</p>
                          </div>
                       </div>
                    ))}
@@ -126,7 +126,7 @@ const Communities: React.FC = () => {
                 </div>
                 <div className="space-y-6">
                   <div className="p-5 bg-black/40 border border-white/5 rounded-2xl">
-                     <p className="text-xs text-white/60 italic leading-relaxed">"Gemini is observing high engagement in the **Founders Circle** regarding edge deployment. Trending keywords: #Relay, #Latency, #Hops."</p>
+                     <p className="text-xs text-white/60 italic leading-relaxed">"Gemini is observing high engagement in the **Founders Circle** regarding edge deployment. Trending keywords: #Cloud, #Latency, #Hops."</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <button className="py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5 italic">Analyze Sentiment</button>
