@@ -17,8 +17,6 @@ const Meetings: React.FC = () => {
   const [tab, setTab] = useState<'manage' | 'instant'>('manage');
   const [isMeetingActive, setIsMeetingActive] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const [activeSidePanel, setActiveSidePanel] = useState<'ai' | 'chat' | 'effects' | 'settings' | null>(null);
   
   // Advanced Meeting States
@@ -28,7 +26,7 @@ const Meetings: React.FC = () => {
   const [videoFilter, setVideoFilter] = useState<'none' | 'blur' | 'grayscale' | 'sepia' | 'invert'>('none');
   const [virtualBg, setVirtualBg] = useState<string | null>(null);
 
-  // Resolution & Bandwidth (Previous Request Integration)
+  // Resolution & Bandwidth
   const [resolution, setResolution] = useState<'720p' | '1080p' | '4K'>('1080p');
   const [bandwidth, setBandwidth] = useState<'Low' | 'Balanced' | 'High' | 'Auto'>('Auto');
   const [aiCaptionsEnabled, setAiCaptionsEnabled] = useState(true);
@@ -36,31 +34,23 @@ const Meetings: React.FC = () => {
   // Cinematic Framing & Zoom Engine
   const [videoZoom, setVideoZoom] = useState(1.0);
   const [videoFit, setVideoFit] = useState<'cover' | 'contain'>('cover');
-  const [videoOffsetY, setVideoOffsetY] = useState(0); // Vertical Tilt
-  const [videoOffsetX, setVideoOffsetX] = useState(0); // Horizontal Pan
+  const [videoOffsetY, setVideoOffsetY] = useState(0); 
+  const [videoOffsetX, setVideoOffsetX] = useState(0); 
 
   // Device Management
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
   const [selectedMic, setSelectedMic] = useState<string>('');
-  const [selectedSpeaker, setSelectedSpeaker] = useState<string>('');
   const [showDeviceMenu, setShowDeviceMenu] = useState<'audio' | 'video' | null>(null);
 
-  // Audio Modes
-  const [noiseRemoval, setNoiseRemoval] = useState<'Auto' | 'Low' | 'Medium' | 'High'>('Auto');
-  const [originalSound, setOriginalSound] = useState(false);
   const [mirrorVideo, setMirrorVideo] = useState(true);
 
   // Transcription
   const [liveTranscript, setLiveTranscript] = useState<string[]>([]);
-  const liveSessionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<any>(null);
 
   const participants = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => ({
@@ -155,7 +145,6 @@ const Meetings: React.FC = () => {
         inputAudioTranscription: {},
       }
     });
-    liveSessionRef.current = sessionPromise;
   };
 
   useEffect(() => {
@@ -186,25 +175,22 @@ const Meetings: React.FC = () => {
     return (
       <div className="fixed inset-0 z-[100] bg-[#050819] flex animate-fade-in italic">
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {/* Header - Logo Placement 1 */}
-          <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50 pointer-events-none">
-            <div className="flex items-center gap-4 pointer-events-auto">
-              <CloudHopLogo size={32} variant="neon" />
-              <div className="bg-[#0E1430]/80 backdrop-blur-xl border border-white/5 px-4 py-2 rounded-2xl flex items-center gap-3">
-                <span className="flex h-2 w-2 rounded-full bg-[#3DD68C] animate-pulse"></span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80">Active Meeting</span>
+          {/* Header */}
+          <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-50 pointer-events-none">
+            <div className="flex items-center gap-3 pointer-events-auto">
+              <CloudHopLogo size={28} variant="neon" />
+              <div className="bg-[#0E1430]/80 backdrop-blur-xl border border-white/5 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-[#3DD68C] animate-pulse"></span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Active</span>
               </div>
             </div>
-            <button onClick={endMeeting} className="pointer-events-auto px-6 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-red-500/20 transition-all">End Meeting</button>
+            <button onClick={endMeeting} className="pointer-events-auto px-4 py-2 bg-red-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:brightness-110 transition-all">End</button>
           </div>
 
           {/* Main Stage */}
-          <div className="flex-1 relative bg-black flex flex-col items-center justify-center overflow-hidden p-6 pt-24 pb-32">
+          <div className="flex-1 relative bg-black flex flex-col items-center justify-center overflow-hidden p-4 pt-20 pb-20">
              <div className="w-full h-full relative z-10 flex flex-col md:flex-row gap-4 overflow-hidden">
-                <div className="flex-1 relative rounded-[32px] overflow-hidden border border-white/10 bg-[#080C22]/60 backdrop-blur-sm shadow-2xl">
-                   {virtualBg && (
-                      <div className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-700" style={{ backgroundImage: `url(${virtualBg})` }} />
-                   )}
+                <div className="flex-1 relative rounded-[24px] overflow-hidden border border-white/10 bg-[#080C22]/60 backdrop-blur-sm shadow-2xl">
                    <div className="w-full h-full overflow-hidden flex items-center justify-center relative z-10">
                       <video 
                         ref={videoRef} 
@@ -224,135 +210,111 @@ const Meetings: React.FC = () => {
                       />
                    </div>
                    
-                   <div className="absolute bottom-6 left-6 flex items-center gap-3 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 z-20">
-                     <span className="text-[10px] font-black text-white/90 uppercase tracking-widest">Matthew (Me)</span>
-                     {isHandRaised && <span className="text-sm animate-bounce">✋</span>}
+                   <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/10 z-20">
+                     <span className="text-[9px] font-black text-white/90 uppercase tracking-widest">Matthew</span>
+                     {isHandRaised && <span className="text-xs animate-bounce">✋</span>}
                    </div>
 
                    {aiCaptionsEnabled && liveTranscript.length > 0 && (
-                     <div className="absolute bottom-20 left-1/2 -translate-x-1/2 max-w-lg w-full px-6 py-3 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 text-center text-xs font-medium text-[#53C8FF] animate-fade-in shadow-2xl z-20">
+                     <div className="absolute bottom-12 left-1/2 -translate-x-1/2 max-w-sm w-full px-4 py-2 bg-black/80 backdrop-blur-xl rounded-xl border border-white/10 text-center text-[10px] font-medium text-[#53C8FF] animate-fade-in shadow-2xl z-20">
                         {liveTranscript[liveTranscript.length - 1]}
                      </div>
                    )}
                 </div>
 
                 {/* Participant Grid */}
-                <div className="hidden lg:grid grid-cols-1 gap-4 w-48 overflow-y-auto custom-scrollbar pr-2">
+                <div className="hidden lg:grid grid-cols-1 gap-3 w-40 overflow-y-auto custom-scrollbar pr-1">
                    {participants.slice(1).map((p) => (
-                     <div key={p.id} className="relative aspect-video rounded-2xl border border-white/5 bg-[#0A0F1F] flex items-center justify-center overflow-hidden shrink-0">
-                        <img src={p.avatar} className="w-10 h-10 rounded-full border border-white/10" alt="" />
-                        <div className="absolute bottom-1.5 left-1.5 bg-black/40 px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase text-white/30">{p.name}</div>
+                     <div key={p.id} className="relative aspect-video rounded-xl border border-white/5 bg-[#0A0F1F] flex items-center justify-center overflow-hidden shrink-0">
+                        <img src={p.avatar} className="w-8 h-8 rounded-full border border-white/10" alt="" />
+                        <div className="absolute bottom-1 left-1 bg-black/40 px-1 py-0.5 rounded-md text-[6px] font-black uppercase text-white/30">{p.name}</div>
                      </div>
                    ))}
                 </div>
              </div>
           </div>
 
-          {/* Controls Dock */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-center z-50">
-             <div className="bg-[#0E1430]/90 backdrop-blur-3xl border border-white/10 rounded-[40px] p-5 flex items-center gap-4 shadow-[0_0_80px_rgba(0,0,0,0.8)]">
+          {/* Controls Dock - Compact refinement */}
+          <div className="absolute bottom-0 left-0 right-0 pb-4 flex justify-center z-50">
+             <div className="bg-[#0E1430]/90 backdrop-blur-3xl border border-white/10 rounded-full p-1 flex items-center gap-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                 <div className="relative">
-                  <ControlButton onClick={() => setIsMuted(!isMuted)} active={!isMuted} icon={<span className="text-xl">{isMuted ? '🔇' : '🎙️'}</span>} label="Mic" />
-                  <button onClick={() => setShowDeviceMenu(showDeviceMenu === 'audio' ? null : 'audio')} className="absolute -top-1 -right-1 bg-[#53C8FF] text-[#0A0F1F] p-1 rounded-full text-[10px] hover:scale-110 transition-all">▴</button>
+                  <ControlButton onClick={() => setIsMuted(!isMuted)} active={!isMuted} icon={<span className="text-base">{isMuted ? '🔇' : '🎙️'}</span>} label="Mic" />
+                  <button onClick={() => setShowDeviceMenu(showDeviceMenu === 'audio' ? null : 'audio')} className="absolute -top-0.5 -right-0.5 bg-[#53C8FF] text-[#0A0F1F] w-3.5 h-3.5 flex items-center justify-center rounded-full text-[7px] font-black hover:scale-110 transition-all border border-[#0E1430]">▴</button>
                   {showDeviceMenu === 'audio' && (
-                    <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-64 bg-[#0E1430] border border-white/10 rounded-2xl p-4 shadow-2xl animate-fade-in italic">
-                       <h5 className="text-[9px] font-black uppercase tracking-widest text-[#53C8FF] mb-3">Audio Options</h5>
-                       <select value={selectedMic} onChange={(e) => setSelectedMic(e.target.value)} className="w-full bg-[#050819] border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold mb-3 italic">
-                          {devices.filter(d => d.kind === 'audioinput').map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Microphone'}</option>)}
+                    <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 bg-[#0E1430] border border-white/10 rounded-xl p-3 shadow-2xl animate-fade-in italic">
+                       <h5 className="text-[8px] font-black uppercase tracking-widest text-[#53C8FF] mb-2">Audio</h5>
+                       <select value={selectedMic} onChange={(e) => setSelectedMic(e.target.value)} className="w-full bg-[#050819] border border-white/10 rounded-lg px-2 py-1.5 text-[9px] font-bold mb-2 italic">
+                          {devices.filter(d => d.kind === 'audioinput').map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Mic'}</option>)}
                        </select>
-                       <button className="w-full py-2 bg-white/5 rounded-xl text-[9px] font-black uppercase hover:bg-white/10 transition-all italic">Test Speaker</button>
                     </div>
                   )}
                 </div>
 
                 <div className="relative">
-                  <ControlButton onClick={() => setIsVideoOff(!isVideoOff)} active={!isVideoOff} icon={<span className="text-xl">{isVideoOff ? '🚫' : '🎥'}</span>} label="Video" />
-                  <button onClick={() => setShowDeviceMenu(showDeviceMenu === 'video' ? null : 'video')} className="absolute -top-1 -right-1 bg-[#53C8FF] text-[#0A0F1F] p-1 rounded-full text-[10px] hover:scale-110 transition-all">▴</button>
+                  <ControlButton onClick={() => setIsVideoOff(!isVideoOff)} active={!isVideoOff} icon={<span className="text-base">{isVideoOff ? '🚫' : '🎥'}</span>} label="Cam" />
+                  <button onClick={() => setShowDeviceMenu(showDeviceMenu === 'video' ? null : 'video')} className="absolute -top-0.5 -right-0.5 bg-[#53C8FF] text-[#0A0F1F] w-3.5 h-3.5 flex items-center justify-center rounded-full text-[7px] font-black hover:scale-110 transition-all border border-[#0E1430]">▴</button>
                   {showDeviceMenu === 'video' && (
-                    <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-64 bg-[#0E1430] border border-white/10 rounded-2xl p-4 shadow-2xl animate-fade-in italic">
-                       <h5 className="text-[9px] font-black uppercase tracking-widest text-[#53C8FF] mb-3">Video Options</h5>
-                       <select value={selectedCamera} onChange={(e) => setSelectedCamera(e.target.value)} className="w-full bg-[#050819] border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold mb-3 italic">
+                    <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 bg-[#0E1430] border border-white/10 rounded-xl p-3 shadow-2xl animate-fade-in italic">
+                       <h5 className="text-[8px] font-black uppercase tracking-widest text-[#53C8FF] mb-2">Video</h5>
+                       <select value={selectedCamera} onChange={(e) => setSelectedCamera(e.target.value)} className="w-full bg-[#050819] border border-white/10 rounded-lg px-2 py-1.5 text-[9px] font-bold mb-2 italic">
                           {devices.filter(d => d.kind === 'videoinput').map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Camera'}</option>)}
                        </select>
-                       <label className="flex items-center gap-2 cursor-pointer text-[10px] font-bold text-white/60 mb-2 italic">
-                         <input type="checkbox" checked={mirrorVideo} onChange={() => setMirrorVideo(!mirrorVideo)} className="accent-[#53C8FF]" /> Mirror Video
-                       </label>
                     </div>
                   )}
                 </div>
 
-                <div className="w-px h-8 bg-white/5 mx-2"></div>
-                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'effects' ? null : 'effects')} active={activeSidePanel === 'effects'} icon={<span className="text-xl">✨</span>} label="FX" />
-                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'ai' ? null : 'ai')} active={activeSidePanel === 'ai'} icon={<span className="text-xl">🧠</span>} label="AI" />
-                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'settings' ? null : 'settings')} active={activeSidePanel === 'settings'} icon={<span className="text-xl">⚙️</span>} label="Setup" />
+                <div className="w-[1px] h-5 bg-white/10 mx-0.5"></div>
+                
+                <ControlButton onClick={() => setIsHandRaised(!isHandRaised)} active={isHandRaised} icon={<span className="text-base">✋</span>} label="Raise" />
+                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'effects' ? null : 'effects')} active={activeSidePanel === 'effects'} icon={<span className="text-base">✨</span>} label="FX" />
+                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'ai' ? null : 'ai')} active={activeSidePanel === 'ai'} icon={<span className="text-base">🧠</span>} label="AI" />
+                <ControlButton onClick={() => setActiveSidePanel(activeSidePanel === 'settings' ? null : 'settings')} active={activeSidePanel === 'settings'} icon={<span className="text-base">⚙️</span>} label="Setup" />
              </div>
           </div>
         </div>
 
-        {/* Side Panels - Logo Placement 2 */}
+        {/* Side Panels */}
         {activeSidePanel && (
-          <div className="w-80 bg-[#080C22]/98 backdrop-blur-3xl border-l border-white/5 flex flex-col animate-slide-in h-screen z-[100] italic">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#050819]">
+          <div className="w-72 bg-[#080C22]/98 backdrop-blur-3xl border-l border-white/5 flex flex-col animate-slide-in h-screen z-[100] italic">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#050819]">
               <div className="flex items-center gap-2">
-                <CloudHopLogo size={18} variant="neon" />
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#53C8FF]">{activeSidePanel} Panel</h4>
+                <CloudHopLogo size={16} variant="neon" />
+                <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#53C8FF]">{activeSidePanel}</h4>
               </div>
               <button onClick={() => setActiveSidePanel(null)} className="text-white/20 hover:text-white transition-colors">✕</button>
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
               {activeSidePanel === 'settings' && (
-                <div className="space-y-10 animate-fade-in">
-                  <div className="space-y-6">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] pb-2 border-b border-white/5">Cinematic Framing Engine</h5>
-                    <div className="space-y-6 bg-white/5 p-4 rounded-2xl border border-white/5">
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black uppercase tracking-widest text-white/30 italic">Camera Presets</label>
-                           <div className="grid grid-cols-1 gap-2">
-                              <button onClick={() => applyPreset('wide')} className="py-2.5 rounded-xl text-[9px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Wide Shot (1.0x)</button>
-                              <button onClick={() => applyPreset('medium')} className="py-2.5 rounded-xl text-[9px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Medium Shot (1.4x)</button>
-                              <button onClick={() => applyPreset('closeup')} className="py-2.5 rounded-xl text-[9px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Close-up (2.2x)</button>
+                <div className="space-y-8 animate-fade-in">
+                  <div className="space-y-4">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-[#53C8FF] pb-1 border-b border-white/5">Framing Engine</h5>
+                    <div className="space-y-4 bg-white/5 p-3 rounded-xl border border-white/5">
+                        <div className="space-y-1.5">
+                           <label className="text-[8px] font-black uppercase tracking-widest text-white/30 italic">Presets</label>
+                           <div className="grid grid-cols-1 gap-1.5">
+                              <button onClick={() => applyPreset('wide')} className="py-2 rounded-lg text-[8px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Wide</button>
+                              <button onClick={() => applyPreset('medium')} className="py-2 rounded-lg text-[8px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Medium</button>
+                              <button onClick={() => applyPreset('closeup')} className="py-2 rounded-lg text-[8px] font-black uppercase border border-white/10 bg-[#050819] hover:border-[#53C8FF] transition-all italic">Close-up</button>
                            </div>
                         </div>
 
-                        <div className="space-y-3">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-white/30 italic">Zoom Level <span>{videoZoom.toFixed(1)}x</span></div>
+                        <div className="space-y-2">
+                           <div className="flex justify-between text-[8px] font-black uppercase text-white/30 italic">Zoom <span>{videoZoom.toFixed(1)}x</span></div>
                            <input type="range" min="0.1" max="3" step="0.1" value={videoZoom} onChange={(e) => setVideoZoom(parseFloat(e.target.value))} className="w-full accent-[#53C8FF]" />
-                        </div>
-                        
-                        <div className="space-y-3">
-                           <div className="flex justify-between text-[9px] font-black uppercase text-white/30 italic">Vertical Tilt <span>{videoOffsetY}%</span></div>
-                           <input type="range" min="-100" max="100" step="1" value={videoOffsetY} onChange={(e) => setVideoOffsetY(parseInt(e.target.value))} className="w-full accent-[#53C8FF]" />
-                        </div>
-
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black uppercase tracking-widest text-white/30 italic">Framing Mode</label>
-                           <div className="grid grid-cols-2 gap-2">
-                              <button onClick={() => setVideoFit('cover')} className={`py-2 rounded-lg text-[9px] font-black uppercase border transition-all italic ${videoFit === 'cover' ? 'border-[#53C8FF] text-[#53C8FF] bg-[#53C8FF]/10' : 'border-white/5 text-white/20'}`}>Cover</button>
-                              <button onClick={() => setVideoFit('contain')} className={`py-2 rounded-lg text-[9px] font-black uppercase border transition-all italic ${videoFit === 'contain' ? 'border-[#53C8FF] text-[#53C8FF] bg-[#53C8FF]/10' : 'border-white/5 text-white/20'}`}>Contain</button>
-                           </div>
                         </div>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] pb-2 border-b border-white/5">Video Quality & Network</h5>
-                    <div className="space-y-4">
+                  <div className="space-y-4">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-[#53C8FF] pb-1 border-b border-white/5">Network Quality</h5>
+                    <div className="space-y-3">
                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-white/60 italic">Resolution</span>
-                          <select value={resolution} onChange={(e) => setResolution(e.target.value as any)} className="bg-[#0D1A2A] border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-bold italic">
+                          <span className="text-[9px] font-black uppercase text-white/60 italic">Quality</span>
+                          <select value={resolution} onChange={(e) => setResolution(e.target.value as any)} className="bg-[#0D1A2A] border border-white/10 rounded-lg px-2 py-1 text-[9px] font-bold italic">
                              <option value="720p">720p</option>
                              <option value="1080p">1080p</option>
                              <option value="4K">4K</option>
-                          </select>
-                       </div>
-                       <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-white/60 italic">Bandwidth</span>
-                          <select value={bandwidth} onChange={(e) => setBandwidth(e.target.value as any)} className="bg-[#0D1A2A] border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-bold italic">
-                             <option value="Low">Low</option>
-                             <option value="Balanced">Balanced</option>
-                             <option value="High">High</option>
-                             <option value="Auto">Auto</option>
                           </select>
                        </div>
                     </div>
@@ -361,22 +323,22 @@ const Meetings: React.FC = () => {
               )}
 
               {activeSidePanel === 'ai' && (
-                <div className="h-full flex flex-col space-y-6 animate-fade-in italic">
-                  <div className="p-4 bg-[#53C8FF]/5 border border-[#53C8FF]/20 rounded-2xl">
-                    <p className="text-[9px] font-black text-[#53C8FF] uppercase tracking-widest mb-2 flex items-center gap-2 italic">
-                      <span className="w-1.5 h-1.5 bg-[#53C8FF] rounded-full animate-pulse"></span> Gemini 3 Live Recap
+                <div className="h-full flex flex-col space-y-4 animate-fade-in italic">
+                  <div className="p-3 bg-[#53C8FF]/5 border border-[#53C8FF]/20 rounded-xl">
+                    <p className="text-[8px] font-black text-[#53C8FF] uppercase tracking-widest mb-1 flex items-center gap-2 italic">
+                      <span className="w-1.5 h-1.5 bg-[#53C8FF] rounded-full animate-pulse"></span> Live Recap
                     </p>
-                    <p className="text-[10px] text-white/60 italic leading-relaxed">Processing audio for automated meeting minutes and high-speed search grounding.</p>
+                    <p className="text-[9px] text-white/60 italic leading-relaxed">Processing live audio for automated insights.</p>
                   </div>
-                  <div className="flex-1 bg-[#0E1430] border border-white/5 rounded-2xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3">
+                  <div className="flex-1 bg-[#0E1430] border border-white/5 rounded-xl p-3 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                      {liveTranscript.length === 0 ? (
-                       <div className="h-full flex flex-col items-center justify-center text-center opacity-20 italic">
-                          <span className="text-3xl mb-3">🎙️</span>
-                          <span className="text-[8px] font-black uppercase tracking-widest italic">Listening for speech...</span>
+                       <div className="h-full flex flex-col items-center justify-center text-center opacity-10 italic">
+                          <span className="text-2xl mb-2">🎙️</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest italic">Listening...</span>
                        </div>
                      ) : (
                        liveTranscript.map((line, idx) => (
-                         <div key={idx} className="text-[11px] text-white/60 leading-relaxed border-l border-[#53C8FF]/20 pl-3 py-1 italic animate-slide-in">
+                         <div key={idx} className="text-[10px] text-white/60 leading-relaxed border-l border-[#53C8FF]/20 pl-2 py-0.5 italic animate-slide-in">
                             {line}
                          </div>
                        ))
@@ -433,9 +395,9 @@ const Meetings: React.FC = () => {
 };
 
 const ControlButton: React.FC<{ icon: React.ReactNode, label: string, onClick?: () => void, active?: boolean }> = ({ icon, label, onClick, active }) => (
-  <button onClick={onClick} className={`flex flex-col items-center gap-2 p-4 min-w-[70px] rounded-3xl transition-all ${active ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}>
+  <button onClick={onClick} className={`flex flex-col items-center gap-1 p-1.5 min-w-[44px] rounded-xl transition-all ${active ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
     <div className="transition-transform duration-300">{icon}</div>
-    <span className={`text-[8px] font-black uppercase tracking-widest ${active ? 'text-[#0A0F1F]/60' : 'text-white/20'} italic`}>{label}</span>
+    <span className={`text-[6px] font-black uppercase tracking-widest ${active ? 'text-[#0A0F1F]/60' : 'text-white/10'} italic`}>{label}</span>
   </button>
 );
 
