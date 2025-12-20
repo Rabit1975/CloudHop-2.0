@@ -3,99 +3,116 @@ import React from 'react';
 
 export const DOMAIN = "cloudhop.app";
 
+export const BrandingEngine = {
+  themes: {
+    neon: {
+      primary: '#00D1FF', // Vibrant Cyan/Blue from bunny logo
+      secondary: '#0070FF', // Deeper blue for gradients
+      accent: '#FFFFFF', // High-energy white for eyes/highlights
+      bg: '#050819',
+      glow: 'rgba(0, 209, 255, 0.7)',
+    },
+    light: {
+      primary: '#0A0F1F',
+      secondary: '#E0E7FF',
+      bg: '#FFFFFF',
+    },
+    'high-contrast': {
+      primary: '#00D1FF',
+      secondary: '#000000',
+      bg: '#000000',
+    }
+  }
+};
+
 export const COLORS = {
-  PRIMARY: '#53C8FF',
-  ACCENT: '#A3E7FF',
-  DARK_GRADIENT_START: '#0A0F1F',
-  DARK_GRADIENT_END: '#1B2350',
-  LIGHT_BG: '#F7F9FE',
+  PRIMARY: '#00D1FF',
+  ACCENT: '#FFFFFF',
   DARK_BG: '#050819',
   SIDEBAR_BG: '#080C22',
   CARD_DARK: '#0E1430',
-  DEEP_TEXT: '#111322',
-  LIGHT_TEXT: '#DDE3FF',
   SUCCESS: '#3DD68C',
-  WARNING: '#FFB020',
   ERROR: '#FF4D4D',
-  XP_BAR: 'linear-gradient(90deg, #00ff99, #00ccff)',
-  GLOW: 'rgba(83, 200, 255, 0.7)',
 };
 
-// Image asset references based on provided visuals
-export const ASSETS = {
-  LOGO_MAIN: 'https://images.unsplash.com/photo-1635776062127-d379bfcba9f8?q=80&w=1000&auto=format&fit=crop', // Placeholder for High Contrast Logo
-  LOGO_TRANSPARENT: 'https://images.unsplash.com/photo-1635776062127-d379bfcba9f8?q=80&w=1000&auto=format&fit=crop', // Placeholder
-  HERO_BUNNY: 'https://images.unsplash.com/photo-1615751072497-5f5169febe17?q=80&w=1000&auto=format&fit=crop', // 3D Render Placeholder
-  LOGO_NEON_OUTLINE: 'https://images.unsplash.com/photo-1635776062127-d379bfcba9f8?q=80&w=1000&auto=format&fit=crop', // Outline Placeholder
-};
-
+/**
+ * CLOUDHOP LOGO COMPONENT
+ * Recreated based on the "Neon Bunny in Cloud" brand image.
+ */
 export const CloudHopLogo: React.FC<{ 
   size?: number; 
   className?: string; 
-  variant?: 'color' | 'white' | 'monochrome' | 'neon' | 'high-contrast' 
-}> = ({ size = 32, className = "", variant = 'high-contrast' }) => {
+  variant?: 'neon' | 'light' | 'dark' | 'high-contrast' 
+}> = ({ size = 32, className = "", variant = 'neon' }) => {
   
-  // High Contrast Logo (Image 8) - Main branding
-  if (variant === 'high-contrast' || variant === 'neon') {
-    return (
-      <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_8px_rgba(83,200,255,0.8)]">
-           <circle cx="50" cy="50" r="45" stroke="#53C8FF" strokeWidth="1" strokeDasharray="4 4" className="opacity-20" />
-           <path d="M30 65C30 52 42 48 50 52C50 38 65 38 72 48C80 48 85 55 82 68C82 75 75 80 65 80H40C32 80 30 72 30 65Z" fill="#53C8FF" fillOpacity="0.15" />
-           <path d="M50 50C50 50 48 35 55 35C60 35 60 45 60 45" stroke="#53C8FF" strokeWidth="3" strokeLinecap="round" />
-           <path d="M45 52C45 52 38 38 45 38C50 38 52 50 52 50" stroke="#53C8FF" strokeWidth="3" strokeLinecap="round" />
-           <path d="M35 68C35 58 45 55 52 58C52 48 68 48 75 58C82 58 85 65 82 75C82 82 75 85 65 85H45C38 85 35 78 35 68Z" stroke="#53C8FF" strokeWidth="2.5" className="animate-pulse" />
-        </svg>
-      </div>
-    );
-  }
-
-  const getFill = () => {
-    if (variant === 'white') return '#FFFFFF';
-    if (variant === 'monochrome') return 'currentColor';
-    return "url(#cloudGradient)";
-  };
-
-  const getStroke = () => {
-    if (variant === 'white') return '#FFFFFF';
-    if (variant === 'monochrome') return 'currentColor';
-    return "#53C8FF";
-  };
+  const themeKey = variant === 'dark' ? 'neon' : variant;
+  const t = BrandingEngine.themes[themeKey as keyof typeof BrandingEngine.themes] || BrandingEngine.themes.neon;
+  const filterId = `glow-${variant}`;
+  const cloudId = `mist-${variant}`;
 
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 100 100" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path 
-        d="M20 60C20 45 35 40 45 45C45 30 65 30 75 40C85 40 90 50 85 65C85 75 75 80 65 80H35C25 80 20 70 20 60Z" 
-        fill={getFill()}
-      />
-      <path 
-        d="M45 42C45 42 42 20 52 20C58 20 58 35 58 35" 
-        stroke={getStroke()}
-        strokeWidth="4" 
-        strokeLinecap="round"
-      />
-      <path 
-        d="M38 45C38 45 30 25 40 25C46 25 48 40 48 40" 
-        stroke={getStroke()}
-        strokeWidth="4" 
-        strokeLinecap="round"
-      />
-      {variant === 'color' && (
+    <div className={`relative flex items-center justify-center ${className} gpu-accelerated`} style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <defs>
-          <linearGradient id="cloudGradient" x1="20" y1="30" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#53C8FF" />
-            <stop offset="1" stopColor="#1B2350" />
+          <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+          
+          <filter id={cloudId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+          </filter>
+
+          <linearGradient id="bunny-grad" x1="50" y1="20" x2="50" y2="80" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor={t.primary} />
+            <stop offset="100%" stopColor="#0070FF" />
           </linearGradient>
+
+          <radialGradient id="mist-grad" cx="30%" cy="70%" r="50%">
+            <stop offset="0%" stopColor={t.primary} stopOpacity="0.4" />
+            <stop offset="100%" stopColor={t.primary} stopOpacity="0" />
+          </radialGradient>
         </defs>
-      )}
-    </svg>
+
+        {/* The Misty Cloud Background */}
+        <circle cx="35" cy="65" r="25" fill="url(#mist-grad)" filter={`url(#${cloudId})`} opacity="0.6" />
+        <circle cx="50" cy="75" r="20" fill="url(#mist-grad)" filter={`url(#${cloudId})`} opacity="0.4" />
+
+        {/* The Neon Bunny Silhouette */}
+        <g filter={variant === 'neon' ? `url(#${filterId})` : 'none'}>
+          <path 
+            d="M45 25 
+               C 42 22, 43 18, 50 15 
+               C 60 12, 65 22, 65 30 
+               C 65 33, 62 35, 60 38 
+               L 68 35 
+               C 72 35, 75 40, 80 45 
+               C 85 50, 82 58, 78 60 
+               C 75 62, 70 58, 68 55 
+               L 68 75 
+               C 68 78, 65 80, 60 80 
+               L 40 80 
+               C 40 60, 45 50, 45 25 Z" 
+            stroke={t.primary} 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+          />
+          
+          {/* Bunny Ears Detail */}
+          <path 
+            d="M48 24 C 45 20, 55 18, 62 28" 
+            stroke={t.primary} 
+            strokeWidth="1.5" 
+            strokeLinecap="round" 
+            opacity="0.8"
+          />
+
+          {/* Glowing Eye */}
+          <circle cx="72" cy="48" r="1.5" fill="white" className="animate-pulse" />
+        </g>
+      </svg>
+    </div>
   );
 };
 
@@ -108,11 +125,6 @@ export const Icons = {
   Chat: (props: any) => (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-    </svg>
-  ),
-  Spaces: (props: any) => (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
     </svg>
   ),
   Meetings: (props: any) => (
@@ -141,9 +153,9 @@ export const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
-  Billing: (props: any) => (
+  CaretUp: (props: any) => (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
     </svg>
   ),
 };

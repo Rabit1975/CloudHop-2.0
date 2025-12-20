@@ -5,10 +5,9 @@ import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import Chat from './components/Chat';
 import Meetings from './components/Meetings';
-import Communities from './components/Communities';
+import GameHub from './components/GameHub';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
-import Billing from './components/Billing';
 import Layout from './components/Layout';
 
 const App: React.FC = () => {
@@ -44,10 +43,9 @@ const App: React.FC = () => {
         case View.DASHBOARD: return <Dashboard />;
         case View.CHAT: return <Chat />;
         case View.MEETINGS: return <Meetings />;
-        case View.COMMUNITIES: return <Communities />;
+        case View.COMMUNITIES: return <GameHub />;
         case View.PROFILE: return <Profile user={user} />;
         case View.SETTINGS: return <Settings />;
-        case View.BILLING: return <Billing />;
         default: return <Dashboard />;
       }
     })();

@@ -1,7 +1,8 @@
 
 import React from 'react';
 // Added Icons to the import list from constants
-import { CloudHopLogo, COLORS, ASSETS, Icons } from '../constants';
+// Removed non-existent ASSETS export to fix build error
+import { CloudHopLogo, COLORS, Icons } from '../constants';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -120,7 +121,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                  <div className="grid grid-cols-2 gap-6">
                     {[1,2,3,4].map(i => (
                        <div key={i} className="aspect-square bg-white/5 rounded-3xl border border-white/10 hover:border-[#53C8FF]/40 transition-all flex items-center justify-center">
-                          <CloudHopLogo size={40} variant="white" className="opacity-10 group-hover:opacity-100 transition-opacity" />
+                          {/* Fix: Changed variant from "white" to "dark" (which is mostly white in constants.tsx) */}
+                          <CloudHopLogo size={40} variant="dark" className="opacity-10 group-hover:opacity-100 transition-opacity" />
                        </div>
                     ))}
                  </div>
@@ -184,7 +186,8 @@ const NavLink: React.FC<{ label: string }> = ({ label }) => (
 const FeatureCard: React.FC<{ title: string; desc: string; icon: string }> = ({ title, desc, icon }) => (
   <div className="bg-white border border-[#111322]/5 p-10 rounded-[32px] shadow-sm hover:border-[#53C8FF]/40 hover:shadow-2xl hover:shadow-[#53C8FF]/10 transition-all duration-500 group cursor-default relative overflow-hidden">
     <div className="absolute -top-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-       <CloudHopLogo size={100} variant="monochrome" />
+       {/* Fix: Changed variant from "monochrome" to "dark" */}
+       <CloudHopLogo size={100} variant="dark" />
     </div>
     <div className="text-5xl mb-8 transform group-hover:scale-110 transition-transform">{icon}</div>
     <h3 className="text-2xl font-black mb-4 italic tracking-tighter uppercase">{title}</h3>

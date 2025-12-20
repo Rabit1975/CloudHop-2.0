@@ -6,8 +6,7 @@ export enum View {
   MEETINGS = 'meetings',
   COMMUNITIES = 'communities',
   PROFILE = 'profile',
-  SETTINGS = 'settings',
-  BILLING = 'billing'
+  SETTINGS = 'settings'
 }
 
 export interface Badge {
