@@ -5,13 +5,15 @@ import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import Chat from './components/Chat';
 import Meetings from './components/Meetings';
+import Spaces from './components/Spaces';
+import Communities from './components/Communities';
 import GameHub from './components/GameHub';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
 import Layout from './components/Layout';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<View>(View.LANDING);
+  const [view, setView] = useState<View>(View.SPECTRUM);
   const [user, setUser] = useState<User | null>(null);
 
   const handleLogin = () => {
@@ -30,11 +32,11 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setUser(null);
-    setView(View.LANDING);
+    setView(View.SPECTRUM);
   };
 
   const renderView = () => {
-    if (view === View.LANDING) {
+    if (view === View.SPECTRUM) {
       return <LandingPage onStart={handleLogin} />;
     }
 
@@ -42,8 +44,10 @@ const App: React.FC = () => {
       switch (view) {
         case View.DASHBOARD: return <Dashboard />;
         case View.CHAT: return <Chat />;
+        case View.WORLD: return <Spaces />;
         case View.MEETINGS: return <Meetings />;
-        case View.COMMUNITIES: return <GameHub />;
+        case View.CORE: return <Communities />;
+        case View.ARCADE: return <GameHub />;
         case View.PROFILE: return <Profile user={user} />;
         case View.SETTINGS: return <Settings />;
         default: return <Dashboard />;

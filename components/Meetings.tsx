@@ -29,6 +29,10 @@ const Meetings: React.FC = () => {
   const [selectedMic, setSelectedMic] = useState<string>('');
   const [activeControlMenu, setActiveControlMenu] = useState<'mic' | 'cam' | null>(null);
 
+  // Zoom State
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomCapabilities, setZoomCapabilities] = useState<{min: number, max: number, step: number} | null>(null);
+
   const [aiCaptionsEnabled, setAiCaptionsEnabled] = useState(true);
   const [liveTranscript, setLiveTranscript] = useState<string[]>([]);
   
@@ -73,7 +77,9 @@ const Meetings: React.FC = () => {
           deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          frameRate: { ideal: 60 }
+          frameRate: { ideal: 60 },
+          // Request zoom permission implicit in advanced constraints if needed, 
+          // but usually detected after stream start.
         },
         audio: { 
           deviceId: selectedMic ? { exact: selectedMic } : undefined,
@@ -83,6 +89,18 @@ const Meetings: React.FC = () => {
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+      
+      // Detect and initialize zoom capabilities
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities() as any; // Cast for TS compatibility
+      if (capabilities.zoom) {
+        setZoomCapabilities(capabilities.zoom);
+        const settings = track.getSettings() as any;
+        setZoomLevel(settings.zoom || capabilities.zoom.min);
+      } else {
+        setZoomCapabilities(null);
+      }
+
       setIsMeetingActive(true);
       if (aiCaptionsEnabled) initLiveTranscription(stream);
     } catch (err) {
@@ -90,6 +108,18 @@ const Meetings: React.FC = () => {
       alert("Hardware access required.");
     } finally {
       setIsRequestingPermission(false);
+    }
+  };
+
+  const handleZoom = async (val: number) => {
+    setZoomLevel(val);
+    if (streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      try {
+        await track.applyConstraints({ advanced: [{ zoom: val } as any] });
+      } catch (e) {
+        console.error("Zoom failed", e);
+      }
     }
   };
 
@@ -106,8 +136,11 @@ const Meetings: React.FC = () => {
           const { done, value } = await reader.read();
           if (done) break;
           if (ctx && value && canvasRef.current) {
-            canvasRef.current.width = value.displayWidth;
-            canvasRef.current.height = value.displayHeight;
+            // Optimization: Only resize if dimensions actually change to prevent black screen/flicker
+            if (canvasRef.current.width !== value.displayWidth || canvasRef.current.height !== value.displayHeight) {
+                canvasRef.current.width = value.displayWidth;
+                canvasRef.current.height = value.displayHeight;
+            }
             ctx.drawImage(value, 0, 0);
             value.close();
           }
@@ -218,7 +251,30 @@ const Meetings: React.FC = () => {
                     onMenuClick={(e) => { e.stopPropagation(); setActiveControlMenu(activeControlMenu === 'cam' ? null : 'cam'); }}
                   />
                   {activeControlMenu === 'cam' && (
-                    <DeviceMenu items={devices.filter(d => d.kind === 'videoinput')} title="Optics" onClose={() => setActiveControlMenu(null)} />
+                    <DeviceMenu 
+                      items={devices.filter(d => d.kind === 'videoinput')} 
+                      title="Optics" 
+                      onClose={() => setActiveControlMenu(null)}
+                      extraContent={
+                        zoomCapabilities && (
+                          <div className="pt-4 mt-4 border-t border-white/5 space-y-2">
+                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
+                              <span>Lens Zoom</span>
+                              <span>{zoomLevel.toFixed(1)}x</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min={zoomCapabilities.min} 
+                              max={zoomCapabilities.max} 
+                              step={zoomCapabilities.step} 
+                              value={zoomLevel} 
+                              onChange={(e) => handleZoom(parseFloat(e.target.value))}
+                              className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#53C8FF]"
+                            />
+                          </div>
+                        )
+                      }
+                    />
                   )}
                 </div>
                 <div className="w-[1px] h-10 bg-white/5 mx-2"></div>
@@ -296,7 +352,7 @@ const ControlButton: React.FC<{ icon: React.ReactNode, label: string, onClick?: 
   </div>
 );
 
-const DeviceMenu: React.FC<{ items: MediaDeviceInfo[], title: string, onClose: () => void }> = ({ items, title, onClose }) => (
+const DeviceMenu: React.FC<{ items: MediaDeviceInfo[], title: string, onClose: () => void, extraContent?: React.ReactNode }> = ({ items, title, onClose, extraContent }) => (
   <div className="absolute bottom-full mb-4 left-0 w-64 bg-[#0E1430] border border-white/10 rounded-2xl p-4 shadow-2xl animate-slide-in italic z-[200]">
      <div className="flex justify-between items-center mb-4 px-2">
         <h5 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">Select {title}</h5>
@@ -310,6 +366,7 @@ const DeviceMenu: React.FC<{ items: MediaDeviceInfo[], title: string, onClose: (
         )) : (
           <p className="px-3 py-2 text-[9px] text-white/30 font-bold italic">No devices detected.</p>
         )}
+        {extraContent}
         <hr className="my-2 border-white/5" />
         <button className="w-full text-left px-3 py-2.5 rounded-xl text-[10px] font-black uppercase text-[#53C8FF] italic hover:bg-[#53C8FF]/5 transition-all">Setup & Calibration...</button>
      </div>

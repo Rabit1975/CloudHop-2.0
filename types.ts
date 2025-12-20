@@ -1,10 +1,12 @@
 
 export enum View {
-  LANDING = 'landing',
+  SPECTRUM = 'spectrum', // Landing / Overview
   DASHBOARD = 'dashboard',
   CHAT = 'chat',
   MEETINGS = 'meetings',
-  COMMUNITIES = 'communities',
+  WORLD = 'world', // Hop World - Public Discovery
+  CORE = 'core',   // Hop Core - Private Hybrid Hub
+  ARCADE = 'arcade',
   PROFILE = 'profile',
   SETTINGS = 'settings'
 }

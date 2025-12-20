@@ -9,7 +9,7 @@ interface Game {
   desc: string;
   icon: string;
   url: string;
-  category: 'Arcade' | 'Puzzle' | 'Action' | 'Retro';
+  category: 'Arcade' | 'Puzzle' | 'Action' | 'Retro' | 'Racing' | 'Strategy';
   color: string;
   xpMultiplier?: number;
 }
@@ -17,19 +17,30 @@ interface Game {
 const GAMES: Game[] = [
   { id: '2048', name: '2048', desc: 'Classic tile merging logic. Highly addictive.', icon: '🔢', url: 'https://play2048.co/', category: 'Puzzle', color: '#edc22e', xpMultiplier: 2 },
   { id: 'hextris', name: 'Hextris', desc: 'Fast-paced hexagonal puzzle game inspired by Tetris.', icon: '🔷', url: 'https://hextris.io/', category: 'Puzzle', color: '#f39c12' },
-  { id: 'pacman', name: 'Pacman', desc: 'The legendary retro classic. Chase the high score.', icon: '🟡', url: 'https://www.google.com/logos/2010/pacman10-i.html', category: 'Retro', color: '#ffff00' },
-  { id: 'snake', name: 'Google Snake', desc: 'Sleek, modern snake gameplay directly in your cloud.', icon: '🐍', url: 'https://www.google.com/logos/2010/pacman10-i.html', category: 'Arcade', color: '#4caf50' },
+  { id: 'pacman', name: 'Pacman', desc: 'The legendary retro classic. Chase the high score.', icon: '🟡', url: 'https://freepacman.org/', category: 'Retro', color: '#ffff00' },
+  { id: 'cube', name: 'Cube Slam', desc: 'Face off against a bear in this 3D Chrome Experiment.', icon: '🐻', url: 'https://cubeslam.com/', category: 'Arcade', color: '#ff4081', xpMultiplier: 1.5 },
+  { id: 'snake', name: 'Google Snake', desc: 'Sleek, modern snake gameplay directly in your cloud.', icon: '🐍', url: 'https://snake.googlemaps.com/', category: 'Arcade', color: '#4caf50' },
   { id: 'tetris', name: 'React Tetris', desc: 'High-performance React-based tetrimino stacking.', icon: '🧱', url: 'https://chvin.github.io/react-tetris/', category: 'Puzzle', color: '#53C8FF', xpMultiplier: 1.5 },
-  { id: 'dino', name: 'Dino Run', desc: 'The offline classic, now always online in CloudHop.', icon: '🦖', url: 'https://chromedino.com/', category: 'Arcade', color: '#a3a3a3' },
-  { id: 'tower', name: 'Tower Stack', desc: 'Precision physics-based tower building.', icon: '🏙️', url: 'https://play.google.com/logos/2010/pacman10-i.html', category: 'Action', color: '#ff4d4d' },
-  { id: 'pong', name: 'Neon Pong', desc: 'Ultra-fast paddles in a neon-lit arena.', icon: '🏓', url: 'https://play2048.co/', category: 'Arcade', color: '#3DD68C' }
+  { id: 'quickdraw', name: 'Quick, Draw!', desc: 'Can a neural network recognize your drawing?', icon: '✏️', url: 'https://quickdraw.withgoogle.com/', category: 'Puzzle', color: '#9c27b0' },
+  { id: 'crossy', name: 'Crossy Road', desc: 'Hop forever. Don\'t get squashed.', icon: '🐔', url: 'https://poki.com/en/g/crossy-road', category: 'Action', color: '#3DD68C' },
+  { id: 'tower', name: 'Tower Stack', desc: 'Precision physics-based tower building.', icon: '🏙️', url: 'https://poki.com/en/g/stack', category: 'Action', color: '#ff4d4d' },
+  { id: 'pong', name: 'Neon Pong', desc: 'Ultra-fast paddles in a neon-lit arena.', icon: '🏓', url: 'https://pong-2.com/', category: 'Arcade', color: '#3DD68C' },
+  // New Additions
+  { id: 'slowroads', name: 'Slow Roads', desc: 'Endless zen driving in your browser.', icon: '🚗', url: 'https://slowroads.io/', category: 'Racing', color: '#53C8FF' },
+  { id: 'paperio', name: 'Paper.io 2', desc: 'Conquer territory and outsmart opponents.', icon: '🗺️', url: 'https://poki.com/en/g/paper-io-2', category: 'Strategy', color: '#FF4D4D', xpMultiplier: 1.2 },
+  { id: 'templerun', name: 'Temple Run 2', desc: 'The classic endless runner remastered.', icon: '🏃', url: 'https://poki.com/en/g/temple-run-2', category: 'Action', color: '#FCD34D' },
+  { id: 'subway', name: 'Subway Surfers', desc: 'Dash as fast as you can. Dodge the trains.', icon: '🏄', url: 'https://poki.com/en/g/subway-surfers', category: 'Action', color: '#3DD68C' },
+  { id: 'tinyfishing', name: 'Tiny Fishing', desc: 'Relaxing fishing game. Catch rare fish.', icon: '🎣', url: 'https://poki.com/en/g/tiny-fishing', category: 'Arcade', color: '#53C8FF' },
+  { id: 'moto', name: 'Moto X3M', desc: 'Extreme motorbike racing with crazy stunts.', icon: '🏍️', url: 'https://poki.com/en/g/moto-x3m', category: 'Racing', color: '#FF4D4D' },
+  { id: 'wordle', name: 'Wordle Unlimited', desc: 'Guess the word. Unlimited play.', icon: '📝', url: 'https://wordleunlimited.org/', category: 'Puzzle', color: '#3DD68C' },
+  { id: 'cutrope', name: 'Cut The Rope', desc: 'Feed Candy to Om Nom. Physics puzzle.', icon: '🍬', url: 'https://poki.com/en/g/cut-the-rope', category: 'Puzzle', color: '#3DD68C' }
 ];
 
 const GameHub: React.FC = () => {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
-  const categories = ['All', 'Arcade', 'Puzzle', 'Action', 'Retro'];
+  const categories = ['All', 'Arcade', 'Puzzle', 'Action', 'Racing', 'Strategy', 'Retro'];
   const filteredGames = activeCategory === 'All' ? GAMES : GAMES.filter(g => g.category === activeCategory);
 
   if (selectedGame) {
@@ -69,7 +80,7 @@ const GameHub: React.FC = () => {
            {/* Chrome Performance Overlay */}
            <div className="absolute top-6 left-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               <div className="bg-black/60 backdrop-blur-xl border border-white/10 p-4 rounded-2xl">
-                 <div className="text-[8px] font-black uppercase tracking-widest text-[#53C8FF] mb-2">Cloud Arcade Engine</div>
+                 <div className="text-[8px] font-black uppercase tracking-widest text-[#53C8FF] mb-2">GameHub Engine</div>
                  <div className="space-y-1">
                     <div className="flex justify-between gap-8 text-[9px] font-bold text-white/40">GPU Usage <span className="text-white">12%</span></div>
                     <div className="flex justify-between gap-8 text-[9px] font-bold text-white/40">Latency <span className="text-white">Ultra-Low</span></div>
@@ -95,7 +106,7 @@ const GameHub: React.FC = () => {
         <div className="flex items-center gap-8">
           <CloudHopLogo size={80} variant="neon" className="gpu-accelerated drop-shadow-[0_0_30px_rgba(83,200,255,0.4)]" />
           <div className="space-y-1">
-            <h1 className="text-6xl font-black tracking-tighter uppercase italic leading-none">Cloud <span className="text-[#53C8FF]">Arcade</span></h1>
+            <h1 className="text-6xl font-black tracking-tighter uppercase italic leading-none">Game<span className="text-[#53C8FF]">Hub</span></h1>
             <p className="text-white/30 text-xl font-medium italic">High-performance gaming built for the Chrome Desktop Core.</p>
           </div>
         </div>
@@ -154,45 +165,6 @@ const GameHub: React.FC = () => {
               </div>
            </div>
          ))}
-      </div>
-
-      <div className="bg-[#080C22] border border-white/10 rounded-[64px] p-16 relative overflow-hidden group">
-         <div className="absolute inset-0 bg-gradient-to-br from-[#1A2348]/40 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-1000"></div>
-         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-8">
-               <div className="inline-flex items-center gap-3 px-4 py-2 bg-[#53C8FF]/10 border border-[#53C8FF]/20 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[#53C8FF] animate-pulse"></span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#53C8FF]">Live Leaderboard Analytics</span>
-               </div>
-               <h2 className="text-6xl font-black italic tracking-tighter uppercase leading-[0.9]">The Arena <br /> <span className="text-[#53C8FF] drop-shadow-[0_0_20px_rgba(83,200,255,0.4)]">Top Hoppers</span></h2>
-               <p className="text-white/30 text-xl font-medium leading-relaxed italic max-w-md">Compete with the global CloudHop squad to claim exclusive digital assets and badge upgrades.</p>
-               <button className="px-12 py-5 bg-white/5 hover:bg-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-white/10 transition-all italic">Launch Full Analytics</button>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-               {[
-                 { name: 'Matthew', xp: '12,450', rank: '1', color: '#FFD700', trend: 'up' },
-                 { name: 'Sarah_Ops', xp: '10,892', rank: '2', color: '#C0C0C0', trend: 'stable' },
-                 { name: 'Mike_Ross', xp: '9,510', rank: '3', color: '#CD7F32', trend: 'up' },
-                 { name: 'Emily_AI', xp: '8,200', rank: '4', color: '#1A2348', trend: 'down' }
-               ].map((user, i) => (
-                 <div key={i} className="flex items-center justify-between p-6 bg-black/40 backdrop-blur-2xl border border-white/5 rounded-[32px] hover:border-[#53C8FF]/40 transition-all duration-500 group/item">
-                    <div className="flex items-center gap-6">
-                       <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shadow-2xl transition-transform group-hover/item:scale-110" style={{backgroundColor: user.color, color: 'black'}}>{user.rank}</div>
-                       <div className="space-y-1">
-                          <span className="font-black uppercase italic text-lg tracking-tighter">{user.name}</span>
-                          <div className="text-[8px] font-black text-white/20 uppercase tracking-widest italic">Global Rank #{user.rank}</div>
-                       </div>
-                    </div>
-                    <div className="text-right">
-                       <div className="font-black text-[#53C8FF] text-xl uppercase tracking-tighter italic">{user.xp} <span className="text-[10px] opacity-40">XP</span></div>
-                       <div className={`text-[8px] font-black uppercase tracking-widest ${user.trend === 'up' ? 'text-[#3DD68C]' : user.trend === 'down' ? 'text-red-500' : 'text-white/20'}`}>
-                          {user.trend === 'up' ? '▲ CLIMBING' : user.trend === 'down' ? '▼ DROPPING' : '• STABLE'}
-                       </div>
-                    </div>
-                 </div>
-               ))}
-            </div>
-         </div>
       </div>
     </div>
   );

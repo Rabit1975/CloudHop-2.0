@@ -1,141 +1,200 @@
 
 import React, { useState } from 'react';
-import XPBar from './XPBar';
-// Import Icons from constants to fix the "Cannot find name 'Icons'" error
 import { Icons } from '../constants';
+import GameHub from './GameHub';
 
 const Communities: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'feed' | 'spaces' | 'games' | 'ai'>('feed');
+  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub'>('Flow');
   const [selectedComm, setSelectedComm] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
 
   const communities = [
-    { name: 'Founders Circle', icon: '🚀' },
-    { name: 'Engineering Group', icon: '💻' },
-    { name: 'Creative Alliance', icon: '🎨' },
-    { name: 'Cloud Gaming Squad', icon: '🎮' },
+    { name: 'Founders Circle', icon: '🚀', sub: 'Broadcast Only (Beam)' },
+    { name: 'Engineering Group', icon: '💻', sub: 'Standard Hybrid (Flow+Mesh)' },
+    { name: 'Creative Alliance', icon: '🎨', sub: 'Strategy Hub (Mesh)' },
+    { name: 'Global Squad', icon: '🌍', sub: 'Social (Flow)' },
   ];
 
-  const spaces = [
-    { name: 'Product Brainstorm', category: 'Work', participants: 4, image: 'https://picsum.photos/seed/work/400/225' },
-    { name: 'Deep Focus (Lofi)', category: 'Study', participants: 28, image: 'https://picsum.photos/seed/study/400/225' },
-    { name: 'Q1 Vision Room', category: 'Strategic', participants: 12, image: 'https://picsum.photos/seed/vision/400/225' },
+  const channels = [
+    { name: 'general-chat', type: 'Flow' },
+    { name: 'hq-announcements', type: 'Beam' },
+    { name: 'git-mesh-sync', type: 'Mesh' },
+    { name: 'strategy-notes', type: 'Mesh' },
+    { name: 'one-way-wire', type: 'Beam' }
   ];
 
-  const games = [
-    { name: 'Cloudhop 2048', icon: '🔢', url: 'https://play2048.co/' },
-    { name: 'Pacman Arena', icon: '🟡', url: 'https://www.google.com/logos/2010/pacman10-i.html' },
-    { name: 'Snake Relay', icon: '🐍', url: 'https://www.google.com/logos/2010/pacman10-i.html' }
-  ];
+  const handleSync = () => {
+    setIsSyncing(true);
+    setSyncProgress(0);
+    const interval = setInterval(() => {
+      setSyncProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setIsSyncing(false), 500);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 50);
+  };
 
   return (
-    <div className="h-full flex gap-1 rounded-[24px] overflow-hidden border border-white/5 bg-[#080C22] shadow-2xl animate-fade-in italic">
-      <div className="w-20 bg-[#050819] flex flex-col items-center py-6 space-y-5 border-r border-white/5">
+    <div className="h-full flex gap-1 rounded-[48px] overflow-hidden border border-white/5 bg-[#080C22] shadow-[0_50px_120px_rgba(0,0,0,0.9)] animate-fade-in italic">
+      {/* 1. Hop Spaces Navigator */}
+      <div className="w-24 bg-[#050819] flex flex-col items-center py-12 space-y-10 border-r border-white/5">
         {communities.map((c, i) => (
-          <button key={i} onClick={() => setSelectedComm(i)} className={`w-12 h-12 rounded-[16px] flex items-center justify-center text-xl transition-all relative ${selectedComm === i ? 'bg-[#53C8FF] shadow-[0_0_20px_rgba(83,200,255,0.3)]' : 'bg-[#0E1430] text-white/30 hover:text-white'}`}>
-            {c.icon}
-          </button>
+          <div key={i} className="relative group">
+            <button 
+              onClick={() => setSelectedComm(i)}
+              className={`w-14 h-14 rounded-3xl flex items-center justify-center text-2xl transition-all relative ${selectedComm === i ? 'bg-[#53C8FF] shadow-[0_0_40px_rgba(83,200,255,0.4)] scale-110' : 'bg-[#0E1430] text-white/20 hover:text-white hover:scale-110'}`}
+            >
+              {c.icon}
+            </button>
+          </div>
         ))}
+        <button className="w-14 h-14 rounded-3xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-white/20 hover:bg-white/10 transition-all">+</button>
       </div>
 
-      <div className="flex-1 flex flex-col bg-[#0A0F1F]/50">
-        <div className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#080C22]/40 backdrop-blur-md">
-          <div className="flex items-center gap-8">
-            <h3 className="font-black text-sm uppercase tracking-[0.2em]">{communities[selectedComm].name}</h3>
-            <div className="flex gap-1 bg-[#050819] p-1 rounded-xl">
-              {(['feed', 'spaces', 'games', 'ai'] as const).map(t => (
-                <button key={t} onClick={() => setActiveTab(t)} className={`px-6 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === t ? 'bg-[#1A2348] text-[#53C8FF]' : 'text-white/20 hover:text-white'}`}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* 2. Channel Tree */}
+      <div className="w-72 bg-[#080C22] flex flex-col border-r border-white/5">
+        <div className="p-8 border-b border-white/5">
+           <div className="text-[9px] font-black uppercase tracking-[0.4em] text-[#53C8FF] mb-2 italic">Hop Spaces Hub</div>
+           <h3 className="font-black text-lg uppercase tracking-tighter text-white italic">{communities[selectedComm].name}</h3>
+        </div>
+        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+           {channels.map((chan, i) => (
+             <button key={i} className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all group ${i === 2 ? 'bg-[#53C8FF]/10 text-[#53C8FF]' : 'text-white/30 hover:bg-white/5'}`}>
+                <div className="flex items-center gap-4">
+                   <span className="text-white/10 font-black text-sm">#</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">{chan.name}</span>
+                </div>
+                <div className={`w-1 h-1 rounded-full ${chan.type === 'Beam' ? 'bg-[#FF4D4D]' : chan.type === 'Mesh' ? 'bg-[#3DD68C]' : 'bg-[#53C8FF]'} opacity-0 group-hover:opacity-100`}></div>
+             </button>
+           ))}
+        </nav>
+      </div>
+
+      {/* 3. The Hybrid Workspace */}
+      <div className="flex-1 flex flex-col bg-[#0A0F1F]/40 overflow-hidden">
+        <div className="h-24 shrink-0 border-b border-white/5 flex items-center justify-between px-10 bg-[#080C22]/60 backdrop-blur-3xl">
+           <div className="flex flex-col gap-2">
+              <div className="flex gap-2 bg-[#050819] p-1.5 rounded-2xl shadow-inner overflow-x-auto custom-scrollbar">
+                 {(['Flow', 'Mesh', 'Beam', 'Pulse', 'GameHub'] as const).map(t => (
+                   <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all italic whitespace-nowrap ${activeTab === t ? 'bg-[#1A2348] text-[#53C8FF] ring-1 ring-[#53C8FF]/20' : 'text-white/20 hover:text-white'}`}>
+                     {t}
+                   </button>
+                 ))}
+              </div>
+           </div>
+           <div className="flex items-center gap-6">
+              <button className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-[#53C8FF]/10 transition-all group">
+                <Icons.AI className="w-5 h-5 text-[#53C8FF] group-hover:scale-110" />
+              </button>
+           </div>
         </div>
 
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-          {activeTab === 'feed' && (
-             <div className="max-w-3xl mx-auto space-y-6 animate-fade-in italic">
-                <div className="p-10 bg-[#0E1430] border border-white/5 rounded-[32px] text-center space-y-4">
-                   <div className="w-20 h-20 bg-[#53C8FF]/10 rounded-[24px] flex items-center justify-center text-4xl mx-auto mb-6 border border-[#53C8FF]/20 italic">{communities[selectedComm].icon}</div>
-                   <h2 className="text-2xl font-black uppercase tracking-tighter italic">Workspace Intelligence Feed</h2>
-                   <p className="text-white/30 text-xs font-medium italic">Latest updates and shared resources for your community group.</p>
-                </div>
-                <div className="grid gap-4">
-                   {[1,2].map(i => (
-                      <div key={i} className="bg-[#0E1430]/40 border border-white/5 p-6 rounded-2xl flex gap-6 hover:bg-[#0E1430] transition-all group">
-                         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 shrink-0"></div>
-                         <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                               <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">Project Update</span>
-                               <span className="text-[8px] font-black text-white/20 uppercase">2h ago</span>
-                            </div>
-                            <p className="text-sm font-medium leading-relaxed italic">CloudHop 2.5 architecture has been successfully deployed to the edge clusters.</p>
+        <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
+           {activeTab === 'GameHub' && (
+              <GameHub />
+           )}
+
+           {activeTab === 'Mesh' && (
+             <div className="animate-fade-in space-y-10 italic">
+                {/* GitHub Integration Card */}
+                <div className="bg-[#0E1430] border border-[#53C8FF]/20 p-10 rounded-[48px] shadow-3xl relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><span className="text-8xl">🐙</span></div>
+                   <div className="flex items-center justify-between mb-8">
+                      <div>
+                         <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#53C8FF] mb-2">GitHub Mesh Node</h4>
+                         <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">cloudhop / core-engine</h2>
+                      </div>
+                      <div className="flex gap-4">
+                         <button 
+                           onClick={handleSync}
+                           className="px-8 py-3.5 bg-white/5 border border-white/10 hover:border-[#53C8FF]/40 rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-all"
+                         >
+                            Pull
+                         </button>
+                         <button 
+                           onClick={handleSync}
+                           className="px-8 py-3.5 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl text-[10px] font-black uppercase tracking-widest italic shadow-xl shadow-[#53C8FF]/20"
+                         >
+                            Push Changes
+                         </button>
+                      </div>
+                   </div>
+
+                   {isSyncing ? (
+                      <div className="space-y-4 animate-pulse">
+                         <div className="flex justify-between text-[9px] font-black uppercase text-[#53C8FF] tracking-widest">
+                            <span>Pushing local mesh to GitHub...</span>
+                            <span>{syncProgress}%</span>
+                         </div>
+                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#53C8FF] transition-all duration-300" style={{ width: `${syncProgress}%` }}></div>
                          </div>
                       </div>
-                   ))}
+                   ) : (
+                      <div className="grid grid-cols-2 gap-8 pt-4 border-t border-white/5">
+                         <div className="space-y-3">
+                            <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Recent Commits</div>
+                            {[
+                              { msg: 'feat: neon filter fix', time: '12m ago' },
+                              { msg: 'refactor: hop-mesh core', time: '1h ago' }
+                            ].map((c, i) => (
+                               <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/40 italic">
+                                  <span>{c.msg}</span>
+                                  <span className="text-[8px] opacity-40">{c.time}</span>
+                               </div>
+                            ))}
+                         </div>
+                         <div className="flex flex-col justify-center items-end">
+                            <div className="text-[8px] font-black text-[#3DD68C] uppercase tracking-[0.4em] mb-1">Status: Synced</div>
+                            <div className="text-[10px] text-white/10 uppercase tracking-widest">Last Mesh Pulse: 2m ago</div>
+                         </div>
+                      </div>
+                   )}
+                </div>
+
+                {/* File Mesh Dropzone */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="bg-[#0E1430] border-2 border-dashed border-white/5 p-12 rounded-[48px] text-center flex flex-col items-center justify-center hover:border-[#53C8FF]/20 transition-all group cursor-pointer">
+                      <div className="text-4xl mb-6 group-hover:scale-125 transition-transform">☁️</div>
+                      <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Drop Files to Mesh</h4>
+                      <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Simultaneous Sync to All Hubs</p>
+                   </div>
+                   <div className="bg-[#0E1430] border border-white/5 p-12 rounded-[48px] shadow-xl space-y-6">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">Mesh Assets</h4>
+                      <div className="space-y-4">
+                         {[
+                           { name: 'logo_mesh_v2.svg', size: '2.4mb', type: 'vector' },
+                           { name: 'sprint_q1_notes.md', size: '12kb', type: 'doc' }
+                         ].map((f, i) => (
+                            <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#53C8FF]/20 transition-all">
+                               <div className="flex items-center gap-4">
+                                  <div className="w-8 h-8 rounded-lg bg-[#53C8FF]/10 flex items-center justify-center text-[10px] font-black text-[#53C8FF]">#</div>
+                                  <div className="text-xs font-bold">{f.name}</div>
+                               </div>
+                               <span className="text-[9px] font-black text-white/20">{f.size}</span>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
                 </div>
              </div>
-          )}
+           )}
 
-          {activeTab === 'spaces' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in italic">
-              {spaces.map((s, i) => (
-                <div key={i} className="group bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-[#53C8FF]/40 transition-all">
-                  <div className="relative h-40 overflow-hidden">
-                    <img src={s.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0E1430] to-transparent opacity-60"></div>
-                    <div className="absolute top-3 left-3 flex -space-x-2">
-                      {[1,2,3].map(j => (
-                        <div key={j} className="w-6 h-6 rounded-full border-2 border-[#0E1430] bg-[#1A2348] text-[8px] flex items-center justify-center font-black">U</div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex justify-between items-center mb-1">
-                      <h4 className="font-bold text-base group-hover:text-[#53C8FF] transition-colors">{s.name}</h4>
-                      <span className="text-[8px] font-black uppercase tracking-widest text-white/30">{s.participants} online</span>
-                    </div>
-                    <p className="text-[10px] text-[#53C8FF] font-bold uppercase tracking-wider mb-4 italic">{s.category}</p>
-                    <button className="w-full py-2.5 bg-white/5 hover:bg-[#53C8FF] hover:text-[#0A0F1F] rounded-xl text-xs font-black uppercase tracking-widest transition-all italic">Enter Huddle</button>
-                  </div>
+           {activeTab === 'Flow' && (
+             <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in italic">
+                <div className="text-[140px] opacity-20 select-none">{communities[selectedComm].icon}</div>
+                <div className="space-y-4">
+                  <h2 className="text-6xl font-black uppercase tracking-tighter italic leading-none">{communities[selectedComm].name}</h2>
+                  <p className="text-white/20 text-xl font-medium max-w-xl mx-auto italic">Social heartbeat active. Drop into the conversation.</p>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'games' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-in italic">
-              {games.map((g, i) => (
-                <div key={i} className="bg-[#0E1430] border border-white/5 rounded-[40px] p-8 flex flex-col hover:border-[#53C8FF]/40 transition-all shadow-2xl relative group overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#53C8FF]/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="w-16 h-16 bg-[#050819] rounded-[24px] flex items-center justify-center text-4xl mb-6 border border-white/5 shadow-inner transition-transform group-hover:scale-110 duration-500 italic">{g.icon}</div>
-                  <h3 className="text-xl font-black uppercase tracking-tighter italic mb-8">{g.name}</h3>
-                  <button className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-2xl transition-all italic">Launch</button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'ai' && (
-            <div className="max-w-2xl mx-auto space-y-6 animate-fade-in italic">
-              <div className="p-8 bg-[#1A2348] border border-[#53C8FF]/20 rounded-[32px] shadow-2xl">
-                <div className="flex items-center gap-4 mb-8">
-                   <div className="p-3 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl shadow-lg shadow-[#53C8FF]/20">
-                      <Icons.AI className="w-6 h-6" />
-                   </div>
-                   <h4 className="text-xl font-black uppercase tracking-widest text-[#53C8FF] italic">Moderation Hub</h4>
-                </div>
-                <div className="space-y-6">
-                  <div className="p-5 bg-black/40 border border-white/5 rounded-2xl">
-                     <p className="text-xs text-white/60 italic leading-relaxed">"Gemini is observing high engagement in the **Founders Circle** regarding edge deployment. Trending keywords: #Cloud, #Latency, #Hops."</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button className="py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5 italic">Analyze Sentiment</button>
-                    <button className="py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5 italic">Forecast Trends</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+                <button className="px-16 py-6 bg-[#53C8FF] text-[#0A0F1F] rounded-[32px] text-sm font-black uppercase tracking-[0.2em] italic shadow-2xl shadow-[#53C8FF]/20 hover:scale-105 transition-all">Join Social Flow</button>
+             </div>
+           )}
         </div>
       </div>
     </div>
