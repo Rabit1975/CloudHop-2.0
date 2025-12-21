@@ -10,6 +10,7 @@ import Communities from './components/Communities';
 import GameHub from './components/GameHub';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
+import AITools from './components/AITools';
 import Layout from './components/Layout';
 
 const App: React.FC = () => {
@@ -48,6 +49,7 @@ const App: React.FC = () => {
         case View.MEETINGS: return <Meetings />;
         case View.CORE: return <Communities />;
         case View.ARCADE: return <GameHub />;
+        case View.AI_TOOLS: return <AITools />;
         case View.PROFILE: return <Profile user={user} />;
         case View.SETTINGS: return <Settings />;
         default: return <Dashboard />;

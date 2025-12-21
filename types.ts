@@ -8,7 +8,8 @@ export enum View {
   CORE = 'core',   // Hop Core - Private Hybrid Hub
   ARCADE = 'arcade',
   PROFILE = 'profile',
-  SETTINGS = 'settings'
+  SETTINGS = 'settings',
+  AI_TOOLS = 'ai_tools'
 }
 
 export interface Badge {

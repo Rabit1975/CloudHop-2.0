@@ -1,32 +1,9 @@
-import React, { useId, useState } from 'react';
 
-// 🌐 Domain
+import React from 'react';
+import { LogoMain, Logo3D, LogoGlow, LogoQ1, LogoQ2, LogoQ3, LogoQ4 } from './components/Logos';
+
 export const DOMAIN = "cloudhop.app";
 
-// 🎨 Branding Themes
-export const BrandingEngine = {
-  themes: {
-    neon: {
-      primary: '#53C8FF', 
-      secondary: '#07409D', // Deep Blue
-      accent: '#FFFFFF', 
-      bg: '#050819',
-      glow: 'rgba(83, 200, 255, 0.4)',
-    },
-    light: {
-      primary: '#07409D',
-      secondary: '#E0E7FF',
-      bg: '#FFFFFF',
-    },
-    'high-contrast': {
-      primary: '#00D1FF',
-      secondary: '#000000',
-      bg: '#000000',
-    }
-  }
-};
-
-// 🎯 Core Colors
 export const COLORS = {
   PRIMARY: '#53C8FF',
   DEEP_BLUE: '#07409D',
@@ -36,50 +13,37 @@ export const COLORS = {
   SIDEBAR_BG: '#080C22',
 };
 
-export const ASSETS = {
-  // 🟢 PRIMARY LOGO SOURCES
-  logoUrl: '/logo.svg', 
-  logoWhite: '/logo-white.svg',
-  logoLight: '/logo-light.svg',
-
-  // Mascots & Icons
-  rabbitMascot: '/rabbit-hop.svg',
-  cloudIcon: '/cloud.svg',
-
-  // Images for specific sections
-  rabbitHero: 'https://images.unsplash.com/photo-1585110396054-c8182ae55844?q=80&w=800&auto=format&fit=crop',
-  background: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop',
-};
-
 export const CloudHopLogo: React.FC<{ 
   size?: number; 
   className?: string; 
-  variant?: 'neon' | 'light' | 'dark' | 'white'
-}> = ({ size = 32, className = "", variant = 'neon' }) => {
-  const getLogoSrc = () => {
+  variant?: 'main' | 'neon' | 'glow' | '3d' | 'q1' | 'q2' | 'q3' | 'q4' | 'white'
+}> = ({ size = 32, className = "", variant = 'main' }) => {
+  
+  const style: React.CSSProperties = {
+    width: size,
+    height: 'auto',
+    display: 'inline-block',
+    flexShrink: 0,
+    ...(variant === 'white' ? { filter: 'brightness(0) invert(1)' } : {}),
+    ...(variant === 'neon' ? { filter: 'drop-shadow(0 0 12px rgba(83, 200, 255, 0.8))' } : {})
+  };
+
+  const renderLogo = () => {
     switch (variant) {
-      case 'light': return ASSETS.logoLight;
-      case 'white': return ASSETS.logoWhite;
-      case 'dark': return ASSETS.logoUrl; // Full branded blue version
-      case 'neon': default: return ASSETS.logoUrl;
+      case 'q1': return <LogoQ1 className={className} style={style} />;
+      case 'q2': return <LogoQ2 className={className} style={style} />;
+      case 'q3': return <LogoQ3 className={className} style={style} />;
+      case 'q4': return <LogoQ4 className={className} style={style} />;
+      case '3d': return <Logo3D className={className} style={style} />;
+      case 'glow':
+      case 'neon': return <LogoGlow className={className} style={style} />;
+      case 'main':
+      case 'white':
+      default: return <LogoMain className={className} style={style} />;
     }
   };
 
-  return (
-    <img 
-      src={getLogoSrc()} 
-      alt="CloudHop" 
-      className={`${className} object-contain transition-all duration-500`}
-      style={{ 
-        width: size, 
-        height: size,
-        filter: variant === 'neon' ? 'drop-shadow(0 0 12px rgba(83, 200, 255, 0.6))' : 'none'
-      }} 
-      onError={(e) => {
-        e.currentTarget.style.display = 'none'; 
-      }}
-    />
-  );
+  return renderLogo();
 };
 
 export const Icons = {

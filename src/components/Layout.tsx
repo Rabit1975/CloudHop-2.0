@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, User } from '../types';
 import { CloudHopLogo, Icons } from '../constants';
@@ -41,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     { id: View.WORLD, label: 'Hop World Communities', icon: Icons.Spaces },
     { id: View.MEETINGS, label: 'Meetings', icon: Icons.Meetings },
     { id: View.CORE, label: 'Hop Spaces', icon: Icons.Communities },
-    { id: View.AI_TOOLS, label: 'Intelligence Suite', icon: Icons.AI },
+    // Arcade moved inside Hop Spaces
   ];
 
   const viewLabels: Record<View, string> = {
@@ -52,7 +51,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.MEETINGS]: 'Mesh: Meeting Engine',
     [View.CORE]: 'Hop Spaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
-    [View.AI_TOOLS]: 'AI Intelligence Hub',
     [View.PROFILE]: 'Digital ID',
     [View.SETTINGS]: 'System Config'
   };

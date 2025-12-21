@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User } from '../types';
 
@@ -12,6 +13,7 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
 
   return (
     <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-10 animate-fade-in">
+      {/* Left: Profile Card (Source: Page 29/50) */}
       <div className="w-full lg:w-[320px] shrink-0 space-y-6">
         <div className="bg-[#0E1430] border border-white/5 rounded-[32px] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#1A2348] to-transparent"></div>
@@ -44,6 +46,7 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
         </div>
       </div>
 
+      {/* Right: Preferences (Source: Page 30/50) */}
       <div className="flex-1 space-y-8">
         <div className="bg-[#0E1430] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl">
           <div className="flex bg-[#080C22] p-2 border-b border-white/5 overflow-x-auto custom-scrollbar">
@@ -71,6 +74,13 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
                    <InputGroup label="Status Message" value="Building the cloud..." />
                    <InputGroup label="Joined Date" value="Nov 20, 2025" readOnly />
                 </div>
+                <div className="pt-10 border-t border-white/5">
+                   <h4 className="text-sm font-black uppercase tracking-widest mb-6">Connected Providers</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <ConnectedProvider name="Google" icon="G" status="Connected" />
+                      <ConnectedProvider name="Microsoft" icon="M" status="Disconnected" />
+                   </div>
+                </div>
               </div>
             )}
 
@@ -84,6 +94,25 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
                       <ThemeOption label="Auto" icon="🖥️" />
                    </div>
                 </div>
+                <div className="space-y-6">
+                   <h4 className="text-sm font-black uppercase tracking-widest">Primary Accent</h4>
+                   <div className="flex flex-wrap gap-5">
+                      <div className="w-12 h-12 rounded-2xl bg-[#53C8FF] ring-4 ring-[#53C8FF]/20 cursor-pointer shadow-[0_0_20px_rgba(83,200,255,0.3)]"></div>
+                      <div className="w-12 h-12 rounded-2xl bg-purple-500 cursor-pointer hover:scale-110 transition-all opacity-40 hover:opacity-100"></div>
+                      <div className="w-12 h-12 rounded-2xl bg-rose-500 cursor-pointer hover:scale-110 transition-all opacity-40 hover:opacity-100"></div>
+                      <div className="w-12 h-12 rounded-2xl bg-[#3DD68C] cursor-pointer hover:scale-110 transition-all opacity-40 hover:opacity-100"></div>
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Notifications' && (
+              <div className="space-y-8">
+                <ToggleRow label="Mentions" active />
+                <ToggleRow label="Direct Messages" active />
+                <ToggleRow label="Meeting Reminders" active />
+                <ToggleRow label="AI Suggestions" />
+                <ToggleRow label="Sound Effects" active />
               </div>
             )}
 
@@ -118,6 +147,23 @@ const InputGroup: React.FC<{ label: string; value: string; readOnly?: boolean }>
   </div>
 );
 
+const ConnectedProvider: React.FC<{ name: string, icon: string, status: string }> = ({ name, icon, status }) => (
+  <button className="w-full flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
+    <div className="flex items-center gap-4">
+      <div className="w-10 h-10 rounded-xl bg-[#080C22] flex items-center justify-center font-black text-lg group-hover:text-[#53C8FF] transition-colors">{icon}</div>
+      <div className="text-left">
+        <div className="text-sm font-black">{name}</div>
+        <div className={`text-[9px] font-black uppercase tracking-widest ${status === 'Connected' ? 'text-green-500' : 'text-white/20'}`}>{status}</div>
+      </div>
+    </div>
+    {status === 'Connected' ? (
+      <span className="text-[10px] font-black uppercase tracking-widest text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">Disconnect</span>
+    ) : (
+      <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">Connect</span>
+    )}
+  </button>
+);
+
 const ThemeOption: React.FC<{ label: string; icon: string; active?: boolean }> = ({ label, icon, active }) => (
   <button className={`flex flex-col items-center gap-4 p-8 rounded-[24px] border-2 transition-all group ${
     active ? 'bg-[#1A2348] border-[#53C8FF]/50 text-[#53C8FF] shadow-[0_20px_40px_rgba(0,0,0,0.4)]' : 'bg-[#080C22] border-white/5 text-white/30 hover:border-white/20'
@@ -126,5 +172,20 @@ const ThemeOption: React.FC<{ label: string; icon: string; active?: boolean }> =
     <span className="text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
   </button>
 );
+
+const ToggleRow: React.FC<{ label: string; active?: boolean }> = ({ label, active: initialActive }) => {
+  const [active, setActive] = useState(initialActive);
+  return (
+    <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
+      <span className="text-sm font-bold text-white/60 tracking-tight">{label}</span>
+      <button 
+        onClick={() => setActive(!active)}
+        className={`w-14 h-7 rounded-full transition-all relative flex items-center px-1.5 ${active ? 'bg-[#53C8FF]' : 'bg-[#1B2D45]'}`}
+      >
+        <span className={`w-4.5 h-4.5 bg-white rounded-full transition-all shadow-md ${active ? 'translate-x-7' : 'translate-x-0'}`}></span>
+      </button>
+    </div>
+  );
+};
 
 export default Profile;

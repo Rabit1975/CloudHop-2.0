@@ -3,11 +3,12 @@ import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 
 const AITools: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Summarize' | 'Rewrite' | 'Translate' | 'Extract Actions' | 'Thinking Mode' | 'Transcribe'>('Summarize');
+  const [activeTab, setActiveTab] = useState<'Summarize' | 'Rewrite' | 'Brand Lab' | 'Thinking Mode' | 'Transcribe'>('Summarize');
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -82,6 +83,7 @@ const AITools: React.FC = () => {
     setIsLoading(true);
     setError('');
     setOutputText('');
+    setGeneratedImageUrl(null);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -89,18 +91,33 @@ const AITools: React.FC = () => {
       let model = 'gemini-3-flash-preview';
       let config: any = {};
 
+      if (activeTab === 'Brand Lab') {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [{ text: `A futuristic, high-tech SaaS logo inspiration for 'CloudHop'. Minimalist, neon blue and white, professional, vector style, cloud-themed hopping metaphor. High resolution. ${inputText}` }]
+          },
+          config: {
+            imageConfig: { aspectRatio: "1:1" }
+          }
+        });
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData) {
+            setGeneratedImageUrl(`data:image/png;base64,${part.inlineData.data}`);
+            break;
+          }
+        }
+        setIsLoading(false);
+        return;
+      }
+
       switch(activeTab) {
         case 'Summarize':
           prompt = `Summarize the following chat/text into a few concise bullet points:\n\n${inputText}`;
           break;
         case 'Rewrite':
           prompt = `Rewrite the following text to be more professional, clear, and well-toned:\n\n${inputText}`;
-          break;
-        case 'Translate':
-          prompt = `Translate the following text into Spanish, French, and Japanese:\n\n${inputText}`;
-          break;
-        case 'Extract Actions':
-          prompt = `Extract a list of actionable tasks or next steps from this text:\n\n${inputText}`;
           break;
         case 'Thinking Mode':
           prompt = `Perform deep reasoning and analysis on this complex query:\n\n${inputText}`;
@@ -127,9 +144,9 @@ const AITools: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in italic">
       <div className="bg-[#10233A] border border-[#1E3A5F] p-4 rounded-2xl text-center">
-        <p className="text-sm font-medium text-[#53C8FF]">CloudHop Intelligence: Powered by Gemini 3.</p>
+        <p className="text-sm font-medium text-[#53C8FF] font-black uppercase tracking-widest">CloudHop Intelligence: Powered by Gemini.</p>
       </div>
 
       <div className="bg-gradient-to-r from-[#1A2348] to-[#0E1430] p-8 rounded-[32px] border border-[#53C8FF]/20 shadow-2xl relative overflow-hidden">
@@ -143,17 +160,17 @@ const AITools: React.FC = () => {
              </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(['Summarize', 'Rewrite', 'Translate', 'Extract Actions', 'Thinking Mode', 'Transcribe'] as const).map(tab => (
+            {(['Summarize', 'Rewrite', 'Brand Lab', 'Thinking Mode', 'Transcribe'] as const).map(tab => (
               <button
                 key={tab}
-                onClick={() => { setActiveTab(tab); setOutputText(''); setInputText(''); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                onClick={() => { setActiveTab(tab); setOutputText(''); setInputText(''); setGeneratedImageUrl(null); }}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   activeTab === tab 
                     ? 'bg-[#53C8FF] text-[#0A0F1F] shadow-lg shadow-[#53C8FF]/20' 
                     : 'text-white/40 hover:bg-white/10'
                 }`}
               >
-                {tab === 'Thinking Mode' ? '🧠 Thinking' : tab === 'Transcribe' ? '🎙️ Transcribe' : tab}
+                {tab === 'Thinking Mode' ? '🧠 Thinking' : tab === 'Transcribe' ? '🎙️ Transcribe' : tab === 'Brand Lab' ? '🎨 Brand Lab' : tab}
               </button>
             ))}
           </div>
@@ -164,12 +181,12 @@ const AITools: React.FC = () => {
         {/* Left: Input */}
         <div className="bg-[#0E1430] border border-white/5 rounded-[24px] flex flex-col overflow-hidden shadow-xl">
            <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                {activeTab === 'Transcribe' ? 'Microphone Input' : 'Input Content'}
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 italic">
+                {activeTab === 'Transcribe' ? 'Microphone Input' : activeTab === 'Brand Lab' ? 'Brand Direction' : 'Input Content'}
               </span>
               <button 
                 onClick={() => setInputText('')}
-                className="text-xs text-[#53C8FF]/50 hover:text-[#53C8FF] font-bold"
+                className="text-[9px] text-[#53C8FF]/50 hover:text-[#53C8FF] font-black uppercase tracking-widest"
               >
                 Clear
               </button>
@@ -181,20 +198,20 @@ const AITools: React.FC = () => {
                    <svg className={`w-12 h-12 ${isRecording ? 'text-red-500' : 'text-[#53C8FF]'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </div>
                 <div className="text-center">
-                   <h3 className="font-bold text-lg">{isRecording ? 'Recording Live Audio...' : 'Ready to Transcribe'}</h3>
-                   <p className="text-xs text-white/30 mt-1 uppercase tracking-widest font-black">Powered by Gemini 3 Flash</p>
+                   <h3 className="font-black uppercase text-lg italic">{isRecording ? 'Recording Live Audio...' : 'Ready to Transcribe'}</h3>
+                   <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest font-black italic">Powered by Gemini 3 Flash</p>
                 </div>
                 <button 
                   onClick={isRecording ? stopRecording : startRecording}
-                  className={`px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? 'bg-red-500 text-white shadow-red-500/20 shadow-xl' : 'bg-[#53C8FF] text-[#0A0F1F] shadow-[#53C8FF]/20 shadow-xl'}`}
+                  className={`px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isRecording ? 'bg-red-500 text-white shadow-red-500/20 shadow-xl' : 'bg-[#53C8FF] text-[#0A0F1F] shadow-[#53C8FF]/20 shadow-xl'}`}
                 >
                   {isRecording ? 'Stop Recording' : 'Start Recording'}
                 </button>
              </div>
            ) : (
              <textarea 
-               className="flex-1 bg-transparent p-6 text-sm text-white/80 focus:outline-none resize-none custom-scrollbar leading-relaxed"
-               placeholder={activeTab === 'Thinking Mode' ? "Ask a complex question that requires deep thought..." : "Paste a message, conversation, or meeting notes here..."}
+               className="flex-1 bg-transparent p-6 text-sm text-white/80 focus:outline-none resize-none custom-scrollbar leading-relaxed font-medium italic"
+               placeholder={activeTab === 'Thinking Mode' ? "Ask a complex question that requires deep thought..." : activeTab === 'Brand Lab' ? "Describe the logo style (e.g., 'Make it look like a 3D glass cloud')" : "Paste a message, conversation, or meeting notes here..."}
                value={inputText}
                onChange={(e) => setInputText(e.target.value)}
              />
@@ -205,9 +222,9 @@ const AITools: React.FC = () => {
                 <button 
                   onClick={handleAction}
                   disabled={isLoading || !inputText}
-                  className={`w-full py-4 rounded-2xl text-base font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
+                  className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all italic ${
                     isLoading || !inputText 
-                      ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+                      ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5' 
                       : 'bg-[#53C8FF] text-[#0A0F1F] hover:brightness-110 shadow-xl shadow-[#53C8FF]/20'
                   }`}
                 >
@@ -220,11 +237,11 @@ const AITools: React.FC = () => {
         {/* Right: Output */}
         <div className="bg-[#0E1430] border border-white/5 rounded-[24px] flex flex-col overflow-hidden shadow-xl relative">
            <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Intelligence Output</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 italic">Intelligence Output</span>
               {outputText && (
                 <button 
                   onClick={() => navigator.clipboard.writeText(outputText)}
-                  className="text-xs text-[#53C8FF]/50 hover:text-[#53C8FF] font-bold flex items-center gap-2"
+                  className="text-[9px] text-[#53C8FF]/50 hover:text-[#53C8FF] font-black uppercase tracking-widest flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2" /></svg>
                   Copy
@@ -232,12 +249,30 @@ const AITools: React.FC = () => {
               )}
            </div>
            
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 text-sm text-white/90 leading-relaxed whitespace-pre-wrap italic">
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 text-sm text-white/90 leading-relaxed whitespace-pre-wrap italic font-medium">
               {error && <div className="text-red-400 font-bold mb-4">{error}</div>}
-              {!outputText && !isLoading && (
+              
+              {generatedImageUrl && (
+                <div className="space-y-6">
+                   <img src={generatedImageUrl} className="w-full rounded-2xl shadow-2xl border border-white/10" alt="Generated Brand Asset" />
+                   <button 
+                     onClick={() => {
+                       const link = document.createElement('a');
+                       link.href = generatedImageUrl;
+                       link.download = 'cloudhop-brand-concept.png';
+                       link.click();
+                     }}
+                     className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/50 text-[10px] font-black uppercase tracking-widest border border-white/5 rounded-xl transition-all"
+                   >
+                     Download Concept
+                   </button>
+                </div>
+              )}
+
+              {!outputText && !isLoading && !generatedImageUrl && (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-20 space-y-4">
                   <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  <p className="font-bold italic">Gemini is waiting to process your request.</p>
+                  <p className="font-black uppercase tracking-widest text-[10px] italic">Gemini is waiting to process your request.</p>
                 </div>
               )}
               {isLoading ? (
@@ -247,7 +282,7 @@ const AITools: React.FC = () => {
                       <div className="w-3 h-3 bg-[#53C8FF] rounded-full animate-bounce delay-75"></div>
                       <div className="w-3 h-3 bg-[#53C8FF] rounded-full animate-bounce delay-150"></div>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF]">CloudHop AI is Thinking...</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] italic animate-pulse">CloudHop AI is Thinking...</span>
                  </div>
               ) : outputText}
            </div>

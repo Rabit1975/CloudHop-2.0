@@ -1,16 +1,6 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { CloudHopLogo, Icons } from '../constants';
-
-function encode(bytes: Uint8Array) {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
 
 const Meetings: React.FC = () => {
   const [tab, setTab] = useState<'manage' | 'instant'>('manage');
@@ -77,9 +67,7 @@ const Meetings: React.FC = () => {
           deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          frameRate: { ideal: 60 },
-          // Request zoom permission implicit in advanced constraints if needed, 
-          // but usually detected after stream start.
+          frameRate: { ideal: 60 }
         },
         audio: { 
           deviceId: selectedMic ? { exact: selectedMic } : undefined,
@@ -90,15 +78,12 @@ const Meetings: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       
-      // Detect and initialize zoom capabilities
       const track = stream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities() as any; // Cast for TS compatibility
+      const capabilities = track.getCapabilities() as any;
       if (capabilities.zoom) {
         setZoomCapabilities(capabilities.zoom);
         const settings = track.getSettings() as any;
         setZoomLevel(settings.zoom || capabilities.zoom.min);
-      } else {
-        setZoomCapabilities(null);
       }
 
       setIsMeetingActive(true);
@@ -136,7 +121,6 @@ const Meetings: React.FC = () => {
           const { done, value } = await reader.read();
           if (done) break;
           if (ctx && value && canvasRef.current) {
-            // Optimization: Only resize if dimensions actually change to prevent black screen/flicker
             if (canvasRef.current.width !== value.displayWidth || canvasRef.current.height !== value.displayHeight) {
                 canvasRef.current.width = value.displayWidth;
                 canvasRef.current.height = value.displayHeight;
@@ -155,16 +139,18 @@ const Meetings: React.FC = () => {
   const initLiveTranscription = async (stream: MediaStream) => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
-      const sessionPromise = ai.live.connect({
+      ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        // Add mandatory callbacks for SDK compliance
         callbacks: {
+          onopen: () => console.log('Transcription live connected'),
           onmessage: async (msg: LiveServerMessage) => {
             if (msg.serverContent?.inputTranscription) {
               setLiveTranscript(prev => [...prev.slice(-4), msg.serverContent!.inputTranscription!.text]);
             }
           },
+          onerror: (e: ErrorEvent) => console.error('Transcription live error', e),
+          onclose: (e: CloseEvent) => console.log('Transcription live closed', e),
         },
         config: { responseModalities: [Modality.AUDIO], inputAudioTranscription: {} }
       });
@@ -195,9 +181,9 @@ const Meetings: React.FC = () => {
 
           <div className="flex-1 relative bg-black flex flex-col items-center justify-center overflow-hidden p-4 pt-20 pb-24">
              <div className="w-full h-full relative z-10 flex flex-col md:flex-row gap-4 overflow-hidden max-w-[1400px]">
-                <div className={`flex-1 relative rounded-[32px] overflow-hidden border border-white/10 bg-[#080C22] shadow-[0_0_80px_rgba(0,0,0,0.8)] gpu-accelerated ${isChromePerformanceMode ? 'ring-2 ring-[#53C8FF]/20' : ''}`}>
+                <div className={`flex-1 relative rounded-[32px] overflow-hidden border border-white/10 bg-[#080C22] shadow-[0_0_80px_rgba(0,0,0,0.8)] ${isChromePerformanceMode ? 'ring-2 ring-[#53C8FF]/20' : ''}`}>
                    {!isVideoOff ? (
-                     <canvas ref={canvasRef} className="w-full h-full object-cover gpu-accelerated" style={{ transform: mirrorVideo ? 'scaleX(-1)' : '' }} />
+                     <canvas ref={canvasRef} className="w-full h-full object-cover" style={{ transform: mirrorVideo ? 'scaleX(-1)' : '' }} />
                    ) : (
                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#080C22]">
                         <CloudHopLogo size={100} variant="neon" className="opacity-10" />
@@ -319,11 +305,6 @@ const Meetings: React.FC = () => {
         </div>
       ) : (
         <div className="max-w-sm mx-auto bg-[#0E1430] border border-white/5 rounded-[48px] p-8 pb-10 shadow-[0_40px_120px_rgba(0,0,0,0.6)] relative overflow-hidden text-center italic animate-fade-in group">
-          <div className="absolute top-6 right-6 z-10">
-            <button className="p-2.5 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-[#53C8FF] border border-white/10 shadow-lg">
-               <Icons.Settings className="w-4 h-4" />
-            </button>
-          </div>
           <div className="relative mb-6 pt-4">
              <CloudHopLogo size={60} variant="neon" className="mx-auto group-hover:scale-110 transition-transform duration-700" />
           </div>

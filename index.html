@@ -59,16 +59,15 @@
             background: rgba(83, 200, 255, 0.4);
         }
 
+        /* Fixed GPU acceleration to prevent black flickers */
         .gpu-accelerated {
-            will-change: transform, opacity;
+            will-change: transform;
             transform: translateZ(0);
-            backface-visibility: hidden;
-            perspective: 1000px;
         }
 
+        /* Replaced content-visibility with safer containment for performance */
         .optimize-render {
-            content-visibility: auto;
-            contain-intrinsic-size: 0 500px;
+            contain: paint;
         }
 
         @keyframes progress {
