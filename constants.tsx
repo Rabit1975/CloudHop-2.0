@@ -2,7 +2,7 @@
 import React from 'react';
 import { LogoMain, Logo3D, LogoGlow, LogoQ1, LogoQ2, LogoQ3, LogoQ4 } from './components/Logos';
 
-export const DOMAIN = "cloudhop.app";
+export const DOMAIN = "cloudhop.tech";
 
 export const COLORS = {
   PRIMARY: '#53C8FF',

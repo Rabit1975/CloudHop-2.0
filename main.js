@@ -25,7 +25,7 @@ function createWindow() {
   });
 
   // Load the production URL or local dev server
-  const startUrl = process.env.ELECTRON_START_URL || 'https://cloudhop.app';
+  const startUrl = process.env.ELECTRON_START_URL || 'https://cloudhop.tech';
   win.loadURL(startUrl);
 }
 
