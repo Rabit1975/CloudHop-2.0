@@ -28,17 +28,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         <div className="hidden lg:flex items-center gap-10">
           <NavLink label="Features" onClick={() => scrollToSection('features')} />
           <NavLink label="Pricing" onClick={() => scrollToSection('pricing')} />
-          <NavLink label="Download" />
           <NavLink label="About" />
           <NavLink label="Support" />
         </div>
 
-        <button 
-          onClick={onStart}
-          className="px-8 py-3 bg-gradient-to-r from-[#53C8FF] to-[#8B5CF6] text-white font-black text-sm rounded-full hover:shadow-[0_0_40px_rgba(139,92,246,0.6)] transition-all hover:scale-105 active:scale-95 italic uppercase tracking-widest"
-        >
-          Hop In
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onStart}
+            className="text-xs font-black uppercase tracking-widest text-white hover:text-[#53C8FF] transition-all italic mr-4"
+          >
+            Log In
+          </button>
+          <button 
+            onClick={onStart}
+            className="px-8 py-3 bg-gradient-to-r from-[#53C8FF] to-[#8B5CF6] text-white font-black text-sm rounded-full hover:shadow-[0_0_40px_rgba(139,92,246,0.6)] transition-all hover:scale-105 active:scale-95 italic uppercase tracking-widest"
+          >
+            Hop In
+          </button>
+        </div>
       </nav>
 
       {/* 2. Hero Section */}
