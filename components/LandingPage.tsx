@@ -38,6 +38,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </button>
       </nav>
 
+      <main>
       {/* 2. Hero Section */}
       <section className="pt-40 pb-32 px-6 flex flex-col items-center text-center max-w-5xl mx-auto">
         
@@ -134,6 +135,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
            </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="py-12 text-center border-t border-white/5 bg-[#050819] text-sm text-white/40">

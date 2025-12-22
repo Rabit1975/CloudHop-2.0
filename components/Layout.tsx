@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, User } from '../types';
 import { CloudHopLogo, Icons } from '../constants';
@@ -41,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     { id: View.WORLD, label: 'Hop World Communities', icon: Icons.Spaces },
     { id: View.MEETINGS, label: 'Meetings', icon: Icons.Meetings },
     { id: View.CORE, label: 'Hop Spaces', icon: Icons.Communities },
-    { id: View.AI_TOOLS, label: 'Intelligence Suite', icon: Icons.AI },
+    // Arcade moved inside Hop Spaces
   ];
 
   const viewLabels: Record<View, string> = {
@@ -52,7 +51,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.MEETINGS]: 'Mesh: Meeting Engine',
     [View.CORE]: 'Hop Spaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
-    [View.AI_TOOLS]: 'AI Intelligence Hub',
     [View.PROFILE]: 'Digital ID',
     [View.SETTINGS]: 'System Config'
   };
@@ -61,10 +59,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     <div className={`flex h-screen bg-[#050819] overflow-hidden text-white italic selection:bg-[#53C8FF]/30`}>
       {/* Sidebar */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-24'} bg-[#080C22] flex flex-col transition-all duration-500 border-r border-white/5 relative z-20 shadow-[20px_0_60px_rgba(0,0,0,0.5)]`}>
-        <div className="p-4 flex items-center gap-3 h-20 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all overflow-hidden" onClick={() => onNavigate(View.DASHBOARD)}>
+        <button 
+          className="p-4 flex items-center gap-3 h-20 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all overflow-hidden w-full text-left" 
+          onClick={() => onNavigate(View.DASHBOARD)}
+        >
             <CloudHopLogo size={36} variant="main" className="gpu-accelerated shrink-0" />
             {isSidebarOpen && <span className="font-black text-2xl tracking-tighter animate-fade-in italic uppercase">CloudHop</span>}
-        </div>
+        </button>
 
         <nav className="flex-1 px-4 mt-8 space-y-1.5 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
