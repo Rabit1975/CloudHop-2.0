@@ -44,7 +44,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         
         <div className="mb-12 animate-fade-in">
            <div className="w-64 h-64 flex items-center justify-center relative">
-              <img src={highResLogo} alt="CloudHop Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(83,200,255,0.3)]" />
+              <img src={highResLogo} alt="CloudHop Logo" className="w-full h-full object-contain" />
            </div>
         </div>
 
