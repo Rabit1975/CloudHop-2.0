@@ -1,7 +1,7 @@
 import React from 'react';
 // Remove non-existent ASSETS export
 import { CloudHopLogo, Icons } from '../constants';
-import highResLogo from '../assets/highresolutionmasterlogo1.svg';
+import highResLogo from '../src/assets/highresolutionmasterlogo1.svg';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -18,9 +18,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       {/* 1. Navigation Bar */}
       <nav className="fixed top-0 w-full h-20 bg-[#050819]/80 backdrop-blur-md border-b border-white/5 z-50 px-8 lg:px-24 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-          <div className="bg-[#1e293b] p-1.5 rounded-lg">
-            <CloudHopLogo size={24} variant="main" />
-          </div>
+          <img src={highResLogo} alt="CloudHop" className="w-8 h-8 object-contain" />
           <span className="text-xl font-bold tracking-tight text-white">
             CloudHop
           </span>
@@ -40,6 +38,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </button>
       </nav>
 
+      <main>
       {/* 2. Hero Section */}
       <section className="pt-40 pb-32 px-6 flex flex-col items-center text-center max-w-5xl mx-auto">
         
@@ -102,6 +101,42 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             />
          </div>
       </section>
+
+      {/* 4. Download Section */}
+      <section id="download" className="py-24 px-6 bg-[#0E1430] border-t border-white/5">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+           <h2 className="text-3xl md:text-4xl font-bold">Download CloudHop</h2>
+           <p className="text-white/60 max-w-2xl mx-auto">Get the full experience on your desktop or mobile device.</p>
+           
+           <div className="flex flex-wrap justify-center gap-6">
+              <button className="px-8 py-4 bg-[#1e293b] text-white font-bold rounded-2xl border border-white/10 hover:bg-[#2a3855] hover:scale-105 transition-all flex items-center gap-3">
+                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l18-12v24z"/></svg>
+                 <div className="text-left">
+                    <div className="text-[10px] uppercase tracking-wider opacity-60">Get it on</div>
+                    <div className="text-lg">Google Play</div>
+                 </div>
+              </button>
+              
+              <button className="px-8 py-4 bg-[#1e293b] text-white font-bold rounded-2xl border border-white/10 hover:bg-[#2a3855] hover:scale-105 transition-all flex items-center gap-3">
+                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.96 1.07-3.11-1.05.05-2.31.74-3.03 1.58-.67.78-1.26 2.05-1.11 3.15 1.17.09 2.35-.79 3.07-1.62z"/></svg>
+                 <div className="text-left">
+                    <div className="text-[10px] uppercase tracking-wider opacity-60">Download on the</div>
+                    <div className="text-lg">App Store</div>
+                 </div>
+              </button>
+
+              <button className="px-8 py-4 bg-[#53C8FF] text-[#0A0F1F] font-bold rounded-2xl hover:bg-[#40b0e0] hover:scale-105 transition-all flex items-center gap-3">
+                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 4.92v14.144l-9.75 1.489V3.449zm10.749 1.29l12.496-1.79v18.114l-12.496-1.64V4.739zm12.496 9.47l-12.496 1.55v-7.39l12.496-1.66v7.5z"/></svg>
+                 <div className="text-left">
+                    <div className="text-[10px] uppercase tracking-wider opacity-60">Download for</div>
+                    <div className="text-lg">Windows</div>
+                 </div>
+              </button>
+           </div>
+        </div>
+      </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="py-12 text-center border-t border-white/5 bg-[#050819] text-sm text-white/40">

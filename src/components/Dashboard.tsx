@@ -36,7 +36,7 @@ const Dashboard: React.FC = () => {
           <Card title="Activity Stream">
             <div className="space-y-4">
               {recentMessages.map((msg, i) => (
-                <div key={i} className="flex gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-white/5 shadow-inner">
+                <button key={i} className="w-full text-left flex gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-white/5 shadow-inner">
                   <img src={msg.avatar} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" alt="" />
                   <div className="flex-1 overflow-hidden">
                     <div className="flex justify-between items-center mb-0.5">
@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
                     <div className="text-[9px] text-[#53C8FF] font-black uppercase tracking-[0.2em] mb-1 italic">{msg.channel}</div>
                     <p className="text-xs text-white/40 truncate font-medium italic">{msg.snippet}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </Card>
