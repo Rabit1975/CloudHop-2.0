@@ -113,7 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                        <div className="text-[9px] text-white/20 font-medium">{mtg.participants.length} Attending</div>
                     </div>
                   </div>
-                  <button className="px-6 py-2.5 bg-[#53C8FF]/10 text-[#53C8FF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-all italic">
+                  <button className="px-6 py-2.5 bg-[#53C8FF]/10 text-[#53C8FF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-all italic" aria-label={`Join meeting: ${mtg.title}`}>
                     Hop In
                   </button>
                 </div>

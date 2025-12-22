@@ -77,6 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
+                aria-label={`Navigate to ${item.label}`}
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[#1A2348] text-[#53C8FF] shadow-[0_8px_20px_rgba(0,0,0,0.4)] ring-1 ring-[#53C8FF]/20' 
