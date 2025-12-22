@@ -1,23 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import XPBar from './XPBar';
 import { Icons, CloudHopLogo } from '../constants';
-import { View } from '../types';
+import { View, ActivityItem, Meeting } from '../types';
 
 interface DashboardProps {
   onNavigate: (view: View) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
-  const recentMessages = [
-    { name: 'Sarah Chen', channel: 'Design Team', snippet: 'Can we review the logo concepts?', time: '2m ago', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-    { name: 'Mike Ross', channel: 'Client DMs', snippet: 'The secure link is active.', time: '15m ago', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
-    { name: 'Emily Blunt', channel: 'Core Architecture', snippet: 'Cluster 5 deployment ready.', time: '1h ago', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily' },
-  ];
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
 
-  const upcomingMeetings = [
-    { title: 'Workspace Strategy Sync', time: '10:00 AM' },
-    { title: 'Edge Deployment Huddle', time: '1:30 PM' },
-  ];
+  // Simulate fetching real-time, context-aware data
+  useEffect(() => {
+    // In a real app, this would be an API call fetching data based on user.id and currentSpace.id
+    const mockActivities: ActivityItem[] = [
+      {
+        id: '1',
+        type: 'message',
+        user: { name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'Admin' },
+        content: 'uploaded the final Q1 Design Assets.',
+        timestamp: '2m ago',
+        channel: 'Design Team'
+      },
+      {
+        id: '2',
+        type: 'event',
+        user: { name: 'Mike Ross', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', role: 'Member' },
+        content: 'scheduled "Client Onboarding" for tomorrow.',
+        timestamp: '15m ago',
+        channel: 'General'
+      },
+      {
+        id: '3',
+        type: 'join',
+        user: { name: 'Emily Blunt', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', role: 'Guest' },
+        content: 'joined the "Core Architecture" channel.',
+        timestamp: '1h ago',
+        channel: 'System Logs'
+      },
+    ];
+
+    const mockMeetings: Meeting[] = [
+      { id: 'm1', title: 'Q1 Sprint Planning', time: '10:00 AM', participants: ['Sarah', 'Mike'], type: 'video' },
+      { id: 'm2', title: 'Design Review: Logo', time: '1:30 PM', participants: ['Sarah', 'Emily'], type: 'video' }
+    ];
+
+    setActivities(mockActivities);
+    setMeetings(mockMeetings);
+  }, []);
 
   return (
     <div className="space-y-10 italic">
@@ -38,18 +69,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Recent Activity */}
         <div className="space-y-8">
-          <Card title="Activity Stream">
+          <Card title="Live Activity Stream">
             <div className="space-y-4">
-              {recentMessages.map((msg, i) => (
-                <button key={i} className="w-full text-left flex gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-white/5 shadow-inner">
-                  <img src={msg.avatar} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" alt="" />
+              {activities.map((item) => (
+                <button 
+                  key={item.id} 
+                  onClick={() => onNavigate(View.CHAT)}
+                  className="w-full text-left flex gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-white/5 shadow-inner"
+                >
+                  <img src={item.user.avatar} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" alt="" />
                   <div className="flex-1 overflow-hidden">
                     <div className="flex justify-between items-center mb-0.5">
-                      <span className="text-sm font-bold text-white group-hover:text-[#53C8FF] transition-colors">{msg.name}</span>
-                      <span className="text-[9px] text-white/20 font-black uppercase">{msg.time}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white group-hover:text-[#53C8FF] transition-colors">{item.user.name}</span>
+                        {item.user.role && <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 uppercase font-black tracking-wider">{item.user.role}</span>}
+                      </div>
+                      <span className="text-[9px] text-white/20 font-black uppercase">{item.timestamp}</span>
                     </div>
-                    <div className="text-[9px] text-[#53C8FF] font-black uppercase tracking-[0.2em] mb-1 italic">{msg.channel}</div>
-                    <p className="text-xs text-white/40 truncate font-medium italic">{msg.snippet}</p>
+                    <div className="text-[9px] text-[#53C8FF] font-black uppercase tracking-[0.2em] mb-1 italic">{item.channel}</div>
+                    <p className="text-xs text-white/40 truncate font-medium italic">{item.content}</p>
                   </div>
                 </button>
               ))}
@@ -59,20 +97,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* Center Column: Today's Schedule */}
         <div className="space-y-8">
-          <Card title="Meeting Schedule">
+          <Card title="Space Schedule">
             <div className="space-y-3">
-              {upcomingMeetings.map((mtg, i) => (
-                <div key={i} className="flex items-center justify-between p-5 bg-[#0D1A2A] rounded-2xl border border-[#1E3A5F] group hover:border-[#53C8FF]/50 transition-all shadow-lg">
+              {meetings.map((mtg) => (
+                <div key={mtg.id} className="flex items-center justify-between p-5 bg-[#0D1A2A] rounded-2xl border border-[#1E3A5F] group hover:border-[#53C8FF]/50 transition-all shadow-lg">
                   <div>
                     <div className="text-sm font-black tracking-tight group-hover:text-[#53C8FF] transition-all uppercase">{mtg.title}</div>
-                    <div className="text-[10px] text-white/40 font-black uppercase tracking-widest mt-1 italic">{mtg.time}</div>
+                    <div className="flex items-center gap-3 mt-1">
+                       <div className="text-[10px] text-white/40 font-black uppercase tracking-widest italic">{mtg.time}</div>
+                       <div className="w-1 h-1 rounded-full bg-white/20"></div>
+                       <div className="text-[9px] text-white/20 font-medium">{mtg.participants.length} Attending</div>
+                    </div>
                   </div>
                   <button className="px-6 py-2.5 bg-[#53C8FF]/10 text-[#53C8FF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-all italic">
                     Hop In
                   </button>
                 </div>
               ))}
-              {upcomingMeetings.length === 0 && <p className="text-xs text-white/20 font-bold py-10 text-center uppercase tracking-widest italic">No pending meetings.</p>}
+              {meetings.length === 0 && <p className="text-xs text-white/20 font-bold py-10 text-center uppercase tracking-widest italic">No pending meetings.</p>}
             </div>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-
+Update your hooks or API calls to filter by
 export enum View {
   SPECTRUM = 'spectrum', // Landing / Overview
   DASHBOARD = 'dashboard',
@@ -18,6 +18,27 @@ export interface Badge {
   icon: string;
   description: string;
   earnedAt?: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: 'message' | 'file' | 'event' | 'join';
+  user: {
+    name: string;
+    avatar: string;
+    role?: 'Admin' | 'Member' | 'Guest';
+  };
+  content: string;
+  timestamp: string;
+  channel?: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  time: string;
+  participants: string[];
+  type: 'video' | 'audio';
 }
 
 export interface User {
