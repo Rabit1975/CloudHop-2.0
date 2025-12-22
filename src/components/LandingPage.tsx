@@ -43,9 +43,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       <section className="pt-40 pb-32 px-6 flex flex-col items-center text-center max-w-5xl mx-auto">
         
         <div className="mb-12 animate-fade-in">
-           <div className="w-40 h-40 bg-[#1e293b] rounded-3xl shadow-2xl flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#53C8FF]/10"></div>
-              <CloudHopLogo size={100} variant="glow" />
+           <div className="w-64 h-64 flex items-center justify-center relative">
+              <img src={highResLogo} alt="CloudHop Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(83,200,255,0.3)]" />
            </div>
         </div>
 
