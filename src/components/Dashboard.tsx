@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react';
 import XPBar from './XPBar';
 import { Icons, CloudHopLogo } from '../constants';
 import { View, ActivityItem, Meeting } from '../types';
+import { useSpace } from '../contexts/SpaceContext';
 
 interface DashboardProps {
   onNavigate: (view: View) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+  const { currentSpace } = useSpace();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
 
   // Simulate fetching real-time, context-aware data
   useEffect(() => {
-    // In a real app, this would be an API call fetching data based on user.id and currentSpace.id
-    const mockActivities: ActivityItem[] = [
+    // Filter activities based on currentSpace.id
+    console.log(`Fetching data for space: ${currentSpace.name}`);
+    
+    // ... (rest of the effect)
       {
         id: '1',
         type: 'message',
