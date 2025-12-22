@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import GameHub from './GameHub';
+import AITools from './AITools';
 
 const Communities: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub'>('Flow');
+  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub' | 'IntelliRabbit'>('Flow');
   const [selectedComm, setSelectedComm] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -83,7 +83,7 @@ const Communities: React.FC = () => {
         <div className="h-24 shrink-0 border-b border-white/5 flex items-center justify-between px-10 bg-[#080C22]/60 backdrop-blur-3xl">
            <div className="flex flex-col gap-2">
               <div className="flex gap-2 bg-[#050819] p-1.5 rounded-2xl shadow-inner overflow-x-auto custom-scrollbar">
-                 {(['Flow', 'Mesh', 'Beam', 'Pulse', 'GameHub'] as const).map(t => (
+                 {(['Flow', 'Mesh', 'Beam', 'Pulse', 'GameHub', 'IntelliRabbit'] as const).map(t => (
                    <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all italic whitespace-nowrap ${activeTab === t ? 'bg-[#1A2348] text-[#53C8FF] ring-1 ring-[#53C8FF]/20' : 'text-white/20 hover:text-white'}`}>
                      {t}
                    </button>
@@ -91,13 +91,20 @@ const Communities: React.FC = () => {
               </div>
            </div>
            <div className="flex items-center gap-6">
-              <button className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-[#53C8FF]/10 transition-all group">
-                <Icons.AI className="w-5 h-5 text-[#53C8FF] group-hover:scale-110" />
+              <button 
+                onClick={() => setActiveTab('IntelliRabbit')}
+                className={`p-4 rounded-2xl border border-white/10 hover:bg-[#53C8FF]/10 transition-all group ${activeTab === 'IntelliRabbit' ? 'bg-[#53C8FF]/20' : 'bg-white/5'}`}
+              >
+                <Icons.AI className={`w-5 h-5 group-hover:scale-110 ${activeTab === 'IntelliRabbit' ? 'text-[#53C8FF]' : 'text-[#53C8FF]'}`} />
               </button>
            </div>
         </div>
 
         <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
+           {activeTab === 'IntelliRabbit' && (
+              <AITools />
+           )}
+
            {activeTab === 'GameHub' && (
               <GameHub />
            )}

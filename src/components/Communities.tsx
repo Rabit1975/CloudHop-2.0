@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import GameHub from './GameHub';
+import AITools from './AITools';
 
 const Communities: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub'>('Flow');
+  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub' | 'IntelliRabbit'>('Flow');
   const [selectedComm, setSelectedComm] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -98,6 +99,10 @@ const Communities: React.FC = () => {
         </div>
 
         <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
+           {activeTab === 'IntelliRabbit' && (
+              <AITools />
+           )}
+
            {activeTab === 'GameHub' && (
               <GameHub />
            )}

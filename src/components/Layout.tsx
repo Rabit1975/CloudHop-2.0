@@ -35,20 +35,20 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   }, [events]);
 
   const navItems = [
-    { id: View.DASHBOARD, label: 'Spectrum Home', icon: Icons.Home },
-    { id: View.CHAT, label: 'Direct Messaging', icon: Icons.Chat },
-    { id: View.WORLD, label: 'Hop World Communities', icon: Icons.Spaces },
-    { id: View.MEETINGS, label: 'Meetings', icon: Icons.Meetings },
+    { id: View.DASHBOARD, label: 'Home', icon: Icons.Home },
+    { id: View.CHAT, label: 'RabbitChat', icon: Icons.Chat },
+    { id: View.WORLD, label: 'HopHub', icon: Icons.Spaces },
+    { id: View.MEETINGS, label: 'HopMeets', icon: Icons.Meetings },
     { id: View.CORE, label: 'Hop Spaces', icon: Icons.Communities },
     // Arcade moved inside Hop Spaces
   ];
 
   const viewLabels: Record<View, string> = {
     [View.SPECTRUM]: 'The Spectrum',
-    [View.DASHBOARD]: 'Overview Hub',
-    [View.CHAT]: 'Flow: Messaging',
-    [View.WORLD]: 'Hop World — Communities',
-    [View.MEETINGS]: 'Mesh: Meeting Engine',
+    [View.DASHBOARD]: 'Home',
+    [View.CHAT]: 'RabbitChat',
+    [View.WORLD]: 'HopHub',
+    [View.MEETINGS]: 'HopMeets',
     [View.CORE]: 'Hop Spaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
     [View.PROFILE]: 'Digital ID',
