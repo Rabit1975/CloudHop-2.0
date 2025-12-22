@@ -1,4 +1,3 @@
-Update your hooks or API calls to filter by
 export enum View {
   SPECTRUM = 'spectrum', // Landing / Overview
   DASHBOARD = 'dashboard',

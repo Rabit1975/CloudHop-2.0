@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, User } from '../types';
 import { CloudHopLogo, Icons } from '../constants';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useSpace } from '../src/contexts/SpaceContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,11 +13,12 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user, onLogout }) => {
+  const { currentSpace } = useSpace();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   
-  const { events, clearEvents } = useWebSocket(user?.id || "guest");
+  const { events, clearEvents } = useWebSocket(user?.id || "guest", currentSpace.id);
 
   useEffect(() => {
     if (events.length > 0) {
