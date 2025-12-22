@@ -44,7 +44,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   ];
 
   const viewLabels: Record<View, string> = {
-    [View.SPECTRUM]: 'The Spectrum',
     [View.DASHBOARD]: 'Home',
     [View.CHAT]: 'RabbitChat',
     [View.WORLD]: 'HopHub',

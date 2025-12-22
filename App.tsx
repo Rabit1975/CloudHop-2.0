@@ -43,7 +43,7 @@ const App: React.FC = () => {
 
     const content = (() => {
       switch (view) {
-        case View.DASHBOARD: return <Dashboard />;
+        case View.DASHBOARD: return <Dashboard onNavigate={setView} />;
         case View.CHAT: return <Chat />;
         case View.WORLD: return <Spaces />;
         case View.MEETINGS: return <Meetings />;

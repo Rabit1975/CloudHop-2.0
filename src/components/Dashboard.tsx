@@ -1,8 +1,13 @@
 import React from 'react';
 import XPBar from './XPBar';
 import { Icons, CloudHopLogo } from '../constants';
+import { View } from '../types';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigate: (view: View) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const recentMessages = [
     { name: 'Sarah Chen', channel: 'Design Team', snippet: 'Can we review the logo concepts?', time: '2m ago', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
     { name: 'Mike Ross', channel: 'Client DMs', snippet: 'The secure link is active.', time: '15m ago', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
