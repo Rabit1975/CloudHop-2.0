@@ -139,9 +139,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       </div>
       
       {/* Notifications */}
-      <div className="fixed top-6 right-6 z-[200] space-y-4">
+      <div className="fixed top-6 right-6 z-[200] space-y-4 w-80 pointer-events-none">
          {notifications.map(n => (
-           <div key={n.id} className="bg-[#1A2348] border border-[#53C8FF]/40 px-6 py-4 rounded-2xl shadow-2xl animate-fade-in flex items-center gap-4 italic">
+           <div key={n.id} className="bg-[#1A2348] border border-[#53C8FF]/40 px-6 py-4 rounded-2xl shadow-2xl animate-fade-in flex items-center gap-4 italic pointer-events-auto">
               <div className="w-8 h-8 bg-[#53C8FF] text-[#0A0F1F] rounded-lg flex items-center justify-center font-black">!</div>
               <span className="text-xs font-bold uppercase tracking-wider">{n.text}</span>
            </div>
