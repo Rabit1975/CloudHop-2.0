@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
+import { useSpace } from '../src/contexts/SpaceContext';
 
 const Communities: React.FC = () => {
+  const { setCurrentSpace } = useSpace();
   const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse'>('Flow');
   const [selectedComm, setSelectedComm] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
   const communities = [
-    { name: 'Founders Circle', icon: '🚀', sub: 'Broadcast Only (Beam)' },
-    { name: 'Engineering Group', icon: '💻', sub: 'Standard Hybrid (Flow+Mesh)' },
-    { name: 'Creative Alliance', icon: '🎨', sub: 'Strategy Hub (Mesh)' },
-    { name: 'Global Squad', icon: '🌍', sub: 'Social (Flow)' },
+    { id: 'founders-circle', name: 'Founders Circle', icon: '🚀', sub: 'Broadcast Only (Beam)', role: 'Admin' },
+    { id: 'engineering-group', name: 'Engineering Group', icon: '💻', sub: 'Standard Hybrid (Flow+Mesh)', role: 'Member' },
+    { id: 'creative-alliance', name: 'Creative Alliance', icon: '🎨', sub: 'Strategy Hub (Mesh)', role: 'Member' },
+    { id: 'global-space', name: 'Global Squad', icon: '🌍', sub: 'Social (Flow)', role: 'Guest' },
   ];
+
+  useEffect(() => {
+    // Update global space context when selected community changes
+    const comm = communities[selectedComm];
+    setCurrentSpace({
+      id: comm.id,
+      name: comm.name,
+      role: comm.role as any
+    });
+  }, [selectedComm, setCurrentSpace]);
 
   const channels = [
     { name: 'general-chat', type: 'Flow' },

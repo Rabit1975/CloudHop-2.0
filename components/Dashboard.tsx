@@ -76,7 +76,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div className="space-y-8">
           <Card title="Live Activity Stream">
             <div className="space-y-4">
-              {activities.map((item) => (
+              {activities.length > 0 ? (
+                activities.map((item) => (
                 <button 
                   key={item.id} 
                   onClick={() => onNavigate(View.CHAT)}
@@ -96,7 +97,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <p className="text-xs text-white/80 truncate font-medium italic">{item.content}</p>
                   </div>
                 </button>
-              ))}
+              ))
+              ) : (
+                <div className="p-8 text-center text-white/30 italic">
+                  <p className="text-sm font-medium">No recent activity in {currentSpace.name}.</p>
+                  <p className="text-xs mt-2 opacity-50">Be the first to say hello!</p>
+                </div>
+              )}
             </div>
           </Card>
         </div>
