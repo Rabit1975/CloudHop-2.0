@@ -210,7 +210,7 @@ const GameHub: React.FC = () => {
 
               <div className="mt-12">
                  <button 
-                   onClick={() => setSelectedGame(game)}
+                   onClick={() => window.open(game.url, '_blank')}
                    className="w-full py-5 bg-[#53C8FF] text-[#0A0F1F] rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] hover:shadow-[0_20px_40px_rgba(83,200,255,0.3)] hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-[#53C8FF]/10"
                  >
                    Hop Into Play

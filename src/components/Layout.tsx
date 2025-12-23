@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     { id: View.WORLD, label: 'HopHub', icon: Icons.Spaces },
     { id: View.MEETINGS, label: 'HopMeets', icon: Icons.Meetings },
     { id: View.CORE, label: 'Hop Spaces', icon: Icons.Communities },
-    // Arcade moved inside Hop Spaces
+    { id: View.ARCADE, label: 'GameHub', icon: Icons.Arcade }, // Restored to sidebar
   ];
 
   const viewLabels: Record<View, string> = {
