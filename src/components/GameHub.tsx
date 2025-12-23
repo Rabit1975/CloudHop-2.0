@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import XPBar from './XPBar';
 import { CloudHopLogo } from '../constants';
 
@@ -9,9 +9,10 @@ interface Game {
   desc: string;
   icon: string;
   url: string;
-  category: 'Arcade' | 'Puzzle' | 'Action' | 'Retro' | 'Racing' | 'Strategy';
+  category: string;
   color: string;
   xpMultiplier?: number;
+  isExternal?: boolean;
 }
 
 const GAMES: Game[] = [
@@ -39,9 +40,41 @@ const GAMES: Game[] = [
 const GameHub: React.FC = () => {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [games, setGames] = useState<Game[]>(GAMES);
+  const [loading, setLoading] = useState(true);
 
-  const categories = ['All', 'Arcade', 'Puzzle', 'Action', 'Racing', 'Strategy', 'Retro'];
-  const filteredGames = activeCategory === 'All' ? GAMES : GAMES.filter(g => g.category === activeCategory);
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const response = await fetch('https://feeds.gamepix.com/v2/json?sid=C0714&pagination=24&page=1');
+        const data = await response.json();
+        
+        if (data && data.items) {
+          const newGames: Game[] = data.items.map((item: any) => ({
+            id: item.id,
+            name: item.title,
+            desc: item.description,
+            icon: item.image,
+            url: item.url,
+            category: item.category.charAt(0).toUpperCase() + item.category.slice(1), // Capitalize
+            color: '#53C8FF', // Default color for fetched games
+            isExternal: true
+          }));
+          
+          setGames(prev => [...prev, ...newGames]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch GamePix games:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGames();
+  }, []);
+
+  const categories = ['All', ...Array.from(new Set(games.map(g => g.category)))].sort();
+  const filteredGames = activeCategory === 'All' ? games : games.filter(g => g.category === activeCategory);
 
   if (selectedGame) {
     return (
@@ -52,9 +85,13 @@ const GameHub: React.FC = () => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
              </button>
              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#050819] rounded-xl flex items-center justify-center text-3xl border border-white/5 shadow-inner">
-                   {selectedGame.icon}
-                </div>
+                <div className="w-12 h-12 bg-[#050819] rounded-xl flex items-center justify-center text-3xl border border-white/5 shadow-inner overflow-hidden">
+                {selectedGame.icon.startsWith('http') ? (
+                  <img src={selectedGame.icon} alt={selectedGame.name} className="w-full h-full object-cover" />
+                ) : (
+                  selectedGame.icon
+                )}
+             </div>
                 <div>
                    <h2 className="text-xl font-black uppercase tracking-tighter italic leading-none mb-1">{selectedGame.name}</h2>
                    <div className="flex items-center gap-2">
@@ -150,8 +187,12 @@ const GameHub: React.FC = () => {
            <div key={game.id} className="group bg-[#0E1430] border border-white/5 rounded-[48px] p-10 flex flex-col hover:border-[#53C8FF]/40 transition-all duration-500 shadow-2xl relative overflow-hidden">
               <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-[#53C8FF]/10 to-transparent blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
               
-              <div className="w-20 h-20 bg-[#050819] rounded-[28px] flex items-center justify-center text-5xl mb-8 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 border border-white/5">
-                {game.icon}
+              <div className="w-20 h-20 bg-[#050819] rounded-[28px] flex items-center justify-center text-5xl mb-8 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 border border-white/5 overflow-hidden">
+                {game.icon.startsWith('http') ? (
+                  <img src={game.icon} alt={game.name} className="w-full h-full object-cover" />
+                ) : (
+                  game.icon
+                )}
               </div>
               
               <div className="space-y-4 flex-1">
