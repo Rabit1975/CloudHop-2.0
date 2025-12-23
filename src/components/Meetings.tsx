@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { CloudHopLogo } from '../constants';
 import { User } from '../types';
+import Settings from './Settings';
+import Modal from './Modal'; // Assuming Modal component exists, checking imports... wait, Modal is used in Communities.tsx
 
 // --- Types & Mocks ---
 
@@ -72,6 +74,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
   const [showReactionsMenu, setShowReactionsMenu] = useState(false);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [showVideoMenu, setShowVideoMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Manage participants state so we can add/remove them
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -344,6 +347,21 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
         </div>
       </div>
 
+      {/* Settings Modal Overlay */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-8 animate-fade-in">
+           <div className="relative w-full max-w-7xl">
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="absolute -top-4 -right-4 w-10 h-10 bg-[#E01E5A] rounded-full text-white flex items-center justify-center font-bold shadow-lg hover:scale-110 transition-transform z-50"
+              >
+                ✕
+              </button>
+              <Settings />
+           </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
          
@@ -535,7 +553,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                             Default Speaker
                         </button>
                         <div className="my-1 border-t border-white/10"></div>
-                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
+                        <button onClick={() => setShowSettings(true)} className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
                             Audio Settings...
                         </button>
                     </div>
@@ -569,7 +587,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                             Integrated Camera <span className="text-green-500">✓</span>
                         </button>
                         <div className="my-1 border-t border-white/10"></div>
-                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
+                        <button onClick={() => setShowSettings(true)} className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
                             Video Settings...
                         </button>
                     </div>

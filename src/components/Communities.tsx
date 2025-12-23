@@ -1,317 +1,355 @@
 import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import { useSpace } from '../contexts/SpaceContext';
-import { CommunityInfo, Channel } from '../types';
-import { api } from '../services/mockApi';
 import Modal from './Modal';
-import GameHub from './GameHub';
-import AITools from './AITools';
+
+// --- Types for Telegram-style HopHub ---
+type ChatType = 'group' | 'channel' | 'dm';
+
+interface Chat {
+  id: string;
+  name: string;
+  type: ChatType;
+  icon?: string;
+  avatar?: string;
+  description?: string;
+  membersCount: number;
+  lastMessage?: {
+    text: string;
+    sender: string;
+    time: string;
+  };
+  unreadCount?: number;
+  isPrivate?: boolean;
+  folder?: 'Personal' | 'Work' | 'Crypto' | 'Gaming';
+  topics?: string[]; // For supergroups
+}
+
+interface Message {
+  id: string;
+  text: string;
+  sender: string;
+  time: string;
+  isMe: boolean;
+  views?: number; // For channels
+}
+
+const MOCK_CHATS: Chat[] = [
+  {
+    id: '1',
+    name: 'CloudHop Updates',
+    type: 'channel',
+    icon: '📢',
+    membersCount: 45200,
+    description: 'Official announcements and feature drops.',
+    lastMessage: { text: 'HopHub 2.0 is live! Check out the new groups.', sender: 'Admin', time: '12:00 PM' },
+    unreadCount: 2,
+    folder: 'Work'
+  },
+  {
+    id: '2',
+    name: 'Dev Team Alpha',
+    type: 'group',
+    icon: '👨‍💻',
+    membersCount: 12,
+    description: 'Core dev team discussion.',
+    lastMessage: { text: 'Did we fix the zoom bug?', sender: 'Alex', time: '12:05 PM' },
+    unreadCount: 5,
+    folder: 'Work'
+  },
+  {
+    id: '3',
+    name: 'Crypto Degens',
+    type: 'group',
+    icon: '🚀',
+    membersCount: 15400,
+    description: 'To the moon only.',
+    lastMessage: { text: 'BTC hitting 100k soon?', sender: 'Whale', time: '11:58 AM' },
+    folder: 'Crypto'
+  },
+  {
+    id: '4',
+    name: 'Sarah Connor',
+    type: 'dm',
+    avatar: 'https://i.pravatar.cc/150?u=sarah',
+    membersCount: 2,
+    lastMessage: { text: 'Are you free for a call?', sender: 'Sarah', time: 'Yesterday' },
+    folder: 'Personal'
+  }
+];
+
+const MOCK_MESSAGES: Record<string, Message[]> = {
+  '1': [
+    { id: '1', text: 'Welcome to the official CloudHop channel!', sender: 'Admin', time: '10:00 AM', isMe: false, views: 1200 },
+    { id: '2', text: 'HopHub 2.0 is live! Check out the new groups.', sender: 'Admin', time: '12:00 PM', isMe: false, views: 450 }
+  ],
+  '2': [
+    { id: '1', text: 'Hey guys, status update?', sender: 'Lead', time: '11:00 AM', isMe: false },
+    { id: '2', text: 'Working on the rendering engine.', sender: 'Me', time: '11:05 AM', isMe: true },
+    { id: '3', text: 'Did we fix the zoom bug?', sender: 'Alex', time: '12:05 PM', isMe: false }
+  ]
+};
 
 const Communities: React.FC = () => {
   const { setCurrentSpace } = useSpace();
-  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub' | 'IntelliRabbit'>('Flow');
-  const [communities, setCommunities] = useState<CommunityInfo[]>([]);
-  const [selectedCommId, setSelectedCommId] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [activeChatId, setActiveChatId] = useState<string>('1');
+  const [activeFolder, setActiveFolder] = useState<string>('All');
+  
+  // Creation Modal State
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [createType, setCreateType] = useState<'group' | 'channel'>('group');
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
 
-  // Modals
-  const [isCommModalOpen, setIsCommModalOpen] = useState(false);
-  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
-  const [newCommName, setNewCommName] = useState('');
-  const [newChannelName, setNewChannelName] = useState('');
-  const [newChannelType, setNewChannelType] = useState<'Flow' | 'Mesh' | 'Beam'>('Flow');
+  const activeChat = MOCK_CHATS.find(c => c.id === activeChatId) || MOCK_CHATS[0];
+  const messages = MOCK_MESSAGES[activeChatId] || [];
 
-  // Sync Logic
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
+  // Filter chats by folder
+  const filteredChats = MOCK_CHATS.filter(chat => {
+    if (activeFolder === 'All') return true;
+    return chat.folder === activeFolder;
+  });
 
-  useEffect(() => {
-    loadCommunities();
-  }, []);
-
-  const loadCommunities = async () => {
-    setLoading(true);
-    const data = await api.getCommunities();
-    setCommunities(data);
-    if (data.length > 0 && !selectedCommId) {
-        setSelectedCommId(data[0].id);
-    }
-    setLoading(false);
-  };
-
-  // Derived state
-  const selectedComm = communities.find(c => c.id === selectedCommId);
-  const channels = selectedComm?.channels || [];
-
-  useEffect(() => {
-    if (selectedComm) {
-        setCurrentSpace({
-            id: selectedComm.id,
-            name: selectedComm.name,
-            role: selectedComm.role
-        });
-    }
-  }, [selectedCommId, communities]);
-
-  const handleCreateCommunity = async (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    await api.createCommunity({
-        name: newCommName,
-        icon: '🏛️',
-        sub: 'New Community',
-        role: 'Admin'
-    });
-    setIsCommModalOpen(false);
-    setNewCommName('');
-    loadCommunities();
+    alert(`Creating ${createType}: ${newName} (${isPrivate ? 'Private' : 'Public'})`);
+    setIsComposeOpen(false);
+    setNewName('');
+    setNewDesc('');
   };
-
-  const handleCreateChannel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedCommId) {
-        await api.createChannel(selectedCommId, {
-            name: newChannelName,
-            type: newChannelType
-        });
-        setIsChannelModalOpen(false);
-        setNewChannelName('');
-        loadCommunities();
-    }
-  };
-
-  const handleSync = () => {
-    setIsSyncing(true);
-    setSyncProgress(0);
-    const interval = setInterval(() => {
-      setSyncProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setIsSyncing(false), 500);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 50);
-  };
-
-  if (loading) return <div className="p-20 text-center text-white/20 font-black uppercase tracking-widest">Loading Communities...</div>;
-  if (!selectedComm) return <div className="p-20 text-center text-white/20">No Communities Found.</div>;
 
   return (
-    <div className="h-full flex gap-1 rounded-[48px] overflow-hidden border border-white/5 bg-[#080C22] shadow-[0_50px_120px_rgba(0,0,0,0.9)] animate-fade-in italic">
+    <div className="h-full flex gap-1 rounded-[32px] overflow-hidden border border-white/5 bg-[#080C22] shadow-2xl animate-fade-in font-sans">
       
-      {/* Create Community Modal */}
-      <Modal isOpen={isCommModalOpen} onClose={() => setIsCommModalOpen(false)} title="Create Community">
-         <form onSubmit={handleCreateCommunity} className="space-y-6">
+      {/* Compose Modal */}
+      <Modal isOpen={isComposeOpen} onClose={() => setIsComposeOpen(false)} title={`New ${createType === 'group' ? 'Group' : 'Channel'}`}>
+         <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+             <button onClick={() => setCreateType('group')} className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${createType === 'group' ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/5 text-white/40'}`}>New Group</button>
+             <button onClick={() => setCreateType('channel')} className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${createType === 'channel' ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/5 text-white/40'}`}>New Channel</button>
+         </div>
+         
+         <form onSubmit={handleCreate} className="space-y-6">
+            <div className="flex items-center gap-4 justify-center py-4">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-3xl border-2 border-dashed border-white/20 hover:border-[#53C8FF] cursor-pointer transition-colors">
+                    📷
+                </div>
+            </div>
+            
             <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Name</label>
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">{createType} Name</label>
                 <input 
-                    value={newCommName}
-                    onChange={e => setNewCommName(e.target.value)}
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
                     className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold"
-                    placeholder="e.g. Design Systems"
+                    placeholder={`e.g. ${createType === 'group' ? 'Crypto Talk' : 'Daily News'}`}
                     required
                 />
             </div>
-            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform">Create</button>
-         </form>
-      </Modal>
 
-      {/* Create Channel Modal */}
-      <Modal isOpen={isChannelModalOpen} onClose={() => setIsChannelModalOpen(false)} title="New Channel">
-         <form onSubmit={handleCreateChannel} className="space-y-6">
             <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Name</label>
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Description (Optional)</label>
                 <input 
-                    value={newChannelName}
-                    onChange={e => setNewChannelName(e.target.value)}
-                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold"
-                    placeholder="e.g. general-chat"
-                    required
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none text-sm"
+                    placeholder="What is this community about?"
                 />
             </div>
-            <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Type</label>
-                <select 
-                    value={newChannelType}
-                    onChange={e => setNewChannelType(e.target.value as any)}
-                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold appearance-none"
+
+            <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                <div>
+                    <div className="text-xs font-bold text-white">Private {createType === 'group' ? 'Group' : 'Channel'}</div>
+                    <div className="text-[10px] text-white/40">Only via invite link</div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsPrivate(!isPrivate)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-[#53C8FF]' : 'bg-white/10'}`}
                 >
-                    <option value="Flow">Flow (Chat)</option>
-                    <option value="Mesh">Mesh (Files/Sync)</option>
-                    <option value="Beam">Beam (Announcements)</option>
-                </select>
+                   <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isPrivate ? 'translate-x-6' : ''}`} />
+                </button>
             </div>
-            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform">Create Channel</button>
+
+            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create</button>
          </form>
       </Modal>
 
-      {/* 1. Hop Spaces Navigator */}
-      <div className="w-24 bg-[#050819] flex flex-col items-center py-12 space-y-10 border-r border-white/5">
-        <div className="mb-4 flex items-center justify-center p-2 bg-[#0E1430] border-2 border-[#53C8FF] rounded-2xl shadow-xl">
-           <CloudHopLogo size={32} variant="main" />
-        </div>
-        {communities.map((c) => (
-          <div key={c.id} className="relative group">
-            <button 
-              onClick={() => setSelectedCommId(c.id)}
-              className={`w-14 h-14 rounded-3xl flex items-center justify-center text-2xl transition-all relative ${selectedCommId === c.id ? 'bg-[#53C8FF] shadow-[0_0_40px_rgba(83,200,255,0.4)] scale-110' : 'bg-[#0E1430] text-white/20 hover:text-white hover:scale-110'}`}
-            >
-              {c.icon}
-            </button>
-          </div>
-        ))}
-        <button 
-            onClick={() => setIsCommModalOpen(true)}
-            className="w-14 h-14 rounded-3xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-white/20 hover:bg-white/10 transition-all hover:border-[#53C8FF] hover:text-[#53C8FF]"
-        >
-            +
-        </button>
-      </div>
-
-      {/* 2. Channel Tree */}
-      <div className="w-72 bg-[#080C22] flex flex-col border-r border-white/5">
-        <div className="p-8 border-b border-white/5">
-           <div className="text-[9px] font-black uppercase tracking-[0.4em] text-[#53C8FF] mb-2 italic">Hop Spaces Hub</div>
-           <h3 className="font-black text-lg uppercase tracking-tighter text-white italic">{selectedComm.name}</h3>
-        </div>
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-           {channels.map((chan) => (
-             <button key={chan.id} className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all group hover:bg-white/5`}>
-                <div className="flex items-center gap-4">
-                   <span className="text-white/10 font-black text-sm">#</span>
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-white/60 group-hover:text-white">{chan.name}</span>
-                </div>
-                <div className={`w-1 h-1 rounded-full ${chan.type === 'Beam' ? 'bg-[#FF4D4D]' : chan.type === 'Mesh' ? 'bg-[#3DD68C]' : 'bg-[#53C8FF]'} opacity-50`}></div>
+      {/* LEFT SIDEBAR: HopHub (Telegram Style) */}
+      <div className="w-80 bg-[#050819] flex flex-col border-r border-white/5">
+         {/* Header */}
+         <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+             <div className="flex items-center gap-2">
+                 <button className="w-8 h-8 rounded-lg bg-[#53C8FF]/10 flex items-center justify-center text-[#53C8FF]">
+                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+                 </button>
+                 <span className="font-black italic tracking-tighter text-lg">HopHub</span>
+             </div>
+             <button 
+                onClick={() => setIsComposeOpen(true)}
+                className="w-10 h-10 rounded-full bg-[#53C8FF] text-[#0A0F1F] flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-[#53C8FF]/20"
+             >
+                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
              </button>
-           ))}
-           <button 
-                onClick={() => setIsChannelModalOpen(true)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 mt-4 rounded-2xl border border-dashed border-white/10 text-white/20 hover:border-[#53C8FF]/50 hover:text-[#53C8FF] transition-all"
-           >
-               <span className="text-xs font-black">+</span>
-               <span className="text-[9px] font-black uppercase tracking-widest">Add Channel</span>
-           </button>
-        </nav>
+         </div>
+
+         {/* Folders Bar */}
+         <div className="flex gap-1 p-2 overflow-x-auto custom-scrollbar border-b border-white/5 shrink-0">
+             {['All', 'Personal', 'Work', 'Crypto', 'Gaming'].map(folder => (
+                 <button 
+                    key={folder}
+                    onClick={() => setActiveFolder(folder)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${activeFolder === folder ? 'bg-[#53C8FF]/10 text-[#53C8FF]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+                 >
+                     {folder}
+                 </button>
+             ))}
+         </div>
+
+         {/* Chat List */}
+         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+             {filteredChats.map(chat => (
+                 <button 
+                    key={chat.id}
+                    onClick={() => setActiveChatId(chat.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeChatId === chat.id ? 'bg-[#53C8FF]/10 border border-[#53C8FF]/20' : 'hover:bg-white/5 border border-transparent'}`}
+                 >
+                     <div className="relative shrink-0">
+                         {chat.avatar ? (
+                             <img src={chat.avatar} className="w-12 h-12 rounded-full object-cover" alt={chat.name} />
+                         ) : (
+                             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${activeChatId === chat.id ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/10 text-white'}`}>
+                                 {chat.icon || chat.name.charAt(0)}
+                             </div>
+                         )}
+                         {chat.type !== 'dm' && (
+                             <div className="absolute -bottom-1 -right-1 bg-[#050819] rounded-full p-0.5">
+                                 <div className="w-4 h-4 bg-white/10 rounded-full flex items-center justify-center text-[8px]">
+                                     {chat.type === 'channel' ? '📢' : '👥'}
+                                 </div>
+                             </div>
+                         )}
+                     </div>
+                     <div className="flex-1 min-w-0 text-left">
+                         <div className="flex items-center justify-between mb-0.5">
+                             <span className={`text-sm font-bold truncate ${activeChatId === chat.id ? 'text-[#53C8FF]' : 'text-white'}`}>{chat.name}</span>
+                             {chat.lastMessage && <span className="text-[10px] text-white/30">{chat.lastMessage.time}</span>}
+                         </div>
+                         <div className="flex items-center justify-between">
+                             <p className="text-xs text-white/40 truncate max-w-[140px]">
+                                 {chat.lastMessage?.sender === 'You' ? 'You: ' : ''}{chat.lastMessage?.text}
+                             </p>
+                             {chat.unreadCount && (
+                                 <span className="bg-[#53C8FF] text-[#0A0F1F] text-[10px] font-black px-1.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+                                     {chat.unreadCount}
+                                 </span>
+                             )}
+                         </div>
+                     </div>
+                 </button>
+             ))}
+         </div>
       </div>
 
-      {/* 3. The Hybrid Workspace */}
-      <div className="flex-1 flex flex-col bg-[#0A0F1F]/40 overflow-hidden">
-        <div className="h-24 shrink-0 border-b border-white/5 flex items-center justify-between px-10 bg-[#080C22]/60 backdrop-blur-3xl">
-           <div className="flex flex-col gap-2">
-              <div className="flex gap-2 bg-[#050819] p-1.5 rounded-2xl shadow-inner overflow-x-auto custom-scrollbar">
-                 {(['Flow', 'Mesh', 'Beam', 'Pulse', 'GameHub'] as const).map(t => (
-                   <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all italic whitespace-nowrap ${activeTab === t ? 'bg-[#1A2348] text-[#53C8FF] ring-1 ring-[#53C8FF]/20' : 'text-white/20 hover:text-white'}`}>
-                     {t}
-                   </button>
-                 ))}
+      {/* RIGHT MAIN AREA: Chat View */}
+      <div className="flex-1 flex flex-col bg-[#0A0F1F] relative">
+          {/* Chat Header */}
+          <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#080C22]/80 backdrop-blur-md">
+              <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#53C8FF] to-purple-500 flex items-center justify-center text-lg shadow-lg">
+                      {activeChat.icon || activeChat.name.charAt(0)}
+                  </div>
+                  <div>
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                          {activeChat.name}
+                          {activeChat.type === 'channel' && <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-black uppercase text-white/50 tracking-wider">Channel</span>}
+                      </h3>
+                      <p className="text-xs text-white/40">
+                          {activeChat.membersCount.toLocaleString()} {activeChat.type === 'channel' ? 'subscribers' : 'members'}
+                          {activeChat.type === 'group' && ' • 24 online'}
+                      </p>
+                  </div>
               </div>
-           </div>
-           <div className="flex items-center gap-6">
-              <button className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-[#53C8FF]/10 transition-all group">
-                <Icons.AI className="w-5 h-5 text-[#53C8FF] group-hover:scale-110" />
-              </button>
-           </div>
-        </div>
+              <div className="flex items-center gap-4">
+                  <button className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </button>
+                  <button className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                  <button className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                  </button>
+              </div>
+          </div>
 
-        <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
-           {activeTab === 'Mesh' && (
-             <div className="animate-fade-in space-y-10 italic">
-                {/* GitHub Integration Card */}
-                <div className="bg-[#0E1430] border border-[#53C8FF]/20 p-10 rounded-[48px] shadow-3xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><span className="text-8xl">🐙</span></div>
-                   <div className="flex items-center justify-between mb-8">
-                      <div>
-                         <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#53C8FF] mb-2">GitHub Mesh Node</h4>
-                         <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">cloudhop / {selectedComm.id}</h2>
-                      </div>
-                      <div className="flex gap-4">
-                         <button 
-                           onClick={handleSync}
-                           className="px-8 py-3.5 bg-white/5 border border-white/10 hover:border-[#53C8FF]/40 rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-all"
-                         >
-                            Pull
-                         </button>
-                         <button 
-                           onClick={handleSync}
-                           className="px-8 py-3.5 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl text-[10px] font-black uppercase tracking-widest italic shadow-xl shadow-[#53C8FF]/20"
-                         >
-                            Push Changes
-                         </button>
-                      </div>
-                   </div>
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
+              {/* Date Separator */}
+              <div className="flex justify-center">
+                  <span className="bg-[#050819]/60 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold text-white/40 uppercase tracking-widest">Today</span>
+              </div>
 
-                   {isSyncing ? (
-                      <div className="space-y-4 animate-pulse">
-                         <div className="flex justify-between text-[9px] font-black uppercase text-[#53C8FF] tracking-widest">
-                            <span>Pushing local mesh to GitHub...</span>
-                            <span>{syncProgress}%</span>
-                         </div>
-                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#53C8FF] transition-all duration-300" style={{ width: `${syncProgress}%` }}></div>
-                         </div>
-                      </div>
-                   ) : (
-                      <div className="grid grid-cols-2 gap-8 pt-4 border-t border-white/5">
-                         <div className="space-y-3">
-                            <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Recent Commits</div>
-                            {[
-                              { msg: 'feat: update', time: '12m ago' },
-                              { msg: 'refactor: core', time: '1h ago' }
-                            ].map((c, i) => (
-                               <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/40 italic">
-                                  <span>{c.msg}</span>
-                                  <span className="text-[8px] opacity-40">{c.time}</span>
-                               </div>
-                            ))}
-                         </div>
-                         <div className="flex flex-col justify-center items-end">
-                            <div className="text-[8px] font-black text-[#3DD68C] uppercase tracking-[0.4em] mb-1">Status: Synced</div>
-                            <div className="text-[10px] text-white/10 uppercase tracking-widest">Last Mesh Pulse: 2m ago</div>
-                         </div>
-                      </div>
-                   )}
-                </div>
+              {messages.map(msg => (
+                  <div key={msg.id} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} animate-fade-in-up`}>
+                      {/* Message Bubble */}
+                      <div className={`max-w-[70%] rounded-2xl p-4 shadow-lg relative group ${
+                          activeChat.type === 'channel' 
+                            ? 'w-full max-w-[85%] bg-[#1A2348] border-l-4 border-[#53C8FF] rounded-r-2xl rounded-l-none mx-auto' 
+                            : msg.isMe 
+                                ? 'bg-[#53C8FF] text-[#0A0F1F] rounded-tr-sm' 
+                                : 'bg-[#1A2348] text-white rounded-tl-sm'
+                      }`}>
+                          {!msg.isMe && activeChat.type !== 'dm' && activeChat.type !== 'channel' && (
+                              <div className="text-[10px] font-bold text-[#53C8FF] mb-1">{msg.sender}</div>
+                          )}
+                          
+                          <p className={`text-sm leading-relaxed ${activeChat.type === 'channel' ? 'text-lg font-medium' : ''}`}>
+                              {msg.text}
+                          </p>
 
-                {/* File Mesh Dropzone */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="bg-[#0E1430] border-2 border-dashed border-white/5 p-12 rounded-[48px] text-center flex flex-col items-center justify-center hover:border-[#53C8FF]/20 transition-all group cursor-pointer">
-                      <div className="text-4xl mb-6 group-hover:scale-125 transition-transform">☁️</div>
-                      <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Drop Files to Mesh</h4>
-                      <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Simultaneous Sync to All Hubs</p>
-                   </div>
-                   <div className="bg-[#0E1430] border border-white/5 p-12 rounded-[48px] shadow-xl space-y-6">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">Mesh Assets</h4>
-                      <div className="space-y-4">
-                         {[
-                           { name: 'logo_mesh_v2.svg', size: '2.4mb', type: 'vector' },
-                           { name: 'sprint_q1_notes.md', size: '12kb', type: 'doc' }
-                         ].map((f, i) => (
-                            <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#53C8FF]/20 transition-all">
-                               <div className="flex items-center gap-4">
-                                  <div className="w-8 h-8 rounded-lg bg-[#53C8FF]/10 flex items-center justify-center text-[10px] font-black text-[#53C8FF]">#</div>
-                                  <div className="text-xs font-bold">{f.name}</div>
-                               </div>
-                               <span className="text-[9px] font-black text-white/20">{f.size}</span>
-                            </div>
-                         ))}
+                          <div className={`flex items-center justify-end gap-1 mt-1 ${msg.isMe ? 'text-[#0A0F1F]/50' : 'text-white/30'}`}>
+                              <span className="text-[10px] font-medium">{msg.time}</span>
+                              {msg.isMe && <span>✓✓</span>}
+                              {activeChat.type === 'channel' && (
+                                  <span className="flex items-center gap-1 ml-2 text-white/40">
+                                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                      {msg.views}
+                                  </span>
+                              )}
+                          </div>
                       </div>
-                   </div>
-                </div>
-             </div>
-           )}
+                  </div>
+              ))}
+          </div>
 
-           {activeTab === 'Flow' && (
-             <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in italic">
-                <div className="text-[140px] opacity-20 select-none">{selectedComm.icon}</div>
-                <div className="space-y-4">
-                  <h2 className="text-6xl font-black uppercase tracking-tighter italic leading-none">{selectedComm.name}</h2>
-                  <p className="text-white/20 text-xl font-medium max-w-xl mx-auto italic">Social heartbeat active. Drop into the conversation.</p>
-                </div>
-                <button className="px-16 py-6 bg-[#53C8FF] text-[#0A0F1F] rounded-[32px] text-sm font-black uppercase tracking-[0.2em] italic shadow-2xl shadow-[#53C8FF]/20 hover:scale-105 transition-all">Join Social Flow</button>
-             </div>
-           )}
-        </div>
+          {/* Input Area */}
+          <div className="p-4 bg-[#080C22] border-t border-white/5">
+              {activeChat.type === 'channel' ? (
+                  <div className="flex items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5">
+                      <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Broadcast Only • <span className="text-[#53C8FF] cursor-pointer hover:underline">Discuss</span></p>
+                  </div>
+              ) : (
+                  <div className="flex items-center gap-4 bg-[#050819] p-2 rounded-2xl border border-white/10 focus-within:border-[#53C8FF]/50 transition-colors shadow-lg">
+                      <button className="p-2 text-white/30 hover:text-white transition-colors">
+                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                      </button>
+                      <input 
+                          className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/20 text-sm h-10"
+                          placeholder="Write a message..."
+                      />
+                      <button className="p-2 text-white/30 hover:text-white transition-colors">
+                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                      </button>
+                      <button className="p-2 text-white/30 hover:text-white transition-colors">
+                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                      </button>
+                      <button className="p-3 bg-[#53C8FF] rounded-xl text-[#0A0F1F] hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                  </div>
+              )}
+          </div>
       </div>
     </div>
   );
