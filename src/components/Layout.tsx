@@ -93,8 +93,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
         </nav>
 
         <div className="p-6 mt-auto">
-           <div className={`p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center gap-3 ${!isSidebarOpen && 'p-2'}`}>
-              <div className="text-[8px] font-black uppercase tracking-widest text-white/20 italic">Cloud Core</div>
+           <div className={`p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center gap-3 ${!isSidebarOpen && 'p-2 hidden md:flex'}`}>
+              <div className="text-[8px] font-black uppercase tracking-widest text-white/60 italic">Cloud Core</div>
               <div className="flex items-center gap-2">
                  <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C] animate-pulse"></div>
                  {isSidebarOpen && <span className="text-[8px] font-black uppercase tracking-widest text-[#3DD68C] italic">Optimized</span>}

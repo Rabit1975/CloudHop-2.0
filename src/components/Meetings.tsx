@@ -567,7 +567,7 @@ const Meetings: React.FC = () => {
                  menu: (
                      <div className="absolute bottom-20 left-1/2 translate-x-12 bg-[#242424] rounded-full shadow-xl border border-white/10 p-2 flex gap-2 z-50">
                          {['👏', '👍', '❤️', '😂', '😮', '🎉'].map(emoji => (
-                             <button key={emoji} onClick={() => triggerReaction(emoji)} className="text-2xl hover:scale-125 transition-transform p-1">
+                             <button key={emoji} onClick={() => triggerReaction(emoji)} className="text-2xl hover:scale-125 transition-transform p-1" aria-label={`Reaction ${emoji}`}>
                                  {emoji}
                              </button>
                          ))}
