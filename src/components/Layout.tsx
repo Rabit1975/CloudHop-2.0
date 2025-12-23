@@ -65,6 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
         <button 
           className="p-4 flex items-center gap-3 h-20 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all overflow-hidden w-full text-left" 
           onClick={() => onNavigate(View.DASHBOARD)}
+          aria-label="Go to Dashboard"
         >
             <CloudHopLogo size={36} variant="neon" className="gpu-accelerated shrink-0" />
             {isSidebarOpen && <span className="font-black text-2xl tracking-tighter animate-fade-in italic uppercase">CloudHop</span>}
@@ -82,7 +83,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[#1A2348] text-[#53C8FF] shadow-[0_8px_20px_rgba(0,0,0,0.4)] ring-1 ring-[#53C8FF]/20' 
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    : 'text-white/80 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 ${isActive ? 'text-[#53C8FF] scale-110' : 'group-hover:scale-110'}`} />
@@ -94,7 +95,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
 
         <div className="p-6 mt-auto">
            <div className={`p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center gap-3 ${!isSidebarOpen && 'p-2 hidden md:flex'}`}>
-              <div className="text-[8px] font-black uppercase tracking-widest text-white/60 italic">Cloud Core</div>
+              <div className="text-[8px] font-black uppercase tracking-widest text-white/80 italic">Cloud Core</div>
               <div className="flex items-center gap-2">
                  <div className="w-1.5 h-1.5 rounded-full bg-[#3DD68C] animate-pulse"></div>
                  {isSidebarOpen && <span className="text-[8px] font-black uppercase tracking-widest text-[#3DD68C] italic">Optimized</span>}
@@ -107,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       <div className="flex-1 flex flex-col relative overflow-hidden bg-[#050819]">
         <header className="h-20 shrink-0 bg-[#080C22]/60 backdrop-blur-2xl flex items-center justify-between px-8 border-b border-white/5 z-10">
           <div className="flex items-center gap-6">
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/40 hover:text-white">
+            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/80 hover:text-white" aria-label="Toggle Sidebar">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
             </button>
             <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-[#53C8FF] italic">{viewLabels[currentView]}</h2>

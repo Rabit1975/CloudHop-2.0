@@ -324,13 +324,14 @@ const Meetings: React.FC = () => {
             <button 
                 onClick={() => setViewMode(viewMode === 'grid' ? 'speaker' : 'grid')}
                 className="flex items-center gap-1.5 bg-[#242424] hover:bg-[#333] px-3 py-1 rounded text-xs transition-colors"
+                aria-label={`Switch to ${viewMode === 'grid' ? 'Speaker' : 'Grid'} View`}
             >
                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
                {viewMode === 'grid' ? 'Speaker View' : 'Gallery View'}
             </button>
             
             {/* Full Screen Toggle */}
-            <button onClick={toggleFullScreen} className="p-1.5 hover:bg-[#333] rounded">
+            <button onClick={toggleFullScreen} className="p-1.5 hover:bg-[#333] rounded" aria-label={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}>
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
         </div>
@@ -413,7 +414,8 @@ const Meetings: React.FC = () => {
                    {/* Add Bot Button (For Testing) */}
                    <button 
                      onClick={() => setParticipants([...participants, { id: Date.now().toString(), name: `Bot ${participants.length + 1}` }])}
-                     className="bg-[#1A1A1A] border border-white/10 border-dashed rounded flex flex-col items-center justify-center text-white/20 hover:text-white/50 hover:border-white/30 transition-all"
+                     className="bg-[#1A1A1A] border border-white/10 border-dashed rounded flex flex-col items-center justify-center text-white/60 hover:text-white/80 hover:border-white/30 transition-all"
+                     aria-label="Add Participant"
                    >
                        <span className="text-4xl">+</span>
                        <span className="text-xs">Add Participant</span>
@@ -434,7 +436,7 @@ const Meetings: React.FC = () => {
             <div className="w-80 bg-white border-l border-gray-200 flex flex-col text-black">
                <div className="h-12 border-b border-gray-200 flex items-center justify-center font-bold text-sm relative">
                   {showParticipants ? `Participants (${participants.length + 1})` : 'Meeting Chat'}
-                  <button onClick={() => { setShowParticipants(false); setShowChat(false); }} className="absolute right-3 text-gray-400 hover:text-black">
+                  <button onClick={() => { setShowParticipants(false); setShowChat(false); }} className="absolute right-3 text-gray-400 hover:text-black" aria-label="Close Sidebar">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
                </div>
@@ -489,7 +491,7 @@ const Meetings: React.FC = () => {
                                     placeholder="Type a message..."
                                     className="bg-transparent border-none focus:outline-none text-sm flex-1"
                                   />
-                                  <button onClick={() => setChatMessage(chatMessage + " 🎤 (Voice)")} className="text-gray-400 hover:text-blue-500">
+                                  <button onClick={() => setChatMessage(chatMessage + " 🎤 (Voice)")} className="text-gray-400 hover:text-blue-500" aria-label="Voice Input">
                                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                                   </button>
                                   <button onClick={sendChatMessage} className="text-blue-500 hover:text-blue-700 font-bold text-sm">Send</button>
