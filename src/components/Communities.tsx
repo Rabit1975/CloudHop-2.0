@@ -111,13 +111,39 @@ const Communities: React.FC = () => {
     return chat.folder === activeFolder;
   });
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(`Creating ${createType}: ${newName} (${isPrivate ? 'Private' : 'Public'})`);
-    setIsComposeOpen(false);
-    setNewName('');
-    setNewDesc('');
+  const handleSendMessage = () => {
+    if (!messageInput.trim()) return;
+    
+    // Add to mock messages for the active chat
+    const newMessage = { 
+        id: Date.now().toString(), 
+        text: messageInput, 
+        sender: 'You', 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+        isMe: true 
+    };
+    
+    // In a real app, this would be an API call
+    // For local state update, we need to lift state up or use a context, 
+    // but for this demo we'll just update the local constant temporarily 
+    // or better yet, use a local state for messages if we want it to be interactive in the session
+    
+    // Updating local state map
+    const chatId = activeChatId;
+    if (!MOCK_MESSAGES[chatId]) MOCK_MESSAGES[chatId] = [];
+    MOCK_MESSAGES[chatId].push(newMessage);
+    
+    setMessageInput('');
   };
+
+  const [messageInput, setMessageInput] = useState('');
+
+  // Force re-render when mock messages update
+  const [, setTick] = useState(0);
+  useEffect(() => {
+      const interval = setInterval(() => setTick(t => t + 1), 1000);
+      return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="h-full flex gap-1 rounded-[32px] overflow-hidden border border-white/5 bg-[#080C22] shadow-2xl animate-fade-in font-sans">
@@ -337,6 +363,9 @@ const Communities: React.FC = () => {
                       <input 
                           className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/20 text-sm h-10"
                           placeholder="Write a message..."
+                          value={messageInput}
+                          onChange={e => setMessageInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                       />
                       <button className="p-2 text-white/30 hover:text-white transition-colors">
                           <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
@@ -344,7 +373,7 @@ const Communities: React.FC = () => {
                       <button className="p-2 text-white/30 hover:text-white transition-colors">
                           <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                       </button>
-                      <button className="p-3 bg-[#53C8FF] rounded-xl text-[#0A0F1F] hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">
+                      <button onClick={handleSendMessage} className="p-3 bg-[#53C8FF] rounded-xl text-[#0A0F1F] hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">
                           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                       </button>
                   </div>
