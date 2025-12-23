@@ -14,7 +14,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   };
 
   return (
-    <div className="bg-[#050819] min-h-screen text-white selection:bg-[#53C8FF]/30 font-sans relative overflow-x-hidden">
+    <div className="bg-[#050819] h-screen w-full text-white selection:bg-[#53C8FF]/30 font-sans relative overflow-x-hidden overflow-y-auto custom-scrollbar">
       {/* 1. Navigation Bar */}
       <nav className="fixed top-0 w-full h-20 bg-[#050819]/80 backdrop-blur-md border-b border-white/5 z-50 px-8 lg:px-24 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>

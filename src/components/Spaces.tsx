@@ -1,21 +1,56 @@
-
 import React, { useState } from 'react';
-import { CloudHopLogo } from '../constants';
+import { CloudHopLogo, Icons } from '../constants';
+import GameHub from './GameHub';
+import AITools from './AITools';
 
 const Spaces: React.FC = () => {
   const [filter, setFilter] = useState('World Map');
+  const [currentMode, setCurrentMode] = useState<'Grid' | 'Arcade' | 'IntelliRabbit'>('Grid');
+  
   const categories = ['World Map', 'Trending', 'Friends', 'Voice Lounges', 'Avatar Rooms', 'Gaming Squads', 'Study Halls'];
 
   const spaces = [
-    { name: 'Neon Social', category: 'Voice Lounges', participants: 42, desc: 'Public discovery lounge with active high-energy vibes.', image: 'https://picsum.photos/seed/neon/400/225', type: 'Public Social' },
-    { name: 'Arcade Squad 1', category: 'Gaming Squads', participants: 12, desc: 'Sandbox building and competitive strategy.', image: 'https://picsum.photos/seed/mine/400/225', type: 'Gaming Squad' },
-    { name: 'Quiet Huddle', category: 'Study Halls', participants: 28, desc: 'Silent focus with shared intelligence streams.', image: 'https://picsum.photos/seed/lofi/400/225', type: 'Mesh Hub' },
-    { name: 'Coffee Avatars', category: 'Avatar Rooms', participants: 8, desc: 'Private avatar-only casual meeting space.', image: 'https://picsum.photos/seed/code/400/225', type: 'Avatar Hub' },
-    { name: 'The Void', category: 'Trending', participants: 15, desc: 'Ambient discovery zone with light chat.', image: 'https://picsum.photos/seed/void/400/225', type: 'Casual Discovery' },
-    { name: 'Inner Circle', category: 'Friends', participants: 6, desc: 'Your closest squad members are currently here.', image: 'https://picsum.photos/seed/art/400/225', type: 'Private Flow' },
+    { id: 'neon', name: 'Neon Social', category: 'Voice Lounges', participants: 42, desc: 'Public discovery lounge with active high-energy vibes.', image: 'https://picsum.photos/seed/neon/400/225', type: 'Public Social' },
+    { id: 'arcade', name: 'Arcade Squad 1', category: 'Gaming Squads', participants: 12, desc: 'Sandbox building and competitive strategy.', image: 'https://picsum.photos/seed/mine/400/225', type: 'Gaming Squad' },
+    { id: 'quiet', name: 'Quiet Huddle', category: 'Study Halls', participants: 28, desc: 'Silent focus with shared intelligence streams.', image: 'https://picsum.photos/seed/lofi/400/225', type: 'Mesh Hub' },
+    { id: 'avatar', name: 'Coffee Avatars', category: 'Avatar Rooms', participants: 8, desc: 'Private avatar-only casual meeting space.', image: 'https://picsum.photos/seed/code/400/225', type: 'Avatar Hub' },
+    { id: 'void', name: 'The Void', category: 'Trending', participants: 15, desc: 'Ambient discovery zone with light chat.', image: 'https://picsum.photos/seed/void/400/225', type: 'Casual Discovery' },
+    { id: 'friends', name: 'Inner Circle', category: 'Friends', participants: 6, desc: 'Your closest squad members are currently here.', image: 'https://picsum.photos/seed/art/400/225', type: 'Private Flow' },
   ];
 
   const filteredSpaces = filter === 'World Map' ? spaces : spaces.filter(s => s.category === filter || filter === 'World Map');
+
+  const handleHopIn = (space: typeof spaces[0]) => {
+    if (space.id === 'arcade') {
+        setCurrentMode('Arcade');
+    } else {
+        alert(`Joining ${space.name}... (Simulated)`);
+    }
+  };
+
+  if (currentMode === 'Arcade') {
+      return (
+          <div className="h-full flex flex-col animate-fade-in">
+              <div className="flex items-center gap-4 mb-6">
+                  <button onClick={() => setCurrentMode('Grid')} className="p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-black uppercase tracking-widest">← Back</button>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter italic">The Arcade</h2>
+              </div>
+              <GameHub />
+          </div>
+      );
+  }
+
+  if (currentMode === 'IntelliRabbit') {
+      return (
+          <div className="h-full flex flex-col animate-fade-in">
+              <div className="flex items-center gap-4 mb-6">
+                  <button onClick={() => setCurrentMode('Grid')} className="p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-black uppercase tracking-widest">← Back</button>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter italic">IntelliRabbit Suite</h2>
+              </div>
+              <AITools />
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-12 animate-fade-in italic">
@@ -25,12 +60,21 @@ const Spaces: React.FC = () => {
             <svg className="w-[500px] h-[500px]" fill="currentColor" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
          </div>
          <div className="relative z-10 space-y-8">
-            <div className="inline-flex items-center gap-3 px-5 py-2 bg-[#53C8FF]/10 border border-[#53C8FF]/20 rounded-full">
-               <span className="w-1.5 h-1.5 rounded-full bg-[#53C8FF] animate-pulse"></span>
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#53C8FF] italic">Public Social Discovery Layer</span>
+            <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-3 px-5 py-2 bg-[#53C8FF]/10 border border-[#53C8FF]/20 rounded-full">
+                   <span className="w-1.5 h-1.5 rounded-full bg-[#53C8FF] animate-pulse"></span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#53C8FF] italic">Public Social Discovery Layer</span>
+                </div>
+                <button 
+                  onClick={() => setCurrentMode('IntelliRabbit')}
+                  className="flex items-center gap-3 px-6 py-3 bg-white/5 hover:bg-[#53C8FF]/20 border border-white/10 hover:border-[#53C8FF] rounded-2xl transition-all group"
+                >
+                    <Icons.AI className="w-5 h-5 text-[#53C8FF] group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/80 group-hover:text-white">IntelliRabbit</span>
+                </button>
             </div>
             <h1 className="text-7xl lg:text-9xl font-black tracking-tighter uppercase italic leading-[0.8] transition-all">Hop World<br /> <span className="text-[#53C8FF] drop-shadow-[0_0_30px_rgba(83,200,255,0.4)]">Communities.</span></h1>
-            <p className="text-white/30 text-2xl font-medium max-w-3xl leading-relaxed italic">The explorable map of CloudHop. Discover new squads, wander into public lounges, and drop into experiences instantly.</p>
+            <p className="text-white/60 text-2xl font-medium max-w-3xl leading-relaxed italic">The explorable map of CloudHop. Discover new squads, wander into public lounges, and drop into experiences instantly.</p>
          </div>
       </div>
 
@@ -75,8 +119,14 @@ const Spaces: React.FC = () => {
                     <div className="text-[10px] font-black text-[#53C8FF]/60 uppercase tracking-widest italic">{space.type}</div>
                   </div>
                </div>
-               <p className="text-sm text-white/30 font-medium leading-relaxed italic line-clamp-2 flex-1">{space.desc}</p>
-               <button className="w-full py-5 bg-white/5 hover:bg-[#53C8FF] hover:text-[#0A0F1F] rounded-[28px] text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-white/10 group-hover:border-[#53C8FF] shadow-2xl italic">Hop In</button>
+               <p className="text-sm text-white/60 font-medium leading-relaxed italic line-clamp-2 flex-1">{space.desc}</p>
+               <button 
+                onClick={() => handleHopIn(space)}
+                className="w-full py-5 bg-white/5 hover:bg-[#53C8FF] hover:text-[#0A0F1F] rounded-[28px] text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-white/10 group-hover:border-[#53C8FF] shadow-2xl italic"
+                aria-label={`Hop into ${space.name}`}
+               >
+                   Hop In
+               </button>
             </div>
           </div>
         ))}
@@ -88,7 +138,7 @@ const Spaces: React.FC = () => {
             <CloudHopLogo size={72} variant="neon" />
             <div className="space-y-2 text-left">
                <h4 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Global Discovery</h4>
-               <p className="text-white/10 text-sm font-black uppercase tracking-[0.4em] italic">Real-time presence. Chrome-native. Fast.</p>
+               <p className="text-white/20 text-sm font-black uppercase tracking-[0.4em] italic">Real-time presence. Chrome-native. Fast.</p>
             </div>
          </div>
          <div className="flex -space-x-5">

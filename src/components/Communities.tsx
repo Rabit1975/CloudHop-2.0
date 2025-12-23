@@ -99,14 +99,6 @@ const Communities: React.FC = () => {
         </div>
 
         <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
-           {activeTab === 'IntelliRabbit' && (
-              <AITools />
-           )}
-
-           {activeTab === 'GameHub' && (
-              <GameHub />
-           )}
-
            {activeTab === 'Mesh' && (
              <div className="animate-fade-in space-y-10 italic">
                 {/* GitHub Integration Card */}
