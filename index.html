@@ -97,8 +97,8 @@
         /* Cloud Mist Background Effect */
         .cloud-mist {
             position: fixed;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             top: 0;
             left: 0;
             background: 
@@ -106,10 +106,11 @@
                 radial-gradient(circle at 80% 70%, rgba(0, 112, 255, 0.05) 0%, transparent 50%);
             z-index: -1;
             pointer-events: none;
+            contain: strict; /* Prevents layout shifts */
         }
     </style>
 </head>
-<body class="bg-[#050819] text-white no-select">
+<body class="bg-[#050819] text-white no-select overflow-hidden">
     <div class="cloud-mist"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

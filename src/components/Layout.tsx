@@ -114,8 +114,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 hover:bg-white/5 pl-1 py-1 pr-3 rounded-full transition-all border border-transparent hover:border-white/10">
-                <img src={user?.avatar} className="w-10 h-10 rounded-[16px] bg-white/10 border border-white/10 shadow-lg gpu-accelerated" alt=""/>
+              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 hover:bg-white/5 pl-1 py-1 pr-3 rounded-full transition-all border border-transparent hover:border-white/10" aria-label="Open profile menu">
+                <img src={user?.avatar} className="w-10 h-10 rounded-[16px] bg-white/10 border border-white/10 shadow-lg gpu-accelerated" alt={`Avatar of ${user?.name}`}/>
                 <div className="hidden md:block text-left">
                   <div className="text-xs font-black leading-none mb-1 italic">{user?.name}</div>
                   <div className="text-[8px] text-[#53C8FF] font-black uppercase tracking-widest leading-none opacity-60 italic">Lvl {user?.level}</div>
