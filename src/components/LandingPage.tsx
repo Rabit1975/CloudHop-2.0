@@ -1,7 +1,7 @@
 import React from 'react';
 // Remove non-existent ASSETS export
 import { CloudHopLogo, Icons } from '../constants';
-import highResLogo from '../src/assets/highresolutionmasterlogo1.svg';
+import highResLogo from '../assets/highresolutionmasterlogo1.svg';
 
 interface LandingPageProps {
   onStart: () => void;

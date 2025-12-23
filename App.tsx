@@ -1,17 +1,17 @@
 
 import React, { useState } from 'react';
-import { View, User } from './types';
-import LandingPage from './components/LandingPage';
-import Dashboard from './components/Dashboard';
-import Chat from './components/Chat';
-import Meetings from './components/Meetings';
-import Spaces from './components/Spaces';
-import Communities from './components/Communities';
-import GameHub from './components/GameHub';
-import Profile from './components/Profile';
-import Settings from './components/Settings';
-import AITools from './components/AITools';
-import Layout from './components/Layout';
+import { View, User } from './src/types';
+import LandingPage from './src/components/LandingPage';
+import Dashboard from './src/components/Dashboard';
+import Chat from './src/components/Chat';
+import Meetings from './src/components/Meetings';
+import Spaces from './src/components/Spaces';
+import Communities from './src/components/Communities';
+import GameHub from './src/components/GameHub';
+import Profile from './src/components/Profile';
+import Settings from './src/components/Settings';
+import AITools from './src/components/AITools';
+import Layout from './src/components/Layout';
 
 import { SpaceProvider } from './src/contexts/SpaceContext';
 
