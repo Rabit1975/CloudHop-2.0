@@ -609,6 +609,123 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
       </div>
     </div>
   );
+
+  return (
+    <div className="h-full flex flex-col relative animate-fade-in">
+      {step === 'input' && (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+           <div className="max-w-md w-full space-y-8">
+              <div className="flex flex-col items-center">
+                 <div className="w-24 h-24 bg-[#1A2348] rounded-3xl flex items-center justify-center mb-6 shadow-2xl ring-1 ring-white/10">
+                    <CloudHopLogo size={64} variant="neon" />
+                 </div>
+                 <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Hop Meets</h1>
+                 <p className="text-white/60 text-lg">Premium Video Conferencing</p>
+              </div>
+
+              <div className="space-y-4">
+                 <button 
+                   onClick={handleStartInstant}
+                   aria-label="Start Instant Meeting"
+                   className="w-full py-4 bg-[#53C8FF] hover:bg-[#3DB8EF] text-[#050819] rounded-2xl font-black uppercase tracking-widest text-sm transition-all transform hover:scale-[1.02] shadow-lg shadow-[#53C8FF]/20"
+                 >
+                   Start Instant Meeting
+                 </button>
+                 
+                 <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                    <div className="relative flex justify-center text-xs uppercase tracking-widest"><span className="bg-[#050819] px-4 text-white/40">Or Join</span></div>
+                 </div>
+
+                 <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={meetingId}
+                      onChange={(e) => setMeetingId(e.target.value)}
+                      placeholder="Enter Meeting Code"
+                      aria-label="Meeting Code Input"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 text-center font-mono tracking-wider focus:outline-none focus:border-[#53C8FF]/50 transition-colors"
+                    />
+                    <button 
+                      onClick={handleJoinWithCode}
+                      disabled={!meetingId}
+                      aria-label="Join Meeting"
+                      className="px-6 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold uppercase text-xs tracking-wider transition-all"
+                    >
+                      Join
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {step === 'prejoin' && (
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+           <div className="max-w-4xl w-full bg-[#0A0F1F] rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col md:flex-row">
+              {/* Preview Area */}
+              <div className="flex-1 relative aspect-video bg-black/50 flex items-center justify-center group">
+                 {!isVideoOff ? (
+                    <canvas ref={canvasRef} className="w-full h-full object-cover scale-x-[-1]" />
+                 ) : (
+                    <div className="flex flex-col items-center gap-4 text-white/20">
+                       <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-3xl">📷</div>
+                       <span className="text-xs uppercase tracking-widest font-bold">Camera Off</span>
+                    </div>
+                 )}
+                 
+                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                    <button onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"} className={`p-3 rounded-full backdrop-blur-md border transition-all ${isMuted ? 'bg-red-500/20 border-red-500/50 text-red-500' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}>
+                       {isMuted ? (
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.66 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l2.97 2.97c-.85.35-1.76.57-2.71.5V21h2v-3.28c3.28-.48 5.69-3.18 5.69-6.6v-1.73l1.89 1.89 1.27-1.27L4.27 3z"/></svg>
+                       ) : (
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                       )}
+                    </button>
+                    <button onClick={() => setIsVideoOff(!isVideoOff)} aria-label={isVideoOff ? "Turn Video On" : "Turn Video Off"} className={`p-3 rounded-full backdrop-blur-md border transition-all ${isVideoOff ? 'bg-red-500/20 border-red-500/50 text-red-500' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}>
+                       {isVideoOff ? (
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/></svg>
+                       ) : (
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                       )}
+                    </button>
+                 </div>
+              </div>
+
+              {/* Sidebar Info */}
+              <div className="w-full md:w-80 bg-[#1A2348] p-8 flex flex-col justify-between">
+                 <div>
+                    <div className="text-xs font-black uppercase tracking-widest text-white/40 mb-2">Joining Meeting</div>
+                    <div className="text-2xl font-black tracking-tight mb-6">{meetingId}</div>
+                    
+                    <div className="flex items-center gap-3 mb-6">
+                        {user?.avatar ? (
+                            <img src={user.avatar} className="w-10 h-10 rounded-xl" alt="User" />
+                        ) : (
+                            <div className="w-10 h-10 bg-white/10 rounded-xl"></div>
+                        )}
+                        <div>
+                            <div className="text-sm font-bold">{user?.name || 'Guest User'}</div>
+                            <div className="text-[10px] text-white/40 uppercase tracking-wider">Ready to join</div>
+                        </div>
+                    </div>
+                 </div>
+
+                 <button 
+                   onClick={joinMeeting}
+                   aria-label="Join Meeting Now"
+                   className="w-full py-4 bg-[#3DD68C] hover:bg-[#32B576] text-[#050819] rounded-xl font-black uppercase tracking-widest text-sm transition-all shadow-lg shadow-[#3DD68C]/20"
+                 >
+                   Join Now
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {step === 'active' && renderActiveMeeting()}
+    </div>
+  );
 };
 
 export default Meetings;
