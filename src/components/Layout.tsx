@@ -23,9 +23,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   useEffect(() => {
     if (events.length > 0) {
       const latest = events[events.length - 1];
+      
+      // Only show notifications for specific relevant events
+      if (latest.type !== 'xp_award' && latest.type !== 'badge_unlock') {
+        return;
+      }
+
+      const payload = latest.payload || {};
       const newNotif = {
         id: Date.now(),
-        text: latest.type === 'xp_award' ? `+${latest.amount} XP Earned!` : `Unlocked: ${latest.badge}`,
+        text: latest.type === 'xp_award' ? `+${payload.amount} XP Earned!` : `Unlocked: ${payload.badge}`,
         type: latest.type
       };
       setNotifications(prev => [...prev, newNotif]);

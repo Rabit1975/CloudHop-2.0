@@ -41,7 +41,7 @@ const App: React.FC = () => {
       case View.DASHBOARD: return <Dashboard onNavigate={setView} />;
       case View.CHAT: return <Chat />;
       case View.WORLD: return <Communities />;
-      case View.MEETINGS: return <Meetings />;
+      case View.MEETINGS: return <Meetings user={user} />;
       case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;
       case View.PROFILE: return <div className="text-center text-white/50 py-20">Profile View</div>;
