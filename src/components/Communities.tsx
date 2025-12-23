@@ -111,6 +111,14 @@ const Communities: React.FC = () => {
     return chat.folder === activeFolder;
   });
 
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert(`Creating ${createType}: ${newName} (${isPrivate ? 'Private' : 'Public'})`);
+    setIsComposeOpen(false);
+    setNewName('');
+    setNewDesc('');
+  };
+
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
     
