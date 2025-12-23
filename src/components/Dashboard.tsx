@@ -18,41 +18,45 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     // Filter activities based on currentSpace.id
     console.log(`Fetching data for space: ${currentSpace.name}`);
     
-    // ... (rest of the effect)
-      {
-        id: '1',
-        type: 'message',
-        user: { name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'Admin' },
-        content: 'uploaded the final Q1 Design Assets.',
-        timestamp: '2m ago',
-        channel: 'Design Team'
+    // Mock data store for different spaces
+    const spaceData: Record<string, { activities: ActivityItem[], meetings: Meeting[] }> = {
+      'global-space': {
+        activities: [
+          { id: '1', type: 'message', user: { name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'Admin' }, content: 'uploaded the final Q1 Design Assets.', timestamp: '2m ago', channel: 'Design Team' },
+          { id: '2', type: 'event', user: { name: 'Mike Ross', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', role: 'Member' }, content: 'scheduled "Client Onboarding" for tomorrow.', timestamp: '15m ago', channel: 'General' },
+          { id: '3', type: 'join', user: { name: 'Emily Blunt', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', role: 'Guest' }, content: 'joined the "Core Architecture" channel.', timestamp: '1h ago', channel: 'System Logs' },
+        ],
+        meetings: [
+          { id: 'm1', title: 'Q1 Sprint Planning', time: '10:00 AM', participants: ['Sarah', 'Mike'], type: 'video' },
+          { id: 'm2', title: 'Design Review: Logo', time: '1:30 PM', participants: ['Sarah', 'Emily'], type: 'video' }
+        ]
       },
-      {
-        id: '2',
-        type: 'event',
-        user: { name: 'Mike Ross', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', role: 'Member' },
-        content: 'scheduled "Client Onboarding" for tomorrow.',
-        timestamp: '15m ago',
-        channel: 'General'
+      'engineering-group': {
+        activities: [
+          { id: 'e1', type: 'file', user: { name: 'Alex Code', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', role: 'Member' }, content: 'pushed to main: fix(auth): token refresh', timestamp: '5m ago', channel: 'git-updates' },
+          { id: 'e2', type: 'message', user: { name: 'Dev Lead', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dev', role: 'Admin' }, content: 'Code freeze for release v2.1 starts in 1h.', timestamp: '30m ago', channel: 'announcements' }
+        ],
+        meetings: [
+          { id: 'm3', title: 'Daily Standup', time: '11:00 AM', participants: ['Alex', 'Dev', 'Sarah'], type: 'video' }
+        ]
       },
-      {
-        id: '3',
-        type: 'join',
-        user: { name: 'Emily Blunt', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', role: 'Guest' },
-        content: 'joined the "Core Architecture" channel.',
-        timestamp: '1h ago',
-        channel: 'System Logs'
+      'founders-circle': {
+        activities: [
+           { id: 'f1', type: 'message', user: { name: 'CEO', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CEO', role: 'Admin' }, content: 'Investor deck updated.', timestamp: '1h ago', channel: 'board-room' }
+        ],
+        meetings: []
       },
-    ];
+      'creative-alliance': {
+        activities: [],
+        meetings: []
+      }
+    };
 
-    const mockMeetings: Meeting[] = [
-      { id: 'm1', title: 'Q1 Sprint Planning', time: '10:00 AM', participants: ['Sarah', 'Mike'], type: 'video' },
-      { id: 'm2', title: 'Design Review: Logo', time: '1:30 PM', participants: ['Sarah', 'Emily'], type: 'video' }
-    ];
+    const data = spaceData[currentSpace.id] || { activities: [], meetings: [] };
 
-    setActivities(mockActivities);
-    setMeetings(mockMeetings);
-  }, []);
+    setActivities(data.activities);
+    setMeetings(data.meetings);
+  }, [currentSpace.id]);
 
   return (
     <div className="space-y-10 italic">
