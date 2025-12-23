@@ -101,6 +101,7 @@ const Communities: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [messageInput, setMessageInput] = useState('');
 
   const activeChat = MOCK_CHATS.find(c => c.id === activeChatId) || MOCK_CHATS[0];
   const messages = MOCK_MESSAGES[activeChatId] || [];
@@ -143,8 +144,6 @@ const Communities: React.FC = () => {
     
     setMessageInput('');
   };
-
-  const [messageInput, setMessageInput] = useState('');
 
   // Force re-render when mock messages update
   const [, setTick] = useState(0);
