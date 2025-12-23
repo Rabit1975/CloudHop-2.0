@@ -503,10 +503,10 @@ const Meetings: React.FC = () => {
       </div>
 
       {/* Bottom Toolbar (Zoom style) */}
-      <div className="h-20 bg-[#1A1A1A] flex items-center justify-between px-4 shrink-0">
+      <div className="h-20 bg-[#1A1A1A] flex items-center justify-between px-4 shrink-0 overflow-x-auto custom-scrollbar gap-4">
         
         {/* Left Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
            <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center gap-1 min-w-[60px] text-white/90 hover:bg-[#2A2A2A] rounded p-2">
               <div className="relative">
                  {isMuted ? (
@@ -590,7 +590,7 @@ const Meetings: React.FC = () => {
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
            <button onClick={endMeeting} className="bg-[#E01E5A] hover:bg-[#C21648] text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">
               End
            </button>

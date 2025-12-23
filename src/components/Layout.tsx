@@ -135,7 +135,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
         </header>
 
         <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-          <div className="flex-1 p-8 lg:p-12 optimize-render">{children}</div>
+          <div className="flex-1 p-4 md:p-8 lg:p-12 optimize-render">{children}</div>
         </main>
       </div>
       
