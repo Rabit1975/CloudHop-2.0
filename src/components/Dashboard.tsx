@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <CloudHopLogo size={48} variant="main" />
           <div>
             <h1 className="text-4xl font-black tracking-tight mb-1 uppercase italic tracking-tighter">Welcome back, Matthew.</h1>
-            <p className="text-white/80 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
+            <p className="text-white/30 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
           </div>
         </div>
         <div className="w-full lg:w-96 bg-[#0E1430] border border-[#1E3A5F] p-6 rounded-[24px] shadow-2xl relative group overflow-hidden">
@@ -91,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       <span className="text-[9px] text-white/20 font-black uppercase">{item.timestamp}</span>
                     </div>
                     <div className="text-[9px] text-[#53C8FF] font-black uppercase tracking-[0.2em] mb-1 italic">{item.channel}</div>
-                    <p className="text-xs text-white/40 truncate font-medium italic">{item.content}</p>
+                    <p className="text-xs text-white/80 truncate font-medium italic">{item.content}</p>
                   </div>
                 </button>
               ))}
@@ -135,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   </div>
                </div>
                <div className="p-5 bg-[#1A2348]/30 rounded-2xl border border-[#53C8FF]/10 italic">
-                  <p className="text-[10px] text-white/50 leading-relaxed font-medium">Gemini suggests a quick huddle with Sarah regarding the logo concepts to finalize the Q1 sprint.</p>
+                  <p className="text-[10px] text-white/70 leading-relaxed font-medium">Gemini suggests a quick huddle with Sarah regarding the logo concepts to finalize the Q1 sprint.</p>
                </div>
             </div>
           </Card>
