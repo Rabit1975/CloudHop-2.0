@@ -1,41 +1,83 @@
-
 import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import { useSpace } from '../contexts/SpaceContext';
+import { CommunityInfo, Channel } from '../types';
+import { api } from '../services/mockApi';
+import Modal from './Modal';
 import GameHub from './GameHub';
 import AITools from './AITools';
 
 const Communities: React.FC = () => {
   const { setCurrentSpace } = useSpace();
   const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub' | 'IntelliRabbit'>('Flow');
-  const [selectedComm, setSelectedComm] = useState(0);
+  const [communities, setCommunities] = useState<CommunityInfo[]>([]);
+  const [selectedCommId, setSelectedCommId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  // Modals
+  const [isCommModalOpen, setIsCommModalOpen] = useState(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [newCommName, setNewCommName] = useState('');
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelType, setNewChannelType] = useState<'Flow' | 'Mesh' | 'Beam'>('Flow');
+
+  // Sync Logic
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
-  const communities = [
-    { id: 'founders-circle', name: 'Founders Circle', icon: '🚀', sub: 'Broadcast Only (Beam)', role: 'Admin' },
-    { id: 'engineering-group', name: 'Engineering Group', icon: '💻', sub: 'Standard Hybrid (Flow+Mesh)', role: 'Member' },
-    { id: 'creative-alliance', name: 'Creative Alliance', icon: '🎨', sub: 'Strategy Hub (Mesh)', role: 'Member' },
-    { id: 'global-space', name: 'Global Squad', icon: '🌍', sub: 'Social (Flow)', role: 'Guest' },
-  ];
+  useEffect(() => {
+    loadCommunities();
+  }, []);
+
+  const loadCommunities = async () => {
+    setLoading(true);
+    const data = await api.getCommunities();
+    setCommunities(data);
+    if (data.length > 0 && !selectedCommId) {
+        setSelectedCommId(data[0].id);
+    }
+    setLoading(false);
+  };
+
+  // Derived state
+  const selectedComm = communities.find(c => c.id === selectedCommId);
+  const channels = selectedComm?.channels || [];
 
   useEffect(() => {
-    // Update global space context when selected community changes
-    const comm = communities[selectedComm];
-    setCurrentSpace({
-      id: comm.id,
-      name: comm.name,
-      role: comm.role as any
-    });
-  }, [selectedComm, setCurrentSpace]);
+    if (selectedComm) {
+        setCurrentSpace({
+            id: selectedComm.id,
+            name: selectedComm.name,
+            role: selectedComm.role
+        });
+    }
+  }, [selectedCommId, communities]);
 
-  const channels = [
-    { name: 'general-chat', type: 'Flow' },
-    { name: 'hq-announcements', type: 'Beam' },
-    { name: 'git-mesh-sync', type: 'Mesh' },
-    { name: 'strategy-notes', type: 'Mesh' },
-    { name: 'one-way-wire', type: 'Beam' }
-  ];
+  const handleCreateCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await api.createCommunity({
+        name: newCommName,
+        icon: '🏛️',
+        sub: 'New Community',
+        role: 'Admin'
+    });
+    setIsCommModalOpen(false);
+    setNewCommName('');
+    loadCommunities();
+  };
+
+  const handleCreateChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedCommId) {
+        await api.createChannel(selectedCommId, {
+            name: newChannelName,
+            type: newChannelType
+        });
+        setIsChannelModalOpen(false);
+        setNewChannelName('');
+        loadCommunities();
+    }
+  };
 
   const handleSync = () => {
     setIsSyncing(true);
@@ -52,42 +94,104 @@ const Communities: React.FC = () => {
     }, 50);
   };
 
+  if (loading) return <div className="p-20 text-center text-white/20 font-black uppercase tracking-widest">Loading Communities...</div>;
+  if (!selectedComm) return <div className="p-20 text-center text-white/20">No Communities Found.</div>;
+
   return (
     <div className="h-full flex gap-1 rounded-[48px] overflow-hidden border border-white/5 bg-[#080C22] shadow-[0_50px_120px_rgba(0,0,0,0.9)] animate-fade-in italic">
+      
+      {/* Create Community Modal */}
+      <Modal isOpen={isCommModalOpen} onClose={() => setIsCommModalOpen(false)} title="Create Community">
+         <form onSubmit={handleCreateCommunity} className="space-y-6">
+            <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Name</label>
+                <input 
+                    value={newCommName}
+                    onChange={e => setNewCommName(e.target.value)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold"
+                    placeholder="e.g. Design Systems"
+                    required
+                />
+            </div>
+            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform">Create</button>
+         </form>
+      </Modal>
+
+      {/* Create Channel Modal */}
+      <Modal isOpen={isChannelModalOpen} onClose={() => setIsChannelModalOpen(false)} title="New Channel">
+         <form onSubmit={handleCreateChannel} className="space-y-6">
+            <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Name</label>
+                <input 
+                    value={newChannelName}
+                    onChange={e => setNewChannelName(e.target.value)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold"
+                    placeholder="e.g. general-chat"
+                    required
+                />
+            </div>
+            <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Type</label>
+                <select 
+                    value={newChannelType}
+                    onChange={e => setNewChannelType(e.target.value as any)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold appearance-none"
+                >
+                    <option value="Flow">Flow (Chat)</option>
+                    <option value="Mesh">Mesh (Files/Sync)</option>
+                    <option value="Beam">Beam (Announcements)</option>
+                </select>
+            </div>
+            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform">Create Channel</button>
+         </form>
+      </Modal>
+
       {/* 1. Hop Spaces Navigator */}
       <div className="w-24 bg-[#050819] flex flex-col items-center py-12 space-y-10 border-r border-white/5">
         <div className="mb-4 flex items-center justify-center p-2 bg-[#0E1430] border-2 border-[#53C8FF] rounded-2xl shadow-xl">
            <CloudHopLogo size={32} variant="main" />
         </div>
-        {communities.map((c, i) => (
-          <div key={i} className="relative group">
+        {communities.map((c) => (
+          <div key={c.id} className="relative group">
             <button 
-              onClick={() => setSelectedComm(i)}
-              className={`w-14 h-14 rounded-3xl flex items-center justify-center text-2xl transition-all relative ${selectedComm === i ? 'bg-[#53C8FF] shadow-[0_0_40px_rgba(83,200,255,0.4)] scale-110' : 'bg-[#0E1430] text-white/20 hover:text-white hover:scale-110'}`}
+              onClick={() => setSelectedCommId(c.id)}
+              className={`w-14 h-14 rounded-3xl flex items-center justify-center text-2xl transition-all relative ${selectedCommId === c.id ? 'bg-[#53C8FF] shadow-[0_0_40px_rgba(83,200,255,0.4)] scale-110' : 'bg-[#0E1430] text-white/20 hover:text-white hover:scale-110'}`}
             >
               {c.icon}
             </button>
           </div>
         ))}
-        <button className="w-14 h-14 rounded-3xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-white/20 hover:bg-white/10 transition-all">+</button>
+        <button 
+            onClick={() => setIsCommModalOpen(true)}
+            className="w-14 h-14 rounded-3xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-white/20 hover:bg-white/10 transition-all hover:border-[#53C8FF] hover:text-[#53C8FF]"
+        >
+            +
+        </button>
       </div>
 
       {/* 2. Channel Tree */}
       <div className="w-72 bg-[#080C22] flex flex-col border-r border-white/5">
         <div className="p-8 border-b border-white/5">
            <div className="text-[9px] font-black uppercase tracking-[0.4em] text-[#53C8FF] mb-2 italic">Hop Spaces Hub</div>
-           <h3 className="font-black text-lg uppercase tracking-tighter text-white italic">{communities[selectedComm].name}</h3>
+           <h3 className="font-black text-lg uppercase tracking-tighter text-white italic">{selectedComm.name}</h3>
         </div>
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-           {channels.map((chan, i) => (
-             <button key={i} className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all group ${i === 2 ? 'bg-[#53C8FF]/10 text-[#53C8FF]' : 'text-white/30 hover:bg-white/5'}`}>
+           {channels.map((chan) => (
+             <button key={chan.id} className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all group hover:bg-white/5`}>
                 <div className="flex items-center gap-4">
                    <span className="text-white/10 font-black text-sm">#</span>
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">{chan.name}</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-white/60 group-hover:text-white">{chan.name}</span>
                 </div>
-                <div className={`w-1 h-1 rounded-full ${chan.type === 'Beam' ? 'bg-[#FF4D4D]' : chan.type === 'Mesh' ? 'bg-[#3DD68C]' : 'bg-[#53C8FF]'} opacity-0 group-hover:opacity-100`}></div>
+                <div className={`w-1 h-1 rounded-full ${chan.type === 'Beam' ? 'bg-[#FF4D4D]' : chan.type === 'Mesh' ? 'bg-[#3DD68C]' : 'bg-[#53C8FF]'} opacity-50`}></div>
              </button>
            ))}
+           <button 
+                onClick={() => setIsChannelModalOpen(true)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 mt-4 rounded-2xl border border-dashed border-white/10 text-white/20 hover:border-[#53C8FF]/50 hover:text-[#53C8FF] transition-all"
+           >
+               <span className="text-xs font-black">+</span>
+               <span className="text-[9px] font-black uppercase tracking-widest">Add Channel</span>
+           </button>
         </nav>
       </div>
 
@@ -119,7 +223,7 @@ const Communities: React.FC = () => {
                    <div className="flex items-center justify-between mb-8">
                       <div>
                          <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#53C8FF] mb-2">GitHub Mesh Node</h4>
-                         <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">cloudhop / core-engine</h2>
+                         <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">cloudhop / {selectedComm.id}</h2>
                       </div>
                       <div className="flex gap-4">
                          <button 
@@ -152,8 +256,8 @@ const Communities: React.FC = () => {
                          <div className="space-y-3">
                             <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Recent Commits</div>
                             {[
-                              { msg: 'feat: neon filter fix', time: '12m ago' },
-                              { msg: 'refactor: hop-mesh core', time: '1h ago' }
+                              { msg: 'feat: update', time: '12m ago' },
+                              { msg: 'refactor: core', time: '1h ago' }
                             ].map((c, i) => (
                                <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/40 italic">
                                   <span>{c.msg}</span>
@@ -199,9 +303,9 @@ const Communities: React.FC = () => {
 
            {activeTab === 'Flow' && (
              <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in italic">
-                <div className="text-[140px] opacity-20 select-none">{communities[selectedComm].icon}</div>
+                <div className="text-[140px] opacity-20 select-none">{selectedComm.icon}</div>
                 <div className="space-y-4">
-                  <h2 className="text-6xl font-black uppercase tracking-tighter italic leading-none">{communities[selectedComm].name}</h2>
+                  <h2 className="text-6xl font-black uppercase tracking-tighter italic leading-none">{selectedComm.name}</h2>
                   <p className="text-white/20 text-xl font-medium max-w-xl mx-auto italic">Social heartbeat active. Drop into the conversation.</p>
                 </div>
                 <button className="px-16 py-6 bg-[#53C8FF] text-[#0A0F1F] rounded-[32px] text-sm font-black uppercase tracking-[0.2em] italic shadow-2xl shadow-[#53C8FF]/20 hover:scale-105 transition-all">Join Social Flow</button>

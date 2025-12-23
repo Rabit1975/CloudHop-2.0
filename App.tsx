@@ -1,4 +1,5 @@
 
+// CloudHop 2.0 - Main Entry
 import React, { useState } from 'react';
 import { View, User } from './src/types';
 import LandingPage from './src/components/LandingPage';
@@ -41,7 +42,7 @@ const App: React.FC = () => {
       case View.CHAT: return <Chat />;
       case View.WORLD: return <Communities />;
       case View.MEETINGS: return <Meetings />;
-      case View.CORE: return <Spaces />;
+      case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;
       case View.PROFILE: return <div className="text-center text-white/50 py-20">Profile View</div>;
       case View.SETTINGS: return <div className="text-center text-white/50 py-20">Settings View</div>;
