@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <CloudHopLogo size={48} variant="main" />
           <div>
             <h1 className="text-4xl font-black tracking-tight mb-1 uppercase italic tracking-tighter">Welcome back, Matthew.</h1>
-            <p className="text-white/30 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
+            <p className="text-white/80 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
           </div>
         </div>
         <div className="w-full lg:w-96 bg-[#0E1430] border border-[#1E3A5F] p-6 rounded-[24px] shadow-2xl relative group overflow-hidden">
