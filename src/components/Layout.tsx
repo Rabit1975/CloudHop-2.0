@@ -3,6 +3,7 @@ import { View, User } from '../types';
 import { CloudHopLogo, Icons } from '../constants';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSpace } from '../contexts/SpaceContext';
+import AIAssistant from './AIAssistant';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -156,6 +157,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
            </div>
          ))}
       </div>
+
+      {/* Global AI Assistant */}
+      <AIAssistant currentView={currentView} />
     </div>
   );
 };

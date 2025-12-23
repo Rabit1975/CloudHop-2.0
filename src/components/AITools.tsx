@@ -45,9 +45,15 @@ const AITools: React.FC = () => {
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+            setError('API Key missing');
+            setIsLoading(false);
+            return;
+        }
+        const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-2.0-flash-exp',
           contents: {
             parts: [
               { inlineData: { data: base64Audio, mimeType: 'audio/wav' } },
@@ -71,9 +77,15 @@ const AITools: React.FC = () => {
     setOutputText('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        setError('API Key missing');
+        setIsLoading(false);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       let prompt = '';
-      let model = 'gemini-3-flash-preview';
+      let model = 'gemini-2.0-flash-exp';
       let config: any = {};
 
       switch(activeTab) {
@@ -83,12 +95,13 @@ const AITools: React.FC = () => {
         case 'Extract Actions': prompt = `Extract tasks: ${inputText}`; break;
         case 'Thinking Mode':
           prompt = `Analyze: ${inputText}`;
-          model = 'gemini-3-pro-preview';
-          config = { thinkingConfig: { thinkingBudget: 32768 } };
+          // Keeping pro for thinking if available, otherwise flash
+          model = 'gemini-2.0-flash-exp'; 
+          // config = { thinkingConfig: { thinkingBudget: 32768 } }; // Removing experimental config for stability
           break;
       }
 
-      const response = await ai.models.generateContent({ model, contents: prompt, config });
+      const response = await ai.models.generateContent({ model, contents: prompt });
       setOutputText(response.text || 'No response.');
     } catch (err) {
       setError('AI Error. Please try again.');
