@@ -35,8 +35,8 @@ export const CloudHopLogo: React.FC<{
       case 'q3': return <LogoQ3 className={className} style={style} />;
       case 'q4': return <LogoQ4 className={className} style={style} />;
       case '3d': return <Logo3D className={className} style={style} />;
-      case 'glow':
-      case 'neon': return <LogoGlow className={className} style={style} />;
+      case 'glow': return <LogoGlow className={className} style={style} />;
+      case 'neon': return <LogoMain className={className} style={style} />;
       case 'main':
       case 'white':
       default: return <LogoMain className={className} style={style} />;

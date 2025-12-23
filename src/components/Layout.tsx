@@ -65,7 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
           className="p-4 flex items-center gap-3 h-20 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all overflow-hidden w-full text-left" 
           onClick={() => onNavigate(View.DASHBOARD)}
         >
-            <CloudHopLogo size={36} variant="main" className="gpu-accelerated shrink-0" />
+            <CloudHopLogo size={36} variant="neon" className="gpu-accelerated shrink-0" />
             {isSidebarOpen && <span className="font-black text-2xl tracking-tighter animate-fade-in italic uppercase">CloudHop</span>}
         </button>
 
