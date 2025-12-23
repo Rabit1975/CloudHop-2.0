@@ -54,7 +54,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.CORE]: 'Hop Spaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
     [View.PROFILE]: 'Digital ID',
-    [View.SETTINGS]: 'System Config'
+    [View.SETTINGS]: 'System Config',
+    [View.AI_TOOLS]: 'AI Agent Studio'
   };
 
   return (

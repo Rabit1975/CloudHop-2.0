@@ -1,4 +1,4 @@
-import { SpaceInfo, CommunityInfo, ActivityItem, Meeting, StreamType } from '../types';
+import { SpaceInfo, CommunityInfo, ActivityItem, Meeting, StreamType, Channel } from '../types';
 
 // Initial Mock Data
 let spaces: SpaceInfo[] = [
