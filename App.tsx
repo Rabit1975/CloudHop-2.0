@@ -41,11 +41,11 @@ const App: React.FC = () => {
       case View.DASHBOARD: return <Dashboard onNavigate={setView} />;
       case View.CHAT: return <Chat />;
       case View.WORLD: return <Communities />;
-      case View.MEETINGS: return <Meetings user={user} />;
+      case View.MEETINGS: return <Meetings user={user} onNavigate={setView} />;
       case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;
-      case View.PROFILE: return <div className="text-center text-white/50 py-20">Profile View</div>;
-      case View.SETTINGS: return <div className="text-center text-white/50 py-20">Settings View</div>;
+      case View.PROFILE: return <Profile />;
+      case View.SETTINGS: return <Settings />;
       default: return <Dashboard onNavigate={setView} />;
     }
   })();

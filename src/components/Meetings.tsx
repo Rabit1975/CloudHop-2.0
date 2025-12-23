@@ -591,6 +591,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                   <button 
                     onClick={btn.onClick}
                     className={`flex flex-col items-center gap-1 min-w-[60px] rounded p-2 ${btn.active ? 'bg-[#2A2A2A] text-[#53C8FF]' : 'text-white/90 hover:bg-[#2A2A2A]'}`}
+                    aria-label={btn.label}
                   >
                      <btn.icon className={`w-5 h-5 ${btn.color || ''}`} />
                      <span className="text-[10px]">{btn.label}</span>
