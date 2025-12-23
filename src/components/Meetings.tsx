@@ -175,7 +175,12 @@ const Meetings: React.FC = () => {
 
   const initLive = async (stream: MediaStream) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        console.warn("No VITE_GEMINI_API_KEY found in environment");
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       audioContextRef.current = inputAudioContext;
 
