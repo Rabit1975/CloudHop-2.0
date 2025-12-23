@@ -89,15 +89,41 @@ const Settings: React.FC = () => {
         
         {tab === 'General' && (
           <div className="space-y-12 animate-fade-in">
-            <SettingGroup title="Preferences">
-               <SettingItem title="Color Mode" desc="Deep Space (Dark) is your default environment.">
+            <SettingGroup title="Appearance">
+               <SettingItem title="Color Mode" desc="Change the background color of the CloudHop desktop app.">
                   <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
                     <option>Deep Space (Dark)</option>
-                    <option>High Contrast</option>
+                    <option>Light Mode</option>
+                    <option>System Default</option>
                   </select>
                </SettingItem>
-               <SettingItem title="Sync Across Devices" desc="Keep your cloud setup consistent everywhere.">
+               <SettingItem title="Theme" desc="Change the accent color when using light mode.">
+                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <option>CloudHop Blue</option>
+                    <option>Neon Green</option>
+                    <option>Cyber Pink</option>
+                  </select>
+               </SettingItem>
+               <SettingItem title="Emoji Skin Tone" desc="Change your default reaction skin tone.">
+                  <div className="flex gap-2">
+                     {['👋', '👋🏻', '👋🏼', '👋🏽', '👋🏾', '👋🏿'].map(e => (
+                        <button key={e} className="text-xl hover:scale-125 transition-transform">{e}</button>
+                     ))}
+                  </div>
+               </SettingItem>
+            </SettingGroup>
+            <SettingGroup title="System">
+               <SettingItem title="Start CloudHop when I start Windows" desc="Launch automatically on startup.">
                   <Toggle active />
+               </SettingItem>
+               <SettingItem title="When closed, minimize window to notification area" desc="Keep CloudHop running in the background.">
+                  <Toggle active />
+               </SettingItem>
+               <SettingItem title="Use dual monitors" desc="Show participants and content on separate screens.">
+                  <Toggle />
+               </SettingItem>
+               <SettingItem title="Enter full screen automatically when starting or joining a meeting">
+                  <Toggle />
                </SettingItem>
             </SettingGroup>
           </div>
@@ -117,12 +143,44 @@ const Settings: React.FC = () => {
                  )}
               </div>
             </div>
-            <SettingGroup title="Optics Config">
-               <SettingItem title="Mirror Video" desc="Flips your local camera preview.">
+            <SettingGroup title="Camera">
+               <SettingItem title="Camera Source">
+                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <option>FaceTime HD Camera</option>
+                    <option>OBS Virtual Camera</option>
+                  </select>
+               </SettingItem>
+               <SettingItem title="Original Ratio" desc="Maintain aspect ratio.">
+                  <Toggle />
+               </SettingItem>
+               <SettingItem title="HD Video" desc="Enable 1080p streaming.">
+                  <Toggle active={hd} onToggle={() => setHd(!hd)} />
+               </SettingItem>
+               <SettingItem title="Mirror Video" desc="Flip your video preview.">
                   <Toggle active={mirrorVideo} onToggle={() => setMirrorVideo(!mirrorVideo)} />
                </SettingItem>
-               <SettingItem title="High Definition" desc="Enable 4K/1080p resolution where supported.">
-                  <Toggle active={hd} onToggle={() => setHd(!hd)} />
+            </SettingGroup>
+            <SettingGroup title="My Video">
+               <SettingItem title="Touch up my appearance">
+                  <div className="w-48"><input type="range" className="w-full accent-[#53C8FF]" /></div>
+               </SettingItem>
+               <SettingItem title="Adjust for low light">
+                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-32 text-[#53C8FF]">
+                    <option>Auto</option>
+                    <option>Manual</option>
+                  </select>
+               </SettingItem>
+               <SettingItem title="Always display participant names">
+                  <Toggle active />
+               </SettingItem>
+               <SettingItem title="Stop my video when joining">
+                  <Toggle />
+               </SettingItem>
+               <SettingItem title="Always show video preview dialog when joining">
+                  <Toggle active />
+               </SettingItem>
+               <SettingItem title="Hide non-video participants">
+                  <Toggle />
                </SettingItem>
             </SettingGroup>
           </div>
@@ -130,37 +188,131 @@ const Settings: React.FC = () => {
 
         {tab === 'Audio' && (
           <div className="space-y-12 animate-fade-in">
-            <SettingGroup title="Device Calibration">
-               <div className="flex items-center justify-between gap-6 p-8 bg-[#050819] rounded-[32px] border border-white/5">
-                  <div className="flex-1 space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/20 italic">Microphone Activity</label>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex gap-1 px-0.5 items-center">
-                       {Array.from({length: 20}).map((_, i) => (
-                         <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-100 ${inputLevel > (i*5) ? 'bg-[#53C8FF]' : 'bg-white/5'}`}></div>
-                       ))}
-                    </div>
-                  </div>
-                  <button onClick={() => setIsTestingMic(!isTestingMic)} className={`px-10 py-6 rounded-[24px] text-[10px] font-black uppercase tracking-widest transition-all italic border ${isTestingMic ? 'bg-[#53C8FF] text-[#0A0F1F] border-[#53C8FF]' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                    {isTestingMic ? 'Syncing...' : 'Test Mic'}
-                  </button>
+            <SettingGroup title="Speaker">
+               <div className="flex gap-4">
+                  <button className="px-6 py-3 bg-[#1A2348] border border-[#53C8FF]/20 text-[#53C8FF] rounded-xl text-xs font-bold uppercase tracking-wider">Test Speaker</button>
+                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <option>MacBook Pro Speakers</option>
+                    <option>System Default</option>
+                  </select>
                </div>
-               <SettingItem title="Echo Cancellation" desc="Suppresses background noise automatically.">
+               <SettingItem title="Output Volume">
+                  <input type="range" className="w-64 accent-[#53C8FF]" />
+               </SettingItem>
+            </SettingGroup>
+
+            <SettingGroup title="Microphone">
+               <div className="flex gap-4">
+                  <button onClick={() => setIsTestingMic(!isTestingMic)} className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border ${isTestingMic ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-[#1A2348] border-[#53C8FF]/20 text-[#53C8FF]'}`}>
+                    {isTestingMic ? 'Stop Test' : 'Test Mic'}
+                  </button>
+                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <option>MacBook Pro Microphone</option>
+                    <option>System Default</option>
+                  </select>
+               </div>
+               <div className="space-y-2">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/20 italic">Input Level</div>
+                  <div className="h-2 w-full max-w-md bg-white/5 rounded-full overflow-hidden flex gap-1 px-0.5 items-center">
+                     {Array.from({length: 20}).map((_, i) => (
+                       <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-100 ${inputLevel > (i*5) ? 'bg-[#53C8FF]' : 'bg-white/5'}`}></div>
+                     ))}
+                  </div>
+               </div>
+               <SettingItem title="Automatically adjust microphone volume">
+                  <Toggle active />
+               </SettingItem>
+            </SettingGroup>
+
+            <SettingGroup title="Audio Profile">
+               <SettingItem title="Suppress background noise">
+                  <div className="flex gap-2">
+                     {['Auto', 'Low', 'Medium', 'High'].map(l => (
+                        <button key={l} className="px-4 py-2 bg-[#1A2348] rounded-lg text-xs hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-colors">{l}</button>
+                     ))}
+                  </div>
+               </SettingItem>
+               <SettingItem title="Show in-meeting option to 'Enable Original Sound'">
+                  <Toggle />
+               </SettingItem>
+               <SettingItem title="Echo Cancellation">
                   <Toggle active />
                </SettingItem>
             </SettingGroup>
           </div>
         )}
 
-        {tab === 'Billing' && (
-          <div className="animate-fade-in">
-             <Billing />
-          </div>
+        {tab === 'Share Screen' && (
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="Window Size">
+                 <SettingItem title="Window size when sharing screen">
+                    <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                       <option>Maintain current size</option>
+                       <option>Enter fullscreen</option>
+                       <option>Maximize window</option>
+                    </select>
+                 </SettingItem>
+                 <SettingItem title="Scale to fit shared content">
+                    <Toggle active />
+                 </SettingItem>
+                 <SettingItem title="See shared content in side-by-side mode">
+                    <Toggle active />
+                 </SettingItem>
+              </SettingGroup>
+              <SettingGroup title="When I Share">
+                 <SettingItem title="Silence system notifications when sharing desktop">
+                    <Toggle active />
+                 </SettingItem>
+                 <SettingItem title="Share applications">
+                    <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                       <option>Share individual windows</option>
+                       <option>Share all windows from app</option>
+                    </select>
+                 </SettingItem>
+              </SettingGroup>
+           </div>
+        )}
+
+        {tab === 'Recording' && (
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="Local Recording">
+                 <SettingItem title="Store recordings at:" desc="C:\Users\CloudHop\Documents\Zoom">
+                    <button className="px-4 py-2 bg-[#1A2348] rounded text-xs text-[#53C8FF]">Change</button>
+                 </SettingItem>
+                 <SettingItem title="Choose a location for recorded files when the meeting ends">
+                    <Toggle />
+                 </SettingItem>
+                 <SettingItem title="Record separate audio file for each participant">
+                    <Toggle />
+                 </SettingItem>
+                 <SettingItem title="Optimize for 3rd party video editor">
+                    <Toggle />
+                 </SettingItem>
+                 <SettingItem title="Add a timestamp to the recording">
+                    <Toggle />
+                 </SettingItem>
+                 <SettingItem title="Record video during screen sharing">
+                    <Toggle active />
+                 </SettingItem>
+              </SettingGroup>
+           </div>
         )}
 
         {tab === 'Accessibility' && (
-           <div className="space-y-12 animate-fade-in text-center py-20">
-              <Icons.AI className="w-16 h-16 mx-auto text-white/10 mb-6" />
-              <p className="text-white/30 italic font-black uppercase tracking-widest">Enhanced Accessibility Tools coming soon.</p>
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="Captions">
+                 <SettingItem title="Closed Caption Font Size">
+                    <input type="range" min="12" max="32" className="w-48 accent-[#53C8FF]" />
+                 </SettingItem>
+                 <SettingItem title="Always show captions">
+                    <Toggle />
+                 </SettingItem>
+              </SettingGroup>
+              <SettingGroup title="Screen Reader">
+                 <SettingItem title="Screen reader alerts">
+                    <button className="text-[#53C8FF] text-sm underline">Manage Alerts</button>
+                 </SettingItem>
+              </SettingGroup>
            </div>
         )}
       </div>

@@ -309,20 +309,20 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
     <div ref={meetingContainerRef} className="fixed inset-0 bg-[#0A0A0A] text-white flex flex-col z-[100] animate-fade-in font-sans">
       
       {/* Top Bar (Zoom style) */}
-      <div className="h-12 flex items-center justify-between px-4 bg-[#1A1A1A]">
-        {/* Meeting Info */}
-        <div className="flex items-center gap-2">
-           <div className="text-green-500">
-             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-           </div>
-           <div className="flex flex-col">
-             <span className="text-xs font-bold flex items-center gap-2">
-               Zoom Meeting
-               <svg className="w-3 h-3 text-white/50" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-             </span>
-             {isRecording && <span className="text-[10px] text-red-500 flex items-center gap-1 animate-pulse">● Recording...</span>}
-           </div>
-        </div>
+          <div className="h-12 flex items-center justify-between px-4 bg-[#1A1A1A]">
+            {/* Meeting Info */}
+            <div className="flex items-center gap-2">
+               <div className="text-green-500">
+                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+               </div>
+               <div className="flex flex-col">
+                 <span className="text-xs font-bold flex items-center gap-2">
+                   Hop Meet
+                   <svg className="w-3 h-3 text-white/50" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                 </span>
+                 {isRecording && <span className="text-[10px] text-red-500 flex items-center gap-1 animate-pulse">● Recording...</span>}
+               </div>
+            </div>
 
         <div className="flex items-center gap-2">
             {/* View Switcher */}
