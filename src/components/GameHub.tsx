@@ -76,7 +76,7 @@ const GameHub: React.FC = () => {
              <button onClick={() => setSelectedGame(null)} className="px-8 py-4 bg-red-600/10 text-red-500 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-500/5">Terminate Game</button>
           </div>
         </header>
-        <div className="flex-1 bg-black overflow-hidden relative group">
+        <div className="flex-1 bg-black overflow-hidden relative group flex flex-col items-center justify-center">
            {/* Chrome Performance Overlay */}
            <div className="absolute top-6 left-6 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               <div className="bg-black/60 backdrop-blur-xl border border-white/10 p-4 rounded-2xl">
@@ -90,11 +90,23 @@ const GameHub: React.FC = () => {
 
            <iframe 
              src={selectedGame.url} 
-             className="w-full h-full border-none"
+             className="w-full h-full border-none relative z-10"
              title={selectedGame.name}
              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
              allowFullScreen
            />
+           
+           {/* Fallback Link */}
+           <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+              <a 
+                href={selectedGame.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-xs font-bold text-white/60 hover:text-white transition-all border border-white/10"
+              >
+                Game not loading? Open in new tab ↗
+              </a>
+           </div>
         </div>
       </div>
     );

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
-import GameHub from './GameHub';
-import AITools from './AITools';
 
 const Communities: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse' | 'GameHub' | 'IntelliRabbit'>('Flow');
+  const [activeTab, setActiveTab] = useState<'Flow' | 'Mesh' | 'Beam' | 'Pulse'>('Flow');
   const [selectedComm, setSelectedComm] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -43,8 +41,8 @@ const Communities: React.FC = () => {
     <div className="h-full flex gap-1 rounded-[48px] overflow-hidden border border-white/5 bg-[#080C22] shadow-[0_50px_120px_rgba(0,0,0,0.9)] animate-fade-in italic">
       {/* 1. Hop Spaces Navigator */}
       <div className="w-24 bg-[#050819] flex flex-col items-center py-12 space-y-10 border-r border-white/5">
-        <div className="mb-4">
-           <CloudHopLogo size={48} variant="neon" />
+        <div className="mb-4 flex items-center justify-center p-2 bg-[#0E1430] border-2 border-[#53C8FF] rounded-2xl shadow-xl">
+           <CloudHopLogo size={32} variant="main" />
         </div>
         {communities.map((c, i) => (
           <div key={i} className="relative group">
@@ -83,34 +81,19 @@ const Communities: React.FC = () => {
         <div className="h-24 shrink-0 border-b border-white/5 flex items-center justify-between px-10 bg-[#080C22]/60 backdrop-blur-3xl">
            <div className="flex flex-col gap-2">
               <div className="flex gap-2 bg-[#050819] p-1.5 rounded-2xl shadow-inner overflow-x-auto custom-scrollbar">
-                 {(['Flow', 'Mesh', 'Beam', 'Pulse', 'GameHub', 'IntelliRabbit'] as const).map(t => (
+                 {(['Flow', 'Mesh', 'Beam', 'Pulse'] as const).map(t => (
                    <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all italic whitespace-nowrap ${activeTab === t ? 'bg-[#1A2348] text-[#53C8FF] ring-1 ring-[#53C8FF]/20' : 'text-white/20 hover:text-white'}`}>
                      {t}
                    </button>
                  ))}
               </div>
            </div>
-           <div className="flex items-center gap-6">
-              <button 
-                onClick={() => setActiveTab('IntelliRabbit')}
-                className={`p-4 rounded-2xl border border-white/10 hover:bg-[#53C8FF]/10 transition-all group ${activeTab === 'IntelliRabbit' ? 'bg-[#53C8FF]/20' : 'bg-white/5'}`}
-              >
-                <Icons.AI className={`w-5 h-5 group-hover:scale-110 ${activeTab === 'IntelliRabbit' ? 'text-[#53C8FF]' : 'text-[#53C8FF]'}`} />
-              </button>
-           </div>
         </div>
 
         <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
-           {activeTab === 'IntelliRabbit' && (
-              <AITools />
-           )}
-
-           {activeTab === 'GameHub' && (
-              <GameHub />
-           )}
-
            {activeTab === 'Mesh' && (
              <div className="animate-fade-in space-y-10 italic">
+                {/* GitHub Integration Card */}
                 <div className="bg-[#0E1430] border border-[#53C8FF]/20 p-10 rounded-[48px] shadow-3xl relative overflow-hidden group">
                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><span className="text-8xl">🐙</span></div>
                    <div className="flex items-center justify-between mb-8">
@@ -166,6 +149,7 @@ const Communities: React.FC = () => {
                    )}
                 </div>
 
+                {/* File Mesh Dropzone */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div className="bg-[#0E1430] border-2 border-dashed border-white/5 p-12 rounded-[48px] text-center flex flex-col items-center justify-center hover:border-[#53C8FF]/20 transition-all group cursor-pointer">
                       <div className="text-4xl mb-6 group-hover:scale-125 transition-transform">☁️</div>
