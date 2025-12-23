@@ -70,6 +70,8 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
   const [waitingRoom, setWaitingRoom] = useState(false);
   
   const [showReactionsMenu, setShowReactionsMenu] = useState(false);
+  const [showAudioMenu, setShowAudioMenu] = useState(false);
+  const [showVideoMenu, setShowVideoMenu] = useState(false);
   
   // Manage participants state so we can add/remove them
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -388,7 +390,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                    {/* Self Video */}
                    <div className="bg-[#1A1A1A] relative rounded overflow-hidden border border-white/10 group">
                       {!isVideoOff ? (
-                         <canvas ref={canvasRef} className={`w-full h-full object-cover ${!isSharingScreen ? 'scale-x-[-1]' : ''}`} />
+                         <canvas ref={canvasRef} className={`w-full h-full object-contain ${!isSharingScreen ? 'scale-x-[-1]' : ''}`} />
                       ) : (
                          <div className="w-full h-full flex items-center justify-center">
                             <div className="w-24 h-24 bg-gray-500 rounded-full flex items-center justify-center text-3xl font-bold">YO</div>
@@ -518,32 +520,76 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
         
         {/* Left Controls */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
-           <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center gap-1 min-w-[60px] text-white/90 hover:bg-[#2A2A2A] rounded p-2">
-              <div className="relative">
-                 {isMuted ? (
-                    <svg className="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.66 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l2.97 2.97c-.85.35-1.76.57-2.71.5V21h2v-3.28c3.28-.48 5.69-3.18 5.69-6.6v-1.73l1.89 1.89 1.27-1.27L4.27 3z"/></svg>
-                 ) : (
-                    <div className="w-6 h-6 flex items-center justify-center">
-                       <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+           
+           {/* Audio Control */}
+           <div className="relative">
+               {showAudioMenu && (
+                    <div className="fixed bottom-24 left-4 bg-[#242424] rounded-lg shadow-xl border border-white/10 p-2 w-64 z-[110]">
+                        <div className="text-xs font-bold text-gray-400 px-2 py-1 uppercase">Select Microphone</div>
+                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm flex items-center justify-between">
+                            Default Microphone <span className="text-green-500">✓</span>
+                        </button>
+                        <div className="my-1 border-t border-white/10"></div>
+                        <div className="text-xs font-bold text-gray-400 px-2 py-1 uppercase">Select Speaker</div>
+                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
+                            Default Speaker
+                        </button>
+                        <div className="my-1 border-t border-white/10"></div>
+                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
+                            Audio Settings...
+                        </button>
                     </div>
-                 )}
-              </div>
-              <span className="text-[10px]">{isMuted ? 'Unmute' : 'Mute'}</span>
-              <div className="absolute top-2 right-1 text-xs text-gray-500">^</div>
-           </button>
+               )}
+               <div className="flex items-center rounded hover:bg-[#2A2A2A] transition-colors">
+                   <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center gap-1 min-w-[50px] p-2 text-white/90">
+                      <div className="relative">
+                         {isMuted ? (
+                            <svg className="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.66 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l2.97 2.97c-.85.35-1.76.57-2.71.5V21h2v-3.28c3.28-.48 5.69-3.18 5.69-6.6v-1.73l1.89 1.89 1.27-1.27L4.27 3z"/></svg>
+                         ) : (
+                            <div className="w-6 h-6 flex items-center justify-center">
+                               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                               <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            </div>
+                         )}
+                      </div>
+                      <span className="text-[10px]">{isMuted ? 'Unmute' : 'Mute'}</span>
+                   </button>
+                   <button onClick={() => setShowAudioMenu(!showAudioMenu)} className="h-full px-1 hover:bg-[#3A3A3A] rounded-r flex items-center justify-center text-gray-500 hover:text-white" aria-label="Audio Settings">
+                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14l5-5 5 5z"/></svg>
+                   </button>
+               </div>
+           </div>
 
-           <button onClick={() => setIsVideoOff(!isVideoOff)} className="flex flex-col items-center gap-1 min-w-[60px] text-white/90 hover:bg-[#2A2A2A] rounded p-2">
-              <div className="relative">
-                 {isVideoOff ? (
-                    <svg className="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/></svg>
-                 ) : (
-                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-                 )}
-              </div>
-              <span className="text-[10px]">{isVideoOff ? 'Start Video' : 'Stop Video'}</span>
-              <div className="absolute top-2 right-1 text-xs text-gray-500">^</div>
-           </button>
+           {/* Video Control */}
+           <div className="relative">
+               {showVideoMenu && (
+                    <div className="fixed bottom-24 left-20 bg-[#242424] rounded-lg shadow-xl border border-white/10 p-2 w-64 z-[110]">
+                        <div className="text-xs font-bold text-gray-400 px-2 py-1 uppercase">Select Camera</div>
+                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm flex items-center justify-between">
+                            Integrated Camera <span className="text-green-500">✓</span>
+                        </button>
+                        <div className="my-1 border-t border-white/10"></div>
+                        <button className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm">
+                            Video Settings...
+                        </button>
+                    </div>
+               )}
+               <div className="flex items-center rounded hover:bg-[#2A2A2A] transition-colors">
+                   <button onClick={() => setIsVideoOff(!isVideoOff)} className="flex flex-col items-center gap-1 min-w-[50px] p-2 text-white/90">
+                      <div className="relative">
+                         {isVideoOff ? (
+                            <svg className="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/></svg>
+                         ) : (
+                            <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                         )}
+                      </div>
+                      <span className="text-[10px]">{isVideoOff ? 'Start Video' : 'Stop Video'}</span>
+                   </button>
+                   <button onClick={() => setShowVideoMenu(!showVideoMenu)} className="h-full px-1 hover:bg-[#3A3A3A] rounded-r flex items-center justify-center text-gray-500 hover:text-white" aria-label="Video Settings">
+                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14l5-5 5 5z"/></svg>
+                   </button>
+               </div>
+           </div>
         </div>
 
         {/* Center Controls */}
@@ -555,7 +601,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                  onClick: () => setShowSecurityMenu(!showSecurityMenu),
                  icon: (props: any) => <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>,
                  menu: (
-                     <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-[#242424] rounded-lg shadow-xl border border-white/10 p-2 w-48 z-50">
+                     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#242424] rounded-lg shadow-xl border border-white/10 p-2 w-48 z-[110]">
                          <div className="text-xs font-bold text-gray-400 px-2 py-1 uppercase">Security</div>
                          <button onClick={() => setIsLocked(!isLocked)} className="w-full text-left px-2 py-2 hover:bg-white/10 rounded text-sm flex items-center justify-between">
                              Lock Meeting {isLocked && '✓'}
@@ -576,7 +622,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                  onClick: () => setShowReactionsMenu(!showReactionsMenu),
                  icon: (props: any) => <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>,
                  menu: (
-                     <div className="absolute bottom-20 left-1/2 translate-x-12 bg-[#242424] rounded-full shadow-xl border border-white/10 p-2 flex gap-2 z-50">
+                     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#242424] rounded-full shadow-xl border border-white/10 p-2 flex gap-2 z-[110]">
                          {['👏', '👍', '❤️', '😂', '😮', '🎉'].map(emoji => (
                              <button key={emoji} onClick={() => triggerReaction(emoji)} className="text-2xl hover:scale-125 transition-transform p-1" aria-label={`Reaction ${emoji}`}>
                                  {emoji}
