@@ -14,11 +14,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   };
 
   return (
-    <div className="bg-[#050819] min-h-screen text-white selection:bg-[#53C8FF]/30 font-sans relative overflow-x-hidden">
+    <div className="bg-[#050819] h-screen w-full text-white selection:bg-[#53C8FF]/30 font-sans relative overflow-x-hidden overflow-y-auto custom-scrollbar">
       {/* 1. Navigation Bar */}
       <nav className="fixed top-0 w-full h-20 bg-[#050819]/80 backdrop-blur-md border-b border-white/5 z-50 px-8 lg:px-24 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-          <img src={highResLogo} alt="CloudHop" className="w-8 h-8 object-contain" />
+          <img src={highResLogo} alt="CloudHop" width="32" height="32" className="w-8 h-8 object-contain" />
           <span className="text-xl font-bold tracking-tight text-white">
             CloudHop
           </span>
@@ -52,7 +52,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           Hop in. Cloud on.
         </h1>
         
-        <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed animate-fade-in delay-200">
+        <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-10 leading-relaxed animate-fade-in delay-200">
           CloudHop is the next-generation platform that brings meetings, messaging, AI tools, and shared spaces together — all in one beautifully simple cloud.
         </p>
         
@@ -75,7 +75,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       <section id="features" className="py-24 px-6 bg-[#050819]">
          <div className="text-center mb-16 space-y-4">
              <h2 className="text-3xl md:text-4xl font-bold">The cloud where everyone belongs.</h2>
-             <p className="text-white/60 max-w-2xl mx-auto">Whether you're hosting a meeting, playing games with friends, joining a study group, or hanging out in a community — CloudHop keeps you connected effortlessly.</p>
+             <p className="text-white/80 max-w-2xl mx-auto">Whether you're hosting a meeting, playing games with friends, joining a study group, or hanging out in a community — CloudHop keeps you connected effortlessly.</p>
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -139,7 +139,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 text-center border-t border-white/5 bg-[#050819] text-sm text-white/40">
+      <footer className="py-12 text-center border-t border-white/5 bg-[#050819] text-sm text-white/60">
         <p>&copy; 2025 CloudHop Platform. All rights reserved.</p>
       </footer>
     </div>

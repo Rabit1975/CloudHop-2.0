@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import XPBar from './XPBar';
 import { Icons, CloudHopLogo } from '../constants';
 import { View, ActivityItem, Meeting } from '../types';
+import { useSpace } from '../src/contexts/SpaceContext';
 
 interface DashboardProps {
   onNavigate: (view: View) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+  const { currentSpace } = useSpace();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
 
   // Simulate fetching real-time, context-aware data
   useEffect(() => {
+    // Filter activities based on currentSpace.id
+    console.log(`Fetching data for space: ${currentSpace.name}`);
+    
     // In a real app, this would be an API call fetching data based on user.id and currentSpace.id
     const mockActivities: ActivityItem[] = [
       {
@@ -57,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <CloudHopLogo size={48} variant="main" />
           <div>
             <h1 className="text-4xl font-black tracking-tight mb-1 uppercase italic tracking-tighter">Welcome back, Matthew.</h1>
-            <p className="text-white/30 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
+            <p className="text-white/80 font-medium text-lg italic">Your cloud workspace is optimized and secure.</p>
           </div>
         </div>
         <div className="w-full lg:w-96 bg-[#0E1430] border border-[#1E3A5F] p-6 rounded-[24px] shadow-2xl relative group overflow-hidden">
@@ -75,9 +80,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <button 
                   key={item.id} 
                   onClick={() => onNavigate(View.CHAT)}
+                  aria-label={`Go to chat with ${item.user.name}`}
                   className="w-full text-left flex gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-white/5 shadow-inner"
                 >
-                  <img src={item.user.avatar} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" alt="" />
+                  <img src={item.user.avatar} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10" alt={`Avatar of ${item.user.name}`} />
                   <div className="flex-1 overflow-hidden">
                     <div className="flex justify-between items-center mb-0.5">
                       <div className="flex items-center gap-2">
@@ -87,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       <span className="text-[9px] text-white/20 font-black uppercase">{item.timestamp}</span>
                     </div>
                     <div className="text-[9px] text-[#53C8FF] font-black uppercase tracking-[0.2em] mb-1 italic">{item.channel}</div>
-                    <p className="text-xs text-white/40 truncate font-medium italic">{item.content}</p>
+                    <p className="text-xs text-white/80 truncate font-medium italic">{item.content}</p>
                   </div>
                 </button>
               ))}
@@ -106,10 +112,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <div className="flex items-center gap-3 mt-1">
                        <div className="text-[10px] text-white/40 font-black uppercase tracking-widest italic">{mtg.time}</div>
                        <div className="w-1 h-1 rounded-full bg-white/20"></div>
-                       <div className="text-[9px] text-white/20 font-medium">{mtg.participants.length} Attending</div>
+                       <div className="text-[9px] text-white/60 font-medium">{mtg.participants.length} Attending</div>
                     </div>
                   </div>
-                  <button className="px-6 py-2.5 bg-[#53C8FF]/10 text-[#53C8FF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-all italic">
+                  <button className="px-6 py-2.5 bg-[#53C8FF]/10 text-[#53C8FF] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-all italic" aria-label={`Join meeting: ${mtg.title}`}>
                     Hop In
                   </button>
                 </div>
@@ -131,7 +137,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   </div>
                </div>
                <div className="p-5 bg-[#1A2348]/30 rounded-2xl border border-[#53C8FF]/10 italic">
-                  <p className="text-[10px] text-white/50 leading-relaxed font-medium">Gemini suggests a quick huddle with Sarah regarding the logo concepts to finalize the Q1 sprint.</p>
+                  <p className="text-[10px] text-white/70 leading-relaxed font-medium">Gemini suggests a quick huddle with Sarah regarding the logo concepts to finalize the Q1 sprint.</p>
                </div>
             </div>
           </Card>
@@ -157,7 +163,7 @@ const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, c
 );
 
 const ShortcutLink: React.FC<{ icon: React.ReactNode, label: string }> = ({ icon, label }) => (
-  <button className="flex flex-col items-center justify-center gap-4 p-6 rounded-[24px] bg-white/5 hover:bg-white/10 transition-all border border-white/5 hover:border-[#53C8FF]/30 group shadow-lg">
+  <button className="flex flex-col items-center justify-center gap-4 p-6 rounded-[24px] bg-white/5 hover:bg-white/10 transition-all border border-white/5 hover:border-[#53C8FF]/30 group shadow-lg" aria-label={`Go to ${label}`}>
     <div className="text-[#53C8FF]/40 group-hover:text-[#53C8FF] transition-all group-hover:scale-110 duration-500">{icon}</div>
     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30 group-hover:text-[#53C8FF] transition-all whitespace-nowrap italic">{label}</span>
   </button>

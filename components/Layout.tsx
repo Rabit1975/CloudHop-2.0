@@ -46,6 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   ];
 
   const viewLabels: Record<View, string> = {
+    [View.SPECTRUM]: 'The Spectrum',
     [View.DASHBOARD]: 'Home',
     [View.CHAT]: 'RabbitChat',
     [View.WORLD]: 'HopHub',
@@ -63,6 +64,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
         <button 
           className="p-4 flex items-center gap-3 h-20 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all overflow-hidden w-full text-left" 
           onClick={() => onNavigate(View.DASHBOARD)}
+          aria-label="Go to Dashboard"
         >
             <CloudHopLogo size={36} variant="main" className="gpu-accelerated shrink-0" />
             {isSidebarOpen && <span className="font-black text-2xl tracking-tighter animate-fade-in italic uppercase">CloudHop</span>}
@@ -76,10 +78,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
+                aria-label={`Navigate to ${item.label}`}
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[#1A2348] text-[#53C8FF] shadow-[0_8px_20px_rgba(0,0,0,0.4)] ring-1 ring-[#53C8FF]/20' 
-                    : 'text-white/30 hover:bg-white/5 hover:text-white'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 ${isActive ? 'text-[#53C8FF] scale-110' : 'group-hover:scale-110'}`} />
@@ -104,7 +107,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       <div className="flex-1 flex flex-col relative overflow-hidden bg-[#050819]">
         <header className="h-20 shrink-0 bg-[#080C22]/60 backdrop-blur-2xl flex items-center justify-between px-8 border-b border-white/5 z-10">
           <div className="flex items-center gap-6">
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/40 hover:text-white">
+            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/40 hover:text-white" aria-label="Toggle sidebar">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
             </button>
             <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-[#53C8FF] italic">{viewLabels[currentView]}</h2>
@@ -112,8 +115,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 hover:bg-white/5 pl-1 py-1 pr-3 rounded-full transition-all border border-transparent hover:border-white/10">
-                <img src={user?.avatar} className="w-10 h-10 rounded-[16px] bg-white/10 border border-white/10 shadow-lg gpu-accelerated" alt=""/>
+              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 hover:bg-white/5 pl-1 py-1 pr-3 rounded-full transition-all border border-transparent hover:border-white/10" aria-label="Open profile menu">
+                <img src={user?.avatar} className="w-10 h-10 rounded-[16px] bg-white/10 border border-white/10 shadow-lg gpu-accelerated" alt={`Avatar of ${user?.name}`}/>
                 <div className="hidden md:block text-left">
                   <div className="text-xs font-black leading-none mb-1 italic">{user?.name}</div>
                   <div className="text-[8px] text-[#53C8FF] font-black uppercase tracking-widest leading-none opacity-60 italic">Lvl {user?.level}</div>
@@ -137,9 +140,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       </div>
       
       {/* Notifications */}
-      <div className="fixed top-6 right-6 z-[200] space-y-4">
+      <div className="fixed top-6 right-6 z-[200] space-y-4 w-80 pointer-events-none">
          {notifications.map(n => (
-           <div key={n.id} className="bg-[#1A2348] border border-[#53C8FF]/40 px-6 py-4 rounded-2xl shadow-2xl animate-fade-in flex items-center gap-4 italic">
+           <div key={n.id} className="bg-[#1A2348] border border-[#53C8FF]/40 px-6 py-4 rounded-2xl shadow-2xl animate-fade-in flex items-center gap-4 italic pointer-events-auto">
               <div className="w-8 h-8 bg-[#53C8FF] text-[#0A0F1F] rounded-lg flex items-center justify-center font-black">!</div>
               <span className="text-xs font-bold uppercase tracking-wider">{n.text}</span>
            </div>
