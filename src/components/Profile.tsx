@@ -149,6 +149,24 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
               </div>
             )}
 
+            {activeTab === 'Privacy' && (
+              <div className="space-y-8">
+                <div className="bg-[#1A2348] border border-white/5 rounded-2xl p-6">
+                   <h4 className="text-sm font-black uppercase tracking-widest mb-4">Profile Visibility</h4>
+                   <div className="space-y-4">
+                      <ToggleRow label="Show online status" active />
+                      <ToggleRow label="Show badges publicly" active />
+                      <ToggleRow label="Allow search by email" />
+                   </div>
+                </div>
+                <div className="bg-[#1A2348] border border-white/5 rounded-2xl p-6">
+                   <h4 className="text-sm font-black uppercase tracking-widest mb-4">Data</h4>
+                   <button className="w-full text-left py-3 px-4 bg-[#080C22] hover:bg-[#53C8FF]/10 rounded-xl text-xs font-bold transition-all border border-white/5 hover:border-[#53C8FF]/30 text-white/80 hover:text-[#53C8FF]">Download my data</button>
+                   <button className="w-full text-left py-3 px-4 mt-3 bg-[#080C22] hover:bg-red-500/10 rounded-xl text-xs font-bold transition-all border border-white/5 hover:border-red-500/30 text-red-400">Delete account</button>
+                </div>
+              </div>
+            )}
+
             <div className="pt-10 border-t border-white/5 flex justify-end">
                <button className="px-12 py-4 bg-[#53C8FF] text-[#0A0F1F] font-black uppercase tracking-[0.2em] rounded-2xl hover:shadow-[0_15px_30px_rgba(83,200,255,0.3)] hover:scale-105 transition-all active:scale-95">
                  Save Settings
@@ -168,17 +186,27 @@ const Badge: React.FC<{ icon: string, label: string }> = ({ icon, label }) => (
   </div>
 );
 
-const InputGroup: React.FC<{ label: string; value: string; readOnly?: boolean }> = ({ label, value, readOnly }) => (
-  <div className="space-y-3">
-    <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">{label}</label>
-    <input 
-      type="text" 
-      defaultValue={value}
-      readOnly={readOnly}
-      className={`w-full bg-[#080C22] border border-white/10 rounded-2xl px-5 py-4 text-sm font-bold text-white/80 focus:outline-none transition-all ${readOnly ? 'opacity-40 cursor-not-allowed' : 'focus:border-[#53C8FF]/50 focus:bg-[#0D1A2A]'}`}
-    />
-  </div>
-);
+const InputGroup: React.FC<{ label: string; value: string; readOnly?: boolean }> = ({ label, value: initialValue, readOnly }) => {
+  const [value, setValue] = useState(initialValue);
+  
+  // Update local state if initialValue changes (e.g. from parent prop)
+  React.useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  return (
+    <div className="space-y-3">
+      <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">{label}</label>
+      <input 
+        type="text" 
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        readOnly={readOnly}
+        className={`w-full bg-[#080C22] border border-white/10 rounded-2xl px-5 py-4 text-sm font-bold text-white/80 focus:outline-none transition-all ${readOnly ? 'opacity-40 cursor-not-allowed' : 'focus:border-[#53C8FF]/50 focus:bg-[#0D1A2A]'}`}
+      />
+    </div>
+  );
+};
 
 const ConnectedProvider: React.FC<{ name: string, icon: string, status: string }> = ({ name, icon, status }) => (
   <button className="w-full flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
