@@ -3,13 +3,42 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 // Import Icons from constants to fix the "Cannot find name 'Icons'" error
 import { Icons } from '../constants';
+import RabbitSettings from './RabbitSettings';
 
 const Chat: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  const currentUser = {
+    name: 'Mr. Rabbit',
+    phone: '+1 904 203 0390',
+    username: 'rebelrabbit75',
+    bio: '23 y.o. designer from San Francisco',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rabbit'
+  };
+
   const [message, setMessage] = useState('');
   const [selectedChat, setSelectedChat] = useState(0);
   const [aiIsTyping, setAiIsTyping] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [isCalling, setIsCalling] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (isCalling) {
+      interval = setInterval(() => setCallDuration(d => d + 1), 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [isCalling]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const [chats] = useState([
     { id: '1', name: 'Sarah Chen', status: 'Online', lastMsg: 'mockups are ready.', time: '10:45 AM', avatar: 'https://picsum.photos/seed/sarah/50' },
@@ -62,9 +91,15 @@ const Chat: React.FC = () => {
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
-      <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="p-4 border-b border-white/5">
-          <input type="text" placeholder="Search Workspace..." className="w-full bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" />
+      <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
+        {/* Telegram Settings Drawer */}
+        <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} />
+
+        <div className="p-4 border-b border-white/5 flex gap-2">
+          <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <input type="text" placeholder="Search" className="flex-1 bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" />
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {chats.map((chat, i) => (
@@ -80,6 +115,36 @@ const Chat: React.FC = () => {
       </div>
 
       <div className="flex-1 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
+        
+        {/* Call Overlay */}
+        {isCalling && (
+          <div className="absolute inset-0 z-50 bg-[#0E1430] flex flex-col items-center justify-center animate-fade-in">
+             <div className="relative mb-8">
+                <img src={currentChat.avatar} className="w-32 h-32 rounded-full border-4 border-[#53C8FF] shadow-[0_0_50px_rgba(83,200,255,0.3)]" />
+                <div className="absolute inset-0 border-4 border-[#53C8FF] rounded-full animate-ping opacity-20"></div>
+             </div>
+             <h2 className="text-2xl font-black text-white mb-2">{currentChat.name}</h2>
+             <p className="text-[#53C8FF] text-sm font-bold uppercase tracking-widest mb-12">
+                {callDuration > 0 ? formatTime(callDuration) : 'Calling...'}
+             </p>
+             
+             <div className="flex items-center gap-6">
+                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11l-4-4-4 4"/></svg>
+                </button>
+                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </button>
+                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+                <button onClick={() => setIsCalling(false)} className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+                </button>
+             </div>
+          </div>
+        )}
+
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#080C22]/40 backdrop-blur-xl">
           <div className="flex items-center gap-4">
             <h3 className="font-black text-xs uppercase tracking-[0.2em]">{currentChat.name}</h3>
@@ -87,6 +152,14 @@ const Chat: React.FC = () => {
               <button onClick={() => setActiveTab('messages')} className={`px-4 py-1 text-[8px] font-black uppercase tracking-widest rounded-md ${activeTab === 'messages' ? 'bg-[#1A2348] text-[#53C8FF]' : 'text-white/20'}`}>Messages</button>
               <button onClick={() => setActiveTab('ai')} className={`px-4 py-1 text-[8px] font-black uppercase tracking-widest rounded-md ${activeTab === 'ai' ? 'bg-[#1A2348] text-[#53C8FF]' : 'text-white/20'}`}>AI Intelligence</button>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+              <button onClick={() => setIsCalling(true)} className="p-2 hover:bg-white/10 rounded-full text-[#53C8FF] transition-all hover:scale-110">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </button>
+              <button className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
           </div>
         </div>
 
