@@ -20,6 +20,8 @@ interface RabbitSettingsProps {
 const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }) => {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
   const [nightMode, setNightMode] = useState(true);
+  const [activeTheme, setActiveTheme] = useState('Night');
+  const [activeColor, setActiveColor] = useState('#53C8FF');
 
   // --- Sub-Components for each view ---
 
@@ -77,9 +79,13 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
             <Section title="Themes">
                 <div className="grid grid-cols-4 gap-2 mb-4">
                     {['Classic', 'Day', 'Tinted', 'Night'].map((theme, i) => (
-                        <div key={theme} className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 ${i===3 ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5'}`}>
-                            {i===3 && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
-                            <div className={`w-8 h-8 rounded-full border-2 ${i===3 ? 'border-[#53C8FF]' : 'border-white/20'}`} />
+                        <div 
+                          key={theme} 
+                          onClick={() => setActiveTheme(theme)}
+                          className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 transition-all ${activeTheme === theme ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5 hover:bg-white/10'}`}
+                        >
+                            {activeTheme === theme && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
+                            <div className={`w-8 h-8 rounded-full border-2 ${activeTheme === theme ? 'border-[#53C8FF]' : 'border-white/20'}`} />
                             <span className="text-[10px] absolute bottom-[-20px] text-white/60">{theme}</span>
                         </div>
                     ))}
@@ -87,7 +93,12 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                 <div className="h-6" />
                 <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                     {['#53C8FF', '#8B5CF6', '#F472B6', '#FBBF24', '#34D399', '#60A5FA'].map(color => (
-                        <button key={color} className="w-8 h-8 rounded-full shrink-0 border-2 border-transparent hover:scale-110 transition-transform" style={{ backgroundColor: color }} />
+                        <button 
+                          key={color} 
+                          onClick={() => setActiveColor(color)}
+                          className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform ${activeColor === color ? 'scale-110 border-white' : 'border-transparent hover:scale-110'}`} 
+                          style={{ backgroundColor: color }} 
+                        />
                     ))}
                 </div>
             </Section>
@@ -337,9 +348,9 @@ const Section = ({ title, children }: { title: string, children: React.ReactNode
     </div>
 );
 
-const SettingRow = ({ icon, label, value, badge, color }: { icon?: string, label: string, value?: string, badge?: string, color?: string }) => (
-    <div className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0">
-        {icon && <span className="text-lg w-6 text-center">{icon}</span>}
+const SettingRow: React.FC<{ icon?: string; label: string; value?: string; badge?: string; color?: string; onClick?: () => void }> = ({ icon, label, value, badge, color, onClick }) => (
+    <div onClick={onClick} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
+        {icon && <span className="text-lg w-6 text-center group-hover:scale-110 transition-transform">{icon}</span>}
         <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
                 <span className="text-sm text-white font-medium">{label}</span>
@@ -353,25 +364,31 @@ const SettingRow = ({ icon, label, value, badge, color }: { icon?: string, label
     </div>
 );
 
-const SettingRowToggle = ({ label, value, active }: { label: string, value?: string, active: boolean }) => (
-    <div className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0">
-        <span className="text-sm text-white font-medium">{label}</span>
-        <div className="flex items-center gap-3">
-             {value && <span className="text-xs text-[#53C8FF] font-bold">{value}</span>}
-             <Toggle active={active} />
+const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean }> = ({ label, value, active: initialActive }) => {
+    const [active, setActive] = useState(initialActive);
+    return (
+        <div onClick={() => setActive(!active)} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+            <span className="text-sm text-white font-medium">{label}</span>
+            <div className="flex items-center gap-3">
+                 {value && <span className="text-xs text-[#53C8FF] font-bold">{value}</span>}
+                 <Toggle active={active} />
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-const SettingRowRadio = ({ label, active, value }: { label: string, active: boolean, value?: string }) => (
-    <div className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0">
-        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-[#53C8FF]' : 'border-white/20'}`}>
-            {active && <div className="w-2.5 h-2.5 rounded-full bg-[#53C8FF]" />}
+const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string }> = ({ label, active: initialActive, value }) => {
+    const [active, setActive] = useState(initialActive);
+    return (
+        <div onClick={() => setActive(!active)} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${active ? 'border-[#53C8FF]' : 'border-white/20'}`}>
+                {active && <div className="w-2.5 h-2.5 rounded-full bg-[#53C8FF]" />}
+            </div>
+            <span className="text-sm text-white font-medium flex-1">{label}</span>
+            {value && <span className="text-sm">{value}</span>}
         </div>
-        <span className="text-sm text-white font-medium flex-1">{label}</span>
-        {value && <span className="text-sm">{value}</span>}
-    </div>
-);
+    );
+};
 
 const Toggle = ({ active }: { active: boolean }) => (
     <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#53C8FF]' : 'bg-white/20'}`}>
