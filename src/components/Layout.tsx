@@ -63,7 +63,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.ARCADE]: 'GameHub Engine',
     [View.PROFILE]: 'Digital ID',
     [View.SETTINGS]: 'System Config',
-    [View.AI_TOOLS]: 'AI Agent Studio'
+    [View.AI_TOOLS]: 'AI Agent Studio',
+    [View.AUTH]: 'Authentication' // Added missing entry
   };
 
   return (

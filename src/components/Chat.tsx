@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { Icons } from '../constants';
@@ -6,62 +5,89 @@ import RabbitSettings from './RabbitSettings';
 import CallOverlay from './CallOverlay';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { supabase } from '../lib/supabaseClient';
+import { CallHistory, Message, ReactionSummary } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChatProps {
     userId?: string;
 }
 
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
 const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
-  const [recentCalls, setRecentCalls] = useState<any[]>([]);
-
+  const [callHistory, setCallHistory] = useState<CallHistory[]>([]); 
+  
   const { 
     callState, 
     localStream, 
     remoteStream, 
     startCall, 
     acceptCall, 
-    rejectCall,
+    rejectCall, 
     endCall, 
     incomingCallFrom,
     toggleMic,
     toggleCamera,
-    switchCamera,
-    toggleSpeaker,
+    switchCamera, 
+    toggleSpeaker, 
     isMicOn,
     isCameraOn
   } = useWebRTC(userId);
 
-  // --- Real-time Chat State ---
   const [chats, setChats] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<any>(null);
 
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showReactionPickerFor, setShowReactionPickerFor] = useState<string | null>(null);
+  const [hoveredReaction, setHoveredReaction] = useState<{ messageId: string; emoji: string; text: string } | null>(null);
+
+  // Long press state
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const LONG_PRESS_DURATION = 500; // milliseconds
+
+  const handlePressStart = (messageId: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setShowReactionPickerFor(messageId);
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   // Fetch Call History
   useEffect(() => {
       const fetchHistory = async () => {
-          const { data } = await supabase
-              .from('call_history')
-              .select('*')
-              .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
-              .order('started_at', { ascending: false })
-              .limit(10);
-          if (data) setRecentCalls(data);
+          const { data: historyData, error: historyError } = await supabase
+            .from('call_history')
+            .select(`
+                *,
+                caller:users!caller_id (display_name, avatar_url),
+                receiver:users!receiver_id (display_name, avatar_url)
+            `)
+            .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
+            .order('started_at', { ascending: false })
+            .limit(10);
+
+          if (historyError) console.error('Error fetching call history:', historyError);
+          else setCallHistory(historyData || []);
       };
-      if (showCallHistory) fetchHistory();
+      if (showCallHistory || userId) fetchHistory();
   }, [showCallHistory, userId]);
 
-  // Load Chats on Mount
+  // Load Chats and User Profile on Mount
   useEffect(() => {
-      const fetchChats = async () => {
-          // Check if user exists, if not create one
+      const fetchInitialData = async () => {
           let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
           if (!user) {
               const { data: newUser } = await supabase.from('users').insert({ 
@@ -74,11 +100,9 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           }
           setUserProfile(user);
 
-          // Fetch chats (for now, fetch all public chats or create a default one)
           let { data: existingChats } = await supabase.from('chats').select('*');
           
           if (!existingChats || existingChats.length === 0) {
-              // Create a default public chat
               const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
               if (newChat) existingChats = [newChat];
           }
@@ -88,15 +112,17 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               setSelectedChatId(existingChats[0].id);
           }
       };
-      fetchChats();
+      fetchInitialData();
   }, [userId]);
 
   // Load Messages & Subscribe to Realtime
   useEffect(() => {
-      if (!selectedChatId) return;
+      if (!selectedChatId || !userId) return;
 
-      const fetchMessages = async () => {
-          const { data } = await supabase
+      let reactionsChannel: any;
+
+      const fetchMessagesAndReactions = async () => {
+          const { data: fetchedMessages, error: messagesError } = await supabase
               .from('messages')
               .select(`
                   *,
@@ -108,13 +134,113 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               .eq('chat_id', selectedChatId)
               .order('created_at', { ascending: true });
           
-          if (data) setMessages(data);
+          if (messagesError) {
+              console.error('Error fetching messages:', messagesError);
+              return;
+          }
+
+          const messageIds = fetchedMessages?.map(m => m.id) || [];
+          const { data: fetchedReactions, error: reactionsError } = await supabase
+              .from('message_reactions')
+              .select('*')
+              .in('message_id', messageIds);
+
+          if (reactionsError) {
+              console.error('Error fetching reactions:', reactionsError);
+              return;
+          }
+
+          const messagesWithReactions = fetchedMessages?.map(msg => {
+              const reactionsForMessage = fetchedReactions?.filter(r => r.message_id === msg.id) || [];
+              const reactionSummary: ReactionSummary[] = [];
+              
+              const emojiMap = new Map<string, { count: number; reactedByCurrentUser: boolean }>();
+              reactionsForMessage.forEach(r => {
+                  const current = emojiMap.get(r.emoji) || { count: 0, reactedByCurrentUser: false };
+                  emojiMap.set(r.emoji, {
+                      count: current.count + 1,
+                      reactedByCurrentUser: current.reactedByCurrentUser || (r.user_id === userId)
+                  });
+              });
+
+              emojiMap.forEach((value, emoji) => {
+                  reactionSummary.push({ emoji, count: value.count, reactedByCurrentUser: value.reactedByCurrentUser });
+              });
+
+              return { ...msg, reactions: reactionSummary };
+          }) || [];
+          
+          setMessages(messagesWithReactions);
+
+          if (messageIds.length > 0) {
+            reactionsChannel = supabase
+                .channel(`message_reactions:${selectedChatId}`)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'message_reactions', 
+                    filter: `message_id=in.(${messageIds.join(',')})`
+                }, (payload) => {
+                    const newReaction = payload.new as any;
+                    setMessages(prevMessages => prevMessages.map(msg => {
+                        if (msg.id === newReaction.message_id) {
+                            const existingReactions = msg.reactions || [];
+                            const reactionIndex = existingReactions.findIndex(r => r.emoji === newReaction.emoji);
+                            
+                            if (reactionIndex > -1) {
+                                const updatedReactions = [...existingReactions];
+                                updatedReactions[reactionIndex] = {
+                                    ...updatedReactions[reactionIndex],
+                                    count: updatedReactions[reactionIndex].count + 1,
+                                    reactedByCurrentUser: updatedReactions[reactionIndex].reactedByCurrentUser || (newReaction.user_id === userId)
+                                };
+                                return { ...msg, reactions: updatedReactions };
+                            } else {
+                                return { 
+                                    ...msg, 
+                                    reactions: [...existingReactions, { 
+                                        emoji: newReaction.emoji, 
+                                        count: 1, 
+                                        reactedByCurrentUser: (newReaction.user_id === userId) 
+                                    }] 
+                                };
+                            }
+                        }
+                        return msg;
+                    }));
+                })
+                .on('postgres_changes', { 
+                    event: 'DELETE', 
+                    schema: 'public', 
+                    table: 'message_reactions', 
+                    filter: `message_id=in.(${messageIds.join(',')})` 
+                }, (payload) => {
+                    const deletedReaction = payload.old as any;
+                    setMessages(prevMessages => prevMessages.map(msg => {
+                        if (msg.id === deletedReaction.message_id) {
+                            const existingReactions = msg.reactions || [];
+                            const reactionIndex = existingReactions.findIndex(r => r.emoji === deletedReaction.emoji);
+                            
+                            if (reactionIndex > -1) {
+                                const updatedReactions = [...existingReactions];
+                                updatedReactions[reactionIndex] = {
+                                    ...updatedReactions[reactionIndex],
+                                    count: updatedReactions[reactionIndex].count - 1,
+                                    reactedByCurrentUser: updatedReactions[reactionIndex].reactedByCurrentUser && (deletedReaction.user_id !== userId)
+                                };
+                                return { ...msg, reactions: updatedReactions.filter(r => r.count > 0) };
+                            }
+                        }
+                        return msg;
+                    }));
+                })
+                .subscribe();
+          }
       };
 
-      fetchMessages();
+      fetchMessagesAndReactions();
 
-      // Subscribe to new messages & Presence
-      const channel = supabase
+      const chatChannel = supabase
           .channel(`chat:${selectedChatId}`)
           .on('postgres_changes', { 
               event: 'INSERT', 
@@ -122,16 +248,14 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               table: 'messages', 
               filter: `chat_id=eq.${selectedChatId}` 
           }, async (payload) => {
-              // Fetch the user details for the new message
               const { data: userData } = await supabase.from('users').select('username, avatar_url').eq('id', payload.new.sender_id).single();
-              const newMessage = { ...payload.new, users: userData };
+              const newMessage = { ...payload.new, users: userData, reactions: [] };
               setMessages(prev => [...prev, newMessage]);
           })
           .on('presence', { event: 'sync' }, () => {
-              const newState = channel.presenceState();
+              const newState = chatChannel.presenceState();
               const users = new Set<string>();
               
-              // Map presence state to a unique set of user IDs
               for (const id in newState) {
                   // @ts-ignore
                   newState[id].forEach((presence: any) => {
@@ -154,7 +278,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                       return newSet;
                   });
                   
-                  // Clear typing status after 3 seconds
                   setTimeout(() => {
                       setTypingUsers(prev => {
                           const newSet = new Set(prev);
@@ -166,31 +289,31 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           })
           .subscribe(async (status) => {
               if (status === 'SUBSCRIBED') {
-                  // Track user presence with their ID
-                  await channel.track({ 
+                  await chatChannel.track({ 
                       user_id: userId, 
                       online_at: new Date().toISOString(),
-                      username: currentUser.username 
+                      username: userProfile?.username || 'Anonymous' 
                   });
               }
           });
 
+
       return () => {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(chatChannel);
+          if (reactionsChannel) supabase.removeChannel(reactionsChannel);
       };
-  }, [selectedChatId, userId]);
+  }, [selectedChatId, userId, userProfile]); 
 
   const [message, setMessage] = useState('');
   const [aiIsTyping, setAiIsTyping] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [remoteIdInput, setRemoteIdInput] = useState(''); 
   const [isCalling, setIsCalling] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [remoteIdInput, setRemoteIdInput] = useState('');
 
   const handleTyping = async () => {
     if (!selectedChatId) return;
     
-    // Throttle typing events
     if (typingTimeoutRef.current) return;
     
     typingTimeoutRef.current = setTimeout(() => {
@@ -201,12 +324,12 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     await channel.send({
         type: 'broadcast',
         event: 'typing',
-        payload: { userId, username: currentUser.username }
+        payload: { userId, username: userProfile?.username || 'Anonymous' } 
     });
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !selectedChatId) return;
+    if (!message.trim() || !selectedChatId || !userId) return;
     
     const { error } = await supabase.from('messages').insert({
         chat_id: selectedChatId,
@@ -217,24 +340,12 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     if (error) console.error('Error sending message:', error);
     setMessage('');
   };
-
-  useEffect(() => {
-    if (localStream && localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
-  useEffect(() => {
-    if (remoteStream && remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
   
   const currentUser = userProfile ? {
     name: userProfile.display_name || 'Anonymous Rabbit',
-    phone: '+1 555 0199', // Placeholder as DB doesn't have phone
+    phone: '+1 555 0199', 
     username: userProfile.username,
-    bio: 'Ready to hop!', // Placeholder
+    bio: 'Ready to hop!', 
     avatar: userProfile.avatar_url
   } : {
     name: 'Loading...',
@@ -244,13 +355,18 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     avatar: ''
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, selectedChatId, aiIsTyping, activeTab]);
+
   useEffect(() => {
     if (callState === 'connected') {
         setIsCalling(true);
     } else if (callState === 'idle') {
         setIsCalling(false);
     } else if (callState === 'incoming') {
-        // Show incoming call UI
         setIsCalling(true); 
     }
   }, [callState]);
@@ -271,12 +387,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, selectedChatId, aiIsTyping, activeTab]);
-
   const handleGenerateSummary = async () => {
     if (!selectedChatId) return;
     setAiIsTyping(true);
@@ -296,14 +406,65 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     finally { setAiIsTyping(false); }
   };
 
-  const currentChat = chats.find(c => c.id === selectedChatId) || { name: 'Loading...', avatar: '' };
-  // const messages is now state
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!userId) return;
+
+    const message = messages.find(m => m.id === messageId);
+    const hasReacted = message?.reactions?.some(r => r.emoji === emoji && r.reactedByCurrentUser);
+
+    if (hasReacted) {
+        const { error } = await supabase
+            .from('message_reactions')
+            .delete()
+            .eq('message_id', messageId)
+            .eq('user_id', userId)
+            .eq('emoji', emoji);
+        if (error) console.error('Error deleting reaction:', error);
+    } else {
+        const { error } = await supabase
+            .from('message_reactions')
+            .insert({ message_id: messageId, user_id: userId, emoji });
+        if (error) console.error('Error inserting reaction:', error);
+    }
+    setShowReactionPickerFor(null);
+  };
+
+  const getReactionTooltipText = (reaction: ReactionSummary) => {
+    if (reaction.reactedByCurrentUser) {
+      return reaction.count > 1 
+        ? `You and ${reaction.count - 1} others reacted with ${reaction.emoji}`
+        : `You reacted with ${reaction.emoji}`;
+    } else {
+      return `${reaction.count} people reacted with ${reaction.emoji}`;
+    }
+  };
+
+  const currentChat = chats.find(c => c.id === selectedChatId) || { title: 'General Lobby', avatar: '' };
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
+      {callState !== 'idle' && (
+        <CallOverlay
+          callState={callState}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          incomingCallFrom={incomingCallFrom}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+          onEnd={endCall}
+          toggleMic={toggleMic}
+          toggleCamera={toggleCamera}
+          switchCamera={switchCamera}
+          toggleSpeaker={toggleSpeaker}
+          isMicOn={isMicOn}
+          isCameraOn={isCameraOn}
+          callerName={incomingCallFrom || 'Unknown'} 
+          callerAvatar={`https://api.dicebear.com/7.x/avataaars/svg?seed=${incomingCallFrom}`}
+        />
+      )}
+
       <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        {/* Telegram Settings Drawer */}
-        <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} />
+        <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onChatCreated={() => {}} />
 
         <div className="p-4 border-b border-white/5 flex gap-2">
           <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
@@ -320,7 +481,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           {showCallHistory ? (
               <div className="p-4 space-y-2">
                   <h3 className="text-xs font-black uppercase tracking-widest text-[#53C8FF] mb-4">Recent Calls</h3>
-                  {recentCalls.map(call => (
+                  {callHistory.map(call => (
                       <div key={call.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${call.status === 'missed' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
@@ -332,7 +493,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                           <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${call.status === 'missed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>{call.status}</span>
                       </div>
                   ))}
-                  {recentCalls.length === 0 && <p className="text-center text-white/20 text-xs mt-10">No recent calls</p>}
+                  {callHistory.length === 0 && <p className="text-center text-white/20 text-xs mt-10">No recent calls</p>}
               </div>
           ) : (
             chats.map((chat) => (
@@ -348,47 +509,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       </div>
 
       <div className="flex-1 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        
-        {/* Call Overlay */}
-        <CallOverlay 
-            callState={callState}
-            localStream={localStream}
-            remoteStream={remoteStream}
-            incomingCallFrom={incomingCallFrom}
-            onAccept={acceptCall}
-            onReject={rejectCall}
-            onEnd={() => { endCall(); setIsCalling(false); }}
-            toggleMic={toggleMic}
-            toggleCamera={toggleCamera}
-            switchCamera={switchCamera}
-            toggleSpeaker={toggleSpeaker}
-            isMicOn={isMicOn}
-            isCameraOn={isCameraOn}
-            callerName={incomingCallFrom || 'Unknown Caller'}
-        />
-
-        {/* --- Testing ID Display (Keep for dev, hide when overlay active) --- */}
-        {!['incoming', 'connected', 'calling'].includes(callState) && isCalling && (
-          <div className="absolute inset-0 z-50 bg-[#0E1430] flex flex-col items-center justify-center animate-fade-in">
-             <div className="absolute top-4 left-4 bg-white/10 p-2 rounded text-xs">
-                    <p className="text-white/50">Your ID: <span className="text-white font-bold select-all">{userId}</span></p>
-                    <div className="flex gap-2 mt-2">
-                        <input 
-                            value={remoteIdInput}
-                            onChange={e => setRemoteIdInput(e.target.value)}
-                            placeholder="Enter Remote ID"
-                            className="bg-black/20 text-white px-2 py-1 rounded"
-                        />
-                        <button onClick={() => startCall(remoteIdInput)} className="bg-[#53C8FF] text-black px-2 py-1 rounded font-bold">Call</button>
-                    </div>
-                </div>
-                <div className="text-center">
-                    <h2 className="text-xl font-bold text-white mb-4">Start a Call</h2>
-                    <p className="text-white/40 text-sm">Enter a User ID to begin.</p>
-                </div>
-          </div>
-        )}
-
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#080C22]/40 backdrop-blur-xl">
           <div className="flex items-center gap-4">
             <div>
@@ -405,7 +525,14 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-              <button onClick={() => setIsCalling(true)} className="p-2 hover:bg-white/10 rounded-full text-[#53C8FF] transition-all hover:scale-110">
+              <input 
+                  type="text" 
+                  value={remoteIdInput} 
+                  onChange={(e) => setRemoteIdInput(e.target.value)} 
+                  placeholder="Remote ID" 
+                  className="bg-white/5 text-white px-2 py-1 rounded-md text-xs w-24"
+              />
+              <button onClick={() => startCall(remoteIdInput)} className="p-2 hover:bg-white/10 rounded-full text-[#53C8FF] transition-all hover:scale-110">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               </button>
               <button className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all">
@@ -414,17 +541,89 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
           {activeTab === 'messages' ? (
             <>
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} group animate-fade-in`}>
+              {messages.map((msg) => (
+                <div 
+                  key={msg.id} 
+                  className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} group animate-fade-in relative`}
+                  onMouseDown={() => handlePressStart(msg.id)}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={() => handlePressStart(msg.id)}
+                  onTouchEnd={handlePressEnd}
+                >
                   <div className={`flex flex-col ${msg.sender_id === userId ? 'items-end' : 'items-start'} max-w-[80%]`}>
                       {msg.sender_id !== userId && (
                           <span className="text-[9px] text-white/40 mb-1 ml-2">{msg.users?.username || 'Unknown'}</span>
                       )}
-                      <div className={`p-4 rounded-2xl text-xs font-medium leading-relaxed shadow-xl ${msg.sender_id === userId ? 'bg-[#1A2348] border border-[#53C8FF]/30' : 'bg-white/5 border border-white/5'}`}>
+                      <div 
+                        className={`p-4 rounded-2xl text-xs font-medium leading-relaxed shadow-xl relative ${msg.sender_id === userId ? 'bg-[#1A2348] border border-[#53C8FF]/30' : 'bg-white/5 border border-white/5'}`}
+                        onClick={() => setShowReactionPickerFor(msg.id === showReactionPickerFor ? null : msg.id)}
+                      >
                         {msg.content}
+                        
+                        <AnimatePresence>
+                        {showReactionPickerFor === msg.id && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                className={`absolute z-10 flex gap-1 p-2 bg-[#080C22] border border-[#53C8FF]/20 rounded-full shadow-lg ${msg.sender_id === userId ? 'right-0 -top-12' : 'left-0 -top-12'}`}
+                            >
+                                {REACTION_EMOJIS.map(emoji => (
+                                    <motion.button 
+                                        key={emoji} 
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="text-lg p-1"
+                                        onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, emoji); }}
+                                    >
+                                        {emoji}
+                                    </motion.button>
+                                ))}
+                            </motion.div>
+                        )}
+                        </AnimatePresence>
+
+                        {msg.reactions && msg.reactions.length > 0 && (
+                            <div className={`flex gap-1 mt-2 ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
+                                {msg.reactions.map(reaction => (
+                                    <motion.button 
+                                        key={reaction.emoji}
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.8, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, reaction.emoji); }}
+                                        onMouseEnter={() => setHoveredReaction({ messageId: msg.id, emoji: reaction.emoji, text: getReactionTooltipText(reaction) })}
+                                        onMouseLeave={() => setHoveredReaction(null)}
+                                        className={`relative flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${reaction.reactedByCurrentUser ? 'bg-[#53C8FF] text-[#0A0F1F] border border-[#53C8FF]' : 'bg-white/10 text-white/70 border border-white/10 hover:bg-white/20'}`}
+                                    >
+                                        {reaction.emoji} {reaction.count}
+                                        <AnimatePresence>
+                                            {hoveredReaction?.messageId === msg.id && hoveredReaction.emoji === reaction.emoji && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: -25 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-md text-white text-[9px] whitespace-nowrap pointer-events-none"
+                                                >
+                                                    {hoveredReaction.text}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+                                ))}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setShowReactionPickerFor(msg.id === showReactionPickerFor ? null : msg.id); }}
+                                    className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-colors text-xs font-bold"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        )}
                       </div>
                   </div>
                 </div>

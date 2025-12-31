@@ -2,6 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import Modal from './Modal';
 import { supabase } from '../lib/supabaseClient';
+import { showSuccess, showError } from '../utils/toast'; // Import toast utilities
+
+// --- Helper Components (Moved to top) ---
+
+const Header = ({ title, onBack }: { title: string, onBack: () => void }) => (
+    <div className="h-14 flex items-center gap-4 px-4 border-b border-white/5 bg-[#080C22]/50 shrink-0">
+        <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h3 className="font-bold text-white">{title}</h3>
+    </div>
+);
+
+const MenuItem = ({ icon, label, badge, onClick }: { icon: string, label: string, badge?: string, onClick: () => void }) => (
+    <div onClick={onClick} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer group transition-colors">
+        <span className="text-xl w-6 text-center group-hover:scale-110 transition-transform">{icon}</span>
+        <span className="text-sm font-medium text-white flex-1">{label}</span>
+        {badge && <span className="text-[10px] font-bold bg-[#53C8FF] text-[#0A0F1F] px-1.5 rounded-md">{badge}</span>}
+    </div>
+);
+
+const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <div className="mb-6">
+        <h4 className="text-xs font-bold text-[#53C8FF] mb-3 uppercase tracking-wider px-2">{title}</h4>
+        <div className="bg-white/5 rounded-xl overflow-hidden">
+            {children}
+        </div>
+    </div>
+);
+
+const Toggle = ({ active, onToggle }: { active: boolean; onToggle?: () => void }) => (
+    <button onClick={onToggle} className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#53C8FF]' : 'bg-white/20'}`}>
+        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${active ? 'left-[22px]' : 'left-0.5'}`} />
+    </button>
+);
+
+const SettingRow: React.FC<{ icon?: string; label: string; value?: string; badge?: string; color?: string; onClick?: () => void }> = ({ icon, label, value, badge, color, onClick }) => (
+    <div onClick={onClick} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
+        {icon && <span className="text-lg w-6 text-center group-hover:scale-110 transition-transform">{icon}</span>}
+        <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+                <span className="text-sm text-white font-medium">{label}</span>
+                {badge && <span className="text-[9px] font-bold bg-[#53C8FF] text-[#0A0F1F] px-1 rounded">{badge}</span>}
+            </div>
+        </div>
+        <div className="flex items-center gap-2">
+            <span className="text-sm text-[#53C8FF]" style={color ? { color } : {}}>{value}</span>
+            <svg className="w-4 h-4 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+    </div>
+);
+
+const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean; onToggle?: () => void }> = ({ label, value, active: initialActive, onToggle }) => {
+    const [active, setActive] = useState(initialActive);
+    const handleToggle = () => {
+        setActive(!active);
+        if (onToggle) onToggle();
+    };
+    return (
+        <div onClick={handleToggle} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+            <span className="text-sm text-white font-medium">{label}</span>
+            <div className="flex items-center gap-3">
+                 {value && <span className="text-xs text-[#53C8FF] font-bold">{value}</span>}
+                 <Toggle active={active} onToggle={handleToggle} />
+            </div>
+        </div>
+    );
+};
+
+const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string }> = ({ label, active: initialActive, value }) => {
+    const [active, setActive] = useState(initialActive);
+    return (
+        <div onClick={() => setActive(!active)} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${active ? 'border-[#53C8FF]' : 'border-white/20'}`}>
+                {active && <div className="w-2.5 h-2.5 rounded-full bg-[#53C8FF]" />}
+            </div>
+            <span className="text-sm text-white font-medium flex-1">{label}</span>
+            {value && <span className="text-sm">{value}</span>}
+        </div>
+    );
+};
 
 // --- Types ---
 type SettingsView = 'main' | 'chat_settings' | 'privacy' | 'security' | 'profile' | 'folders' | 'data' | 'power' | 'calls' | 'advanced';
@@ -10,15 +91,17 @@ interface RabbitSettingsProps {
   isOpen: boolean;
   onClose: () => void;
   user: {
+    id: string; // Added user ID for Supabase operations
     name: string;
     phone: string;
     username: string;
     bio: string;
     avatar: string;
   };
+  onChatCreated: () => void; // Callback to refresh chat list
 }
 
-const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }) => {
+const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, onChatCreated }) => {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
   const [nightMode, setNightMode] = useState(true);
   const [activeTheme, setActiveTheme] = useState('Night');
@@ -106,39 +189,62 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
       const [groupName, setGroupName] = useState('');
       const [members, setMembers] = useState<string[]>([]);
       const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+      const [isPrivate, setIsPrivate] = useState(false); // Added isPrivate state for groups
 
       useEffect(() => {
           if (modalOpen && modalType === 'new_group') {
               const fetchUsers = async () => {
-                  const { data } = await supabase.from('users').select('*').limit(20);
-                  if (data) setAvailableUsers(data.filter(u => u.id !== user.username)); // simple filter
+                  const { data } = await supabase.from('users').select('id, display_name, username, avatar_url').limit(20);
+                  if (data) setAvailableUsers(data.filter(u => u.id !== user.id)); // Filter out current user
               };
               fetchUsers();
           }
-      }, [modalOpen, modalType]);
+      }, [modalOpen, modalType, user.id]);
 
       const createGroup = async () => {
-          if (!groupName) return;
-          
-          // Create Chat
-          const { data: chat, error } = await supabase.from('chats').insert({ 
-              title: groupName, 
-              is_group: true 
-          }).select().single();
-
-          if (error || !chat) {
-              console.error('Error creating group:', error);
+          if (!groupName.trim()) {
+              showError('Group name cannot be empty.');
               return;
           }
-
-          // Add participants (Creator + Selected)
-          // Note: In a real app we'd need the current user's ID here, but RabbitSettings props only has 'user' object which might just have username. 
-          // We'll assume we can't easily get the ID without passing it down or fetching it. 
-          // For scaffolding, we will just close the modal.
           
-          setModalOpen(false);
-          setGroupName('');
-          setMembers([]);
+          try {
+              // Create Chat
+              const { data: chat, error: chatError } = await supabase.from('chats').insert({ 
+                  title: groupName, 
+                  is_group: true,
+                  is_private: isPrivate // Set private status
+              }).select().single();
+
+              if (chatError || !chat) {
+                  showError(`Failed to create group: ${chatError?.message}`);
+                  console.error('Error creating group:', chatError);
+                  return;
+              }
+
+              // Add participants (Creator + Selected members)
+              const participantsToInsert = [{ chat_id: chat.id, user_id: user.id }]; // Add creator
+              members.forEach(memberId => participantsToInsert.push({ chat_id: chat.id, user_id: memberId }));
+
+              const { error: participantsError } = await supabase.from('chat_participants').insert(participantsToInsert);
+
+              if (participantsError) {
+                  showError(`Failed to add participants: ${participantsError.message}`);
+                  console.error('Error adding participants:', participantsError);
+                  // Optionally, delete the created chat if participants fail
+                  await supabase.from('chats').delete().eq('id', chat.id);
+                  return;
+              }
+              
+              showSuccess(`Group "${groupName}" created successfully!`);
+              onChatCreated(); // Notify parent to refresh chat list
+              setModalOpen(false);
+              setGroupName('');
+              setMembers([]);
+              setIsPrivate(false);
+          } catch (err: any) {
+              showError(`An unexpected error occurred: ${err.message}`);
+              console.error('Unexpected error during group creation:', err);
+          }
       };
 
       return (
@@ -155,6 +261,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                             onChange={e => setGroupName(e.target.value)}
                             className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" 
                             placeholder="e.g. Crypto Bros" 
+                            required
                        />
                    </div>
                </div>
@@ -176,13 +283,72 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                    </div>
                </div>
 
+               <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                   <div>
+                       <div className="text-xs font-bold text-white">Private Group</div>
+                       <div className="text-[10px] text-white/40">Only via invite link</div>
+                   </div>
+                   <Toggle active={isPrivate} onToggle={() => setIsPrivate(!isPrivate)} />
+               </div>
+
                <button onClick={createGroup} className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Group</button>
            </div>
       </Modal>
   );
   };
 
-  const NewChannelModal = () => (
+  const NewChannelModal = () => {
+      const [channelName, setChannelName] = useState('');
+      const [channelDesc, setChannelDesc] = useState('');
+      const [isPrivate, setIsPrivate] = useState(false);
+
+      const createChannel = async () => {
+          if (!channelName.trim()) {
+              showError('Channel name cannot be empty.');
+              return;
+          }
+
+          try {
+              // Create Chat (channel is also a type of chat)
+              const { data: chat, error: chatError } = await supabase.from('chats').insert({
+                  title: channelName,
+                  is_group: false, // Channels are not groups
+                  is_private: isPrivate,
+                  description: channelDesc
+              }).select().single();
+
+              if (chatError || !chat) {
+                  showError(`Failed to create channel: ${chatError?.message}`);
+                  console.error('Error creating channel:', chatError);
+                  return;
+              }
+
+              // Add creator as participant (channels usually have one admin/creator initially)
+              const { error: participantError } = await supabase.from('chat_participants').insert({
+                  chat_id: chat.id,
+                  user_id: user.id
+              });
+
+              if (participantError) {
+                  showError(`Failed to add creator to channel: ${participantError.message}`);
+                  console.error('Error adding channel creator:', participantError);
+                  await supabase.from('chats').delete().eq('id', chat.id); // Rollback
+                  return;
+              }
+
+              showSuccess(`Channel "${channelName}" created successfully!`);
+              onChatCreated(); // Notify parent to refresh chat list
+              setModalOpen(false);
+              setChannelName('');
+              setChannelDesc('');
+              setIsPrivate(false);
+          } catch (err: any) {
+              showError(`An unexpected error occurred: ${err.message}`);
+              console.error('Unexpected error during channel creation:', err);
+          }
+      };
+
+      return (
       <Modal isOpen={modalOpen && modalType === 'new_channel'} onClose={() => setModalOpen(false)} title="New Channel">
           <div className="space-y-6">
                <div className="flex justify-center py-4">
@@ -193,12 +359,23 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                
                <div className="space-y-2">
                    <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Channel Name</label>
-                   <input className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" placeholder="e.g. Daily News" />
+                   <input 
+                        value={channelName}
+                        onChange={e => setChannelName(e.target.value)}
+                        className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" 
+                        placeholder="e.g. Daily News" 
+                        required
+                   />
                </div>
 
                <div className="space-y-2">
                    <label className="text-xs font-black uppercase tracking-widest text-white/40">Description (Optional)</label>
-                   <textarea className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none text-sm h-24 resize-none" placeholder="What is this channel about?" />
+                   <textarea 
+                        value={channelDesc}
+                        onChange={e => setChannelDesc(e.target.value)}
+                        className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none text-sm h-24 resize-none" 
+                        placeholder="What is this channel about?" 
+                   />
                </div>
 
                <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
@@ -206,14 +383,14 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                        <div className="text-xs font-bold text-white">Private Channel</div>
                        <div className="text-[10px] text-white/40">Only via invite link</div>
                    </div>
-                   <Toggle active={false} />
+                   <Toggle active={isPrivate} onToggle={() => setIsPrivate(!isPrivate)} />
                </div>
 
-               <button className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Channel</button>
-               {/* Future API: POST /channels/create */}
+               <button onClick={createChannel} className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Channel</button>
            </div>
       </Modal>
   );
+  };
 
   const MainMenu = () => (
     <div className="flex flex-col h-full animate-fade-in">
@@ -250,7 +427,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                 <span className="text-xl w-6 text-center">🌙</span>
                 <span className="text-sm font-medium text-white">Night Mode</span>
             </div>
-            <Toggle active={nightMode} />
+            <Toggle active={nightMode} onToggle={() => setNightMode(!nightMode)} />
         </div>
         
         <div className="h-2" />
@@ -593,82 +770,6 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
       <NewChannelModal />
     </>
   );
-};
-
-// --- Helper Components ---
-
-const Header = ({ title, onBack }: { title: string, onBack: () => void }) => (
-    <div className="h-14 flex items-center gap-4 px-4 border-b border-white/5 bg-[#080C22]/50 shrink-0">
-        <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <h3 className="font-bold text-white">{title}</h3>
-    </div>
-);
-
-const MenuItem = ({ icon, label, badge, onClick }: { icon: string, label: string, badge?: string, onClick: () => void }) => (
-    <div onClick={onClick} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer group transition-colors">
-        <span className="text-xl w-6 text-center group-hover:scale-110 transition-transform">{icon}</span>
-        <span className="text-sm font-medium text-white flex-1">{label}</span>
-        {badge && <span className="text-[10px] font-bold bg-[#53C8FF] text-[#0A0F1F] px-1.5 rounded-md">{badge}</span>}
-    </div>
-);
-
-const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="mb-6">
-        <h4 className="text-xs font-bold text-[#53C8FF] mb-3 uppercase tracking-wider px-2">{title}</h4>
-        <div className="bg-white/5 rounded-xl overflow-hidden">
-            {children}
-        </div>
-    </div>
-);
-
-const SettingRow: React.FC<{ icon?: string; label: string; value?: string; badge?: string; color?: string; onClick?: () => void }> = ({ icon, label, value, badge, color, onClick }) => (
-    <div onClick={onClick} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
-        {icon && <span className="text-lg w-6 text-center group-hover:scale-110 transition-transform">{icon}</span>}
-        <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-                <span className="text-sm text-white font-medium">{label}</span>
-                {badge && <span className="text-[9px] font-bold bg-[#53C8FF] text-[#0A0F1F] px-1 rounded">{badge}</span>}
-            </div>
-        </div>
-        <div className="flex items-center gap-2">
-            <span className="text-sm text-[#53C8FF]" style={color ? { color } : {}}>{value}</span>
-            <svg className="w-4 h-4 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-    </div>
-);
-
-const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean }> = ({ label, value, active: initialActive }) => {
-    const [active, setActive] = useState(initialActive);
-    return (
-        <div onClick={() => setActive(!active)} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
-            <span className="text-sm text-white font-medium">{label}</span>
-            <div className="flex items-center gap-3">
-                 {value && <span className="text-xs text-[#53C8FF] font-bold">{value}</span>}
-                 <Toggle active={active} />
-            </div>
-        </div>
-    );
-};
-
-const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string }> = ({ label, active: initialActive, value }) => {
-    const [active, setActive] = useState(initialActive);
-    return (
-        <div onClick={() => setActive(!active)} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${active ? 'border-[#53C8FF]' : 'border-white/20'}`}>
-                {active && <div className="w-2.5 h-2.5 rounded-full bg-[#53C8FF]" />}
-            </div>
-            <span className="text-sm text-white font-medium flex-1">{label}</span>
-            {value && <span className="text-sm">{value}</span>}
-        </div>
-    );
-};
-
-const Toggle = ({ active }: { active: boolean }) => (
-    <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#53C8FF]' : 'bg-white/20'}`}>
-        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${active ? 'left-[22px]' : 'left-0.5'}`} />
-    </div>
-);
+}; // End of RabbitSettings component
 
 export default RabbitSettings;
