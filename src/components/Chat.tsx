@@ -12,6 +12,50 @@ interface ChatProps {
     userId?: string;
 }
 
+interface ChatInputProps {
+    onSendMessage: (content: string) => void;
+    onTyping: () => void;
+    placeholder: string;
+}
+
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onTyping, placeholder }) => {
+    const [message, setMessage] = useState('');
+    
+    const handleSend = () => {
+        if (!message.trim()) return;
+        onSendMessage(message);
+        setMessage('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    return (
+        <div className="p-6 bg-[#080C22]/80 backdrop-blur-lg border-t border-white/5">
+            <div className="flex items-end gap-3 bg-[#0D1A2A] border border-[#1E3A5F] rounded-3xl p-3">
+                <textarea 
+                    rows={1} 
+                    value={message} 
+                    onChange={(e) => {
+                        setMessage(e.target.value);
+                        onTyping();
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder} 
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-3 resize-none h-10 custom-scrollbar" 
+                />
+                <button onClick={handleSend} className="p-3 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl transition-all">
+                    <Icons.Chat className="w-5 h-5"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
@@ -43,6 +87,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<any>(null);
+  const chatChannelRef = useRef<any>(null);
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showReactionPickerFor, setShowReactionPickerFor] = useState<string | null>(null);
@@ -240,8 +285,8 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
       fetchMessagesAndReactions();
 
-      const chatChannel = supabase
-          .channel(`chat:${selectedChatId}`)
+      chatChannelRef.current = supabase.channel(`chat:${selectedChatId}`);
+      const chatChannel = chatChannelRef.current
           .on('postgres_changes', { 
               event: 'INSERT', 
               schema: 'public', 
@@ -305,6 +350,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           })
           .subscribe(async (status) => {
               if (status === 'SUBSCRIBED') {
+                  chatChannelRef.current = chatChannel;
                   await chatChannel.track({ 
                       user_id: userId, 
                       online_at: new Date().toISOString(),
@@ -315,12 +361,12 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
 
       return () => {
+          if (chatChannelRef.current) chatChannelRef.current = null;
           supabase.removeChannel(chatChannel);
           if (reactionsChannel) supabase.removeChannel(reactionsChannel);
       };
   }, [selectedChatId, userId, userProfile]); 
 
-  const [message, setMessage] = useState('');
   const [aiIsTyping, setAiIsTyping] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [remoteIdInput, setRemoteIdInput] = useState(''); 
@@ -341,7 +387,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
         typingTimeoutRef.current = null;
     }, 2000);
 
-    const channel = supabase.channel(`chat:${selectedChatId}`);
+    const channel = chatChannelRef.current || supabase.channel(`chat:${selectedChatId}`);
     await channel.send({
         type: 'broadcast',
         event: 'typing',
@@ -349,17 +395,16 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     });
   };
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || !selectedChatId || !userId) return;
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim() || !selectedChatId || !userId) return;
     
     const { error } = await supabase.from('messages').insert({
         chat_id: selectedChatId,
         sender_id: userId,
-        content: message
+        content: content
     });
 
     if (error) console.error('Error sending message:', error);
-    setMessage('');
   };
   
   const currentUser = userProfile ? {
@@ -781,21 +826,11 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
         </div>
 
         {activeTab === 'messages' && (
-          <div className="p-6 bg-[#080C22]/80 backdrop-blur-lg border-t border-white/5">
-            <div className="flex items-end gap-3 bg-[#0D1A2A] border border-[#1E3A5F] rounded-3xl p-3">
-              <textarea 
-                  rows={1} 
-                  value={message} 
-                  onChange={(e) => {
-                      setMessage(e.target.value);
-                      handleTyping();
-                  }} 
-                  placeholder={`Message ${currentChat.title || 'chat'}...`} 
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-3 resize-none h-10 custom-scrollbar" 
-              />
-              <button onClick={handleSendMessage} className="p-3 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl transition-all"><Icons.Chat className="w-5 h-5"/></button>
-            </div>
-          </div>
+          <ChatInput 
+            onSendMessage={handleSendMessage}
+            onTyping={handleTyping}
+            placeholder={`Message ${currentChat.title || 'chat'}...`}
+          />
         )}
       </div>
     </div>
