@@ -1,18 +1,21 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import Billing from './Billing';
+import { useSettings } from '../hooks/useSettings';
 
-const Settings: React.FC = () => {
+interface SettingsProps {
+  userId?: string;
+}
+
+const Settings: React.FC<SettingsProps> = ({ userId }) => {
   const [tab, setTab] = useState('General');
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  const [mirrorVideo, setMirrorVideo] = useState(true);
-  const [hd, setHd] = useState(true);
   const [inputLevel, setInputLevel] = useState(0);
   const [isTestingMic, setIsTestingMic] = useState(false);
+
+  const { settings, updateSetting, loading } = useSettings(userId);
 
   const menu = [
     { id: 'General', icon: '⚙️' },
@@ -56,6 +59,8 @@ const Settings: React.FC = () => {
     }
   }, [stream, tab]);
 
+  if (loading) return <div className="text-white p-10">Loading settings...</div>;
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col md:flex-row bg-[#0E1430] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl min-h-[700px] animate-fade-in italic">
       {/* Settings Navigation */}
@@ -91,14 +96,22 @@ const Settings: React.FC = () => {
           <div className="space-y-12 animate-fade-in">
             <SettingGroup title="Appearance">
                <SettingItem title="Color Mode" desc="Change the background color of the CloudHop desktop app.">
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                  <select 
+                    value={settings.colorMode || 'Deep Space (Dark)'}
+                    onChange={(e) => updateSetting('colorMode', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                  >
                     <option>Deep Space (Dark)</option>
                     <option>Light Mode</option>
                     <option>System Default</option>
                   </select>
                </SettingItem>
                <SettingItem title="Theme" desc="Change the accent color when using light mode.">
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                  <select 
+                    value={settings.theme || 'CloudHop Blue'}
+                    onChange={(e) => updateSetting('theme', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                  >
                     <option>CloudHop Blue</option>
                     <option>Neon Green</option>
                     <option>Cyber Pink</option>
@@ -107,23 +120,29 @@ const Settings: React.FC = () => {
                <SettingItem title="Emoji Skin Tone" desc="Change your default reaction skin tone.">
                   <div className="flex gap-2">
                      {['👋', '👋🏻', '👋🏼', '👋🏽', '👋🏾', '👋🏿'].map(e => (
-                        <button key={e} className="text-xl hover:scale-125 transition-transform">{e}</button>
+                        <button 
+                            key={e} 
+                            onClick={() => updateSetting('emojiSkinTone', e)}
+                            className={`text-xl hover:scale-125 transition-transform ${settings.emojiSkinTone === e ? 'scale-125 border-b-2 border-[#53C8FF]' : ''}`}
+                        >
+                            {e}
+                        </button>
                      ))}
                   </div>
                </SettingItem>
             </SettingGroup>
             <SettingGroup title="System">
                <SettingItem title="Start CloudHop when I start Windows" desc="Launch automatically on startup.">
-                  <Toggle active />
+                  <Toggle active={settings.startOnBoot} onToggle={() => updateSetting('startOnBoot', !settings.startOnBoot)} />
                </SettingItem>
                <SettingItem title="When closed, minimize window to notification area" desc="Keep CloudHop running in the background.">
-                  <Toggle active />
+                  <Toggle active={settings.minimizeToTray} onToggle={() => updateSetting('minimizeToTray', !settings.minimizeToTray)} />
                </SettingItem>
                <SettingItem title="Use dual monitors" desc="Show participants and content on separate screens.">
-                  <Toggle />
+                  <Toggle active={settings.dualMonitors} onToggle={() => updateSetting('dualMonitors', !settings.dualMonitors)} />
                </SettingItem>
                <SettingItem title="Enter full screen automatically when starting or joining a meeting">
-                  <Toggle />
+                  <Toggle active={settings.autoFullScreen} onToggle={() => updateSetting('autoFullScreen', !settings.autoFullScreen)} />
                </SettingItem>
             </SettingGroup>
           </div>
@@ -134,7 +153,7 @@ const Settings: React.FC = () => {
             <div className="space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Live Lens Preview</h4>
               <div className="relative aspect-video w-full max-w-xl bg-black rounded-[40px] overflow-hidden border-4 border-white/5 shadow-2xl group">
-                 <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover transition-transform duration-700 ${mirrorVideo ? 'scaleX(-1)' : ''}`} />
+                 <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover transition-transform duration-700 ${settings.mirrorVideo ? 'scaleX(-1)' : ''}`} />
                  {!isCameraOn && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080C22] space-y-4">
                       <CloudHopLogo size={64} variant="neon" className="opacity-10 animate-pulse" />
@@ -145,42 +164,57 @@ const Settings: React.FC = () => {
             </div>
             <SettingGroup title="Camera">
                <SettingItem title="Camera Source">
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                  <select 
+                    value={settings.cameraSource || 'FaceTime HD Camera'}
+                    onChange={(e) => updateSetting('cameraSource', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                  >
                     <option>FaceTime HD Camera</option>
                     <option>OBS Virtual Camera</option>
                   </select>
                </SettingItem>
                <SettingItem title="Original Ratio" desc="Maintain aspect ratio.">
-                  <Toggle />
+                  <Toggle active={settings.originalRatio} onToggle={() => updateSetting('originalRatio', !settings.originalRatio)} />
                </SettingItem>
                <SettingItem title="HD Video" desc="Enable 1080p streaming.">
-                  <Toggle active={hd} onToggle={() => setHd(!hd)} />
+                  <Toggle active={settings.hdVideo} onToggle={() => updateSetting('hdVideo', !settings.hdVideo)} />
                </SettingItem>
                <SettingItem title="Mirror Video" desc="Flip your video preview.">
-                  <Toggle active={mirrorVideo} onToggle={() => setMirrorVideo(!mirrorVideo)} />
+                  <Toggle active={settings.mirrorVideo} onToggle={() => updateSetting('mirrorVideo', !settings.mirrorVideo)} />
                </SettingItem>
             </SettingGroup>
             <SettingGroup title="My Video">
                <SettingItem title="Touch up my appearance">
-                  <div className="w-48"><input type="range" className="w-full accent-[#53C8FF]" /></div>
+                  <div className="w-48">
+                    <input 
+                        type="range" 
+                        value={settings.touchUpAppearance || 0}
+                        onChange={(e) => updateSetting('touchUpAppearance', parseInt(e.target.value))}
+                        className="w-full accent-[#53C8FF]" 
+                    />
+                  </div>
                </SettingItem>
                <SettingItem title="Adjust for low light">
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-32 text-[#53C8FF]">
+                  <select 
+                    value={settings.lowLightAdjustment || 'Auto'}
+                    onChange={(e) => updateSetting('lowLightAdjustment', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-32 text-[#53C8FF]"
+                  >
                     <option>Auto</option>
                     <option>Manual</option>
                   </select>
                </SettingItem>
                <SettingItem title="Always display participant names">
-                  <Toggle active />
+                  <Toggle active={settings.alwaysShowNames} onToggle={() => updateSetting('alwaysShowNames', !settings.alwaysShowNames)} />
                </SettingItem>
                <SettingItem title="Stop my video when joining">
-                  <Toggle />
+                  <Toggle active={settings.stopVideoOnJoin} onToggle={() => updateSetting('stopVideoOnJoin', !settings.stopVideoOnJoin)} />
                </SettingItem>
                <SettingItem title="Always show video preview dialog when joining">
-                  <Toggle active />
+                  <Toggle active={settings.showPreviewOnJoin} onToggle={() => updateSetting('showPreviewOnJoin', !settings.showPreviewOnJoin)} />
                </SettingItem>
                <SettingItem title="Hide non-video participants">
-                  <Toggle />
+                  <Toggle active={settings.hideNonVideo} onToggle={() => updateSetting('hideNonVideo', !settings.hideNonVideo)} />
                </SettingItem>
             </SettingGroup>
           </div>
@@ -191,13 +225,22 @@ const Settings: React.FC = () => {
             <SettingGroup title="Speaker">
                <div className="flex gap-4">
                   <button className="px-6 py-3 bg-[#1A2348] border border-[#53C8FF]/20 text-[#53C8FF] rounded-xl text-xs font-bold uppercase tracking-wider">Test Speaker</button>
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                  <select 
+                    value={settings.speakerDevice || 'System Default'}
+                    onChange={(e) => updateSetting('speakerDevice', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                  >
                     <option>MacBook Pro Speakers</option>
                     <option>System Default</option>
                   </select>
                </div>
                <SettingItem title="Output Volume">
-                  <input type="range" className="w-64 accent-[#53C8FF]" />
+                  <input 
+                    type="range" 
+                    value={settings.speakerVolume || 50}
+                    onChange={(e) => updateSetting('speakerVolume', parseInt(e.target.value))}
+                    className="w-64 accent-[#53C8FF]" 
+                  />
                </SettingItem>
             </SettingGroup>
 
@@ -206,7 +249,11 @@ const Settings: React.FC = () => {
                   <button onClick={() => setIsTestingMic(!isTestingMic)} className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border ${isTestingMic ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-[#1A2348] border-[#53C8FF]/20 text-[#53C8FF]'}`}>
                     {isTestingMic ? 'Stop Test' : 'Test Mic'}
                   </button>
-                  <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                  <select 
+                    value={settings.micDevice || 'System Default'}
+                    onChange={(e) => updateSetting('micDevice', e.target.value)}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                  >
                     <option>MacBook Pro Microphone</option>
                     <option>System Default</option>
                   </select>
@@ -220,7 +267,7 @@ const Settings: React.FC = () => {
                   </div>
                </div>
                <SettingItem title="Automatically adjust microphone volume">
-                  <Toggle active />
+                  <Toggle active={settings.autoMicVolume} onToggle={() => updateSetting('autoMicVolume', !settings.autoMicVolume)} />
                </SettingItem>
             </SettingGroup>
 
@@ -228,15 +275,21 @@ const Settings: React.FC = () => {
                <SettingItem title="Suppress background noise">
                   <div className="flex gap-2">
                      {['Auto', 'Low', 'Medium', 'High'].map(l => (
-                        <button key={l} className="px-4 py-2 bg-[#1A2348] rounded-lg text-xs hover:bg-[#53C8FF] hover:text-[#0A0F1F] transition-colors">{l}</button>
+                        <button 
+                            key={l} 
+                            onClick={() => updateSetting('suppressNoise', l)}
+                            className={`px-4 py-2 rounded-lg text-xs transition-colors ${settings.suppressNoise === l ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-[#1A2348] text-white hover:bg-[#53C8FF] hover:text-[#0A0F1F]'}`}
+                        >
+                            {l}
+                        </button>
                      ))}
                   </div>
                </SettingItem>
                <SettingItem title="Show in-meeting option to 'Enable Original Sound'">
-                  <Toggle />
+                  <Toggle active={settings.originalSound} onToggle={() => updateSetting('originalSound', !settings.originalSound)} />
                </SettingItem>
                <SettingItem title="Echo Cancellation">
-                  <Toggle active />
+                  <Toggle active={settings.echoCancellation} onToggle={() => updateSetting('echoCancellation', !settings.echoCancellation)} />
                </SettingItem>
             </SettingGroup>
           </div>
@@ -246,25 +299,33 @@ const Settings: React.FC = () => {
            <div className="space-y-12 animate-fade-in">
               <SettingGroup title="Window Size">
                  <SettingItem title="Window size when sharing screen">
-                    <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <select 
+                        value={settings.shareWindowSize || 'Maintain current size'}
+                        onChange={(e) => updateSetting('shareWindowSize', e.target.value)}
+                        className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                    >
                        <option>Maintain current size</option>
                        <option>Enter fullscreen</option>
                        <option>Maximize window</option>
                     </select>
                  </SettingItem>
                  <SettingItem title="Scale to fit shared content">
-                    <Toggle active />
+                    <Toggle active={settings.scaleToFit} onToggle={() => updateSetting('scaleToFit', !settings.scaleToFit)} />
                  </SettingItem>
                  <SettingItem title="See shared content in side-by-side mode">
-                    <Toggle active />
+                    <Toggle active={settings.sideBySide} onToggle={() => updateSetting('sideBySide', !settings.sideBySide)} />
                  </SettingItem>
               </SettingGroup>
               <SettingGroup title="When I Share">
                  <SettingItem title="Silence system notifications when sharing desktop">
-                    <Toggle active />
+                    <Toggle active={settings.silenceNotifications} onToggle={() => updateSetting('silenceNotifications', !settings.silenceNotifications)} />
                  </SettingItem>
                  <SettingItem title="Share applications">
-                    <select className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]">
+                    <select 
+                        value={settings.shareApplications || 'Share individual windows'}
+                        onChange={(e) => updateSetting('shareApplications', e.target.value)}
+                        className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-xs font-black uppercase italic w-64 text-[#53C8FF]"
+                    >
                        <option>Share individual windows</option>
                        <option>Share all windows from app</option>
                     </select>
@@ -276,23 +337,23 @@ const Settings: React.FC = () => {
         {tab === 'Recording' && (
            <div className="space-y-12 animate-fade-in">
               <SettingGroup title="Local Recording">
-                 <SettingItem title="Store recordings at:" desc="C:\Users\CloudHop\Documents\Zoom">
+                 <SettingItem title="Store recordings at:" desc={settings.recordingPath || "C:\\Users\\CloudHop\\Documents\\Zoom"}>
                     <button className="px-4 py-2 bg-[#1A2348] rounded text-xs text-[#53C8FF]">Change</button>
                  </SettingItem>
                  <SettingItem title="Choose a location for recorded files when the meeting ends">
-                    <Toggle />
+                    <Toggle active={settings.chooseLocationOnEnd} onToggle={() => updateSetting('chooseLocationOnEnd', !settings.chooseLocationOnEnd)} />
                  </SettingItem>
                  <SettingItem title="Record separate audio file for each participant">
-                    <Toggle />
+                    <Toggle active={settings.separateAudio} onToggle={() => updateSetting('separateAudio', !settings.separateAudio)} />
                  </SettingItem>
                  <SettingItem title="Optimize for 3rd party video editor">
-                    <Toggle />
+                    <Toggle active={settings.optimizeForEditor} onToggle={() => updateSetting('optimizeForEditor', !settings.optimizeForEditor)} />
                  </SettingItem>
                  <SettingItem title="Add a timestamp to the recording">
-                    <Toggle />
+                    <Toggle active={settings.addTimestamp} onToggle={() => updateSetting('addTimestamp', !settings.addTimestamp)} />
                  </SettingItem>
                  <SettingItem title="Record video during screen sharing">
-                    <Toggle active />
+                    <Toggle active={settings.recordVideoDuringShare} onToggle={() => updateSetting('recordVideoDuringShare', !settings.recordVideoDuringShare)} />
                  </SettingItem>
               </SettingGroup>
            </div>
@@ -302,10 +363,17 @@ const Settings: React.FC = () => {
            <div className="space-y-12 animate-fade-in">
               <SettingGroup title="Captions">
                  <SettingItem title="Closed Caption Font Size">
-                    <input type="range" min="12" max="32" className="w-48 accent-[#53C8FF]" />
+                    <input 
+                        type="range" 
+                        min="12" 
+                        max="32" 
+                        value={settings.captionFontSize || 16}
+                        onChange={(e) => updateSetting('captionFontSize', parseInt(e.target.value))}
+                        className="w-48 accent-[#53C8FF]" 
+                    />
                  </SettingItem>
                  <SettingItem title="Always show captions">
-                    <Toggle />
+                    <Toggle active={settings.alwaysShowCaptions} onToggle={() => updateSetting('alwaysShowCaptions', !settings.alwaysShowCaptions)} />
                  </SettingItem>
               </SettingGroup>
               <SettingGroup title="Screen Reader">
@@ -337,14 +405,9 @@ const SettingItem: React.FC<{ title: string; desc?: string; children: React.Reac
   </div>
 );
 
-const Toggle: React.FC<{ active?: boolean; onToggle?: () => void }> = ({ active: initial = false, onToggle }) => {
-  const [active, setActive] = useState(initial);
-  const handleToggle = () => {
-    setActive(!active);
-    if (onToggle) onToggle();
-  };
+const Toggle: React.FC<{ active?: boolean; onToggle?: () => void }> = ({ active = false, onToggle }) => {
   return (
-    <button onClick={handleToggle} className={`w-14 h-7 rounded-full transition-all relative flex items-center px-1.5 ${active ? 'bg-[#53C8FF]' : 'bg-[#1B2D45]'}`}>
+    <button onClick={onToggle} className={`w-14 h-7 rounded-full transition-all relative flex items-center px-1.5 ${active ? 'bg-[#53C8FF]' : 'bg-[#1B2D45]'}`}>
       <span className={`w-4.5 h-4.5 bg-white rounded-full transition-all shadow-xl ${active ? 'translate-x-7' : 'translate-x-0'}`}></span>
     </button>
   );

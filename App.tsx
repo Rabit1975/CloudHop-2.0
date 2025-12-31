@@ -118,7 +118,7 @@ const App: React.FC = () => {
       case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;
       case View.PROFILE: return <Profile user={user} />;
-      case View.SETTINGS: return <Settings />;
+      case View.SETTINGS: return <Settings userId={session?.user.id} />;
       case View.AUTH: return <Auth onAuthSuccess={() => setView(View.DASHBOARD)} />; // Render Auth component
       default: return <Dashboard onNavigate={setView} />;
     }

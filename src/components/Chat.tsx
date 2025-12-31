@@ -93,6 +93,9 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [showReactionPickerFor, setShowReactionPickerFor] = useState<string | null>(null);
   const [hoveredReaction, setHoveredReaction] = useState<{ messageId: string; emoji: string; text: string } | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Long press state
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const LONG_PRESS_DURATION = 500; // milliseconds
@@ -131,32 +134,39 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   }, [showCallHistory, userId]);
 
   // Load Chats and User Profile on Mount
-  useEffect(() => {
-      const fetchInitialData = async () => {
-          let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
-          if (!user) {
-              const { data: newUser } = await supabase.from('users').insert({ 
-                  id: userId, 
-                  username: `user_${userId.substr(0,8)}`, 
-                  display_name: 'New Rabbit',
-                  avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
-              }).select().single();
-              user = newUser;
-          }
-          setUserProfile(user);
+  const fetchUserProfile = async () => {
+      let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (!user) {
+          const { data: newUser } = await supabase.from('users').insert({ 
+              id: userId, 
+              username: `user_${userId.substr(0,8)}`, 
+              display_name: 'New Rabbit',
+              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
+          }).select().single();
+          user = newUser;
+      }
+      setUserProfile(user);
+  };
 
-          let { data: existingChats } = await supabase.from('chats').select('*');
-          
-          if (!existingChats || existingChats.length === 0) {
-              const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
-              if (newChat) existingChats = [newChat];
-          }
-          
-          if (existingChats) {
-              setChats(existingChats);
+  const fetchInitialData = async () => {
+      await fetchUserProfile();
+
+      let { data: existingChats } = await supabase.from('chats').select('*');
+      
+      if (!existingChats || existingChats.length === 0) {
+          const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
+          if (newChat) existingChats = [newChat];
+      }
+      
+      if (existingChats) {
+          setChats(existingChats);
+          if (!selectedChatId && existingChats.length > 0) {
               setSelectedChatId(existingChats[0].id);
           }
-      };
+      }
+  };
+
+  useEffect(() => {
       fetchInitialData();
   }, [userId]);
 
@@ -408,12 +418,14 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   };
   
   const currentUser = userProfile ? {
+    id: userProfile.id,
     name: userProfile.display_name || 'Anonymous Rabbit',
-    phone: '+1 555 0199', 
+    phone: userProfile.phone || '+1 555 0199', 
     username: userProfile.username,
-    bio: 'Ready to hop!', 
+    bio: userProfile.bio || 'Ready to hop!', 
     avatar: userProfile.avatar_url
   } : {
+    id: '',
     name: 'Loading...',
     phone: '',
     username: '',
@@ -593,6 +605,11 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
   const currentChat = chats.find(c => c.id === selectedChatId) || { title: 'General Lobby', avatar: '' };
 
+  // Filter chats based on search query
+  const filteredChats = chats.filter(chat => 
+    chat.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
       <AnimatePresence>
@@ -646,7 +663,17 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       )}
 
       <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onChatCreated={() => {}} />
+        <RabbitSettings 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+            user={currentUser} 
+            onChatCreated={fetchInitialData} 
+            onProfileUpdated={fetchUserProfile}
+            onChatSelected={(id) => {
+                setSelectedChatId(id);
+                setIsSettingsOpen(false);
+            }}
+        />
 
         <div className="p-4 border-b border-white/5 flex gap-2">
           <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
@@ -656,7 +683,13 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
              <button onClick={() => setShowCallHistory(!showCallHistory)} className={`p-2 rounded-lg transition-colors ${showCallHistory ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-[#080C22] text-white/60 hover:text-white'}`}>
                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
              </button>
-             <input type="text" placeholder="Search" className="flex-1 bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" />
+             <input 
+                type="text" 
+                placeholder="Search chats" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" 
+             />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -678,7 +711,10 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                   {callHistory.length === 0 && <p className="text-center text-white/20 text-xs mt-10">No recent calls</p>}
               </div>
           ) : (
-            chats.map((chat) => (
+            filteredChats.length === 0 ? (
+                <p className="text-center text-white/20 text-xs mt-10">No chats found</p>
+            ) : (
+            filteredChats.map((chat) => (
             <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`p-4 flex items-center gap-3 cursor-pointer border-l-2 ${selectedChatId === chat.id ? 'bg-[#53C8FF]/5 border-[#53C8FF]' : 'border-transparent hover:bg-white/5'}`}>
               <img src={chat.is_group ? 'https://picsum.photos/seed/group/50' : 'https://picsum.photos/seed/user/50'} className="w-10 h-10 rounded-xl" alt="" />
               <div className="flex-1 min-w-0">

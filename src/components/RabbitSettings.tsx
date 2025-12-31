@@ -3,6 +3,7 @@ import { Icons, CloudHopLogo } from '../constants';
 import Modal from './Modal';
 import { supabase } from '../lib/supabaseClient';
 import { showSuccess, showError } from '../utils/toast';
+import { useSettings } from '../hooks/useSettings';
 
 // --- Helper Components ---
 
@@ -54,35 +55,21 @@ const SettingRow: React.FC<{ icon?: string; label: string; value?: string; badge
     </div>
 );
 
-const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean; onToggle?: () => void }> = ({ label, value, active: initialActive, onToggle }) => {
-    const [active, setActive] = useState(initialActive);
-    
-    // Sync internal state if prop changes
-    useEffect(() => {
-        setActive(initialActive);
-    }, [initialActive]);
-
-    const handleToggle = () => {
-        const newState = !active;
-        setActive(newState);
-        if (onToggle) onToggle();
-    };
-
+const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean; onToggle?: () => void }> = ({ label, value, active, onToggle }) => {
     return (
-        <div onClick={handleToggle} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+        <div onClick={onToggle} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
             <span className="text-sm text-white font-medium">{label}</span>
             <div className="flex items-center gap-3">
                  {value && <span className="text-xs text-[#53C8FF] font-bold">{value}</span>}
-                 <Toggle active={active} onToggle={handleToggle} />
+                 <Toggle active={active} onToggle={onToggle} />
             </div>
         </div>
     );
 };
 
-const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string }> = ({ label, active: initialActive, value }) => {
-    const [active, setActive] = useState(initialActive);
+const SettingRowRadio: React.FC<{ label: string; active: boolean; onSelect?: () => void; value?: string }> = ({ label, active, onSelect, value }) => {
     return (
-        <div onClick={() => setActive(!active)} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+        <div onClick={onSelect} className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${active ? 'border-[#53C8FF]' : 'border-white/20'}`}>
                 {active && <div className="w-2.5 h-2.5 rounded-full bg-[#53C8FF]" />}
             </div>
@@ -94,7 +81,7 @@ const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string
 
 // --- Sub-Components moved outside ---
 
-const MainMenu = ({ user, setCurrentView, nightMode, setNightMode, handleWalletClick, handleNewGroupClick, handleNewChannelClick }: any) => (
+const MainMenu = ({ user, setCurrentView, settings, updateSetting, handleWalletClick, handleNewGroupClick, handleNewChannelClick, handleSavedMessages }: any) => (
     <div className="flex flex-col h-full animate-fade-in">
       {/* Profile Header */}
       <div className="p-6 pb-4 flex items-center gap-4 border-b border-white/5 bg-[#1A2348]/50">
@@ -120,16 +107,16 @@ const MainMenu = ({ user, setCurrentView, nightMode, setNightMode, handleWalletC
         <MenuItem icon="📢" label="New Channel" onClick={handleNewChannelClick} />
         <div className="h-2" />
         <MenuItem icon="📞" label="Calls" onClick={() => setCurrentView('calls')} />
-        <MenuItem icon="🔖" label="Saved Messages" onClick={() => {}} />
+        <MenuItem icon="🔖" label="Saved Messages" onClick={handleSavedMessages} />
         <MenuItem icon="⚙️" label="Settings" onClick={() => setCurrentView('chat_settings')} />
         
         <div className="h-2" />
-        <div className="flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => setNightMode(!nightMode)}>
+        <div className="flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => updateSetting('nightMode', !settings.nightMode)}>
             <div className="flex items-center gap-4">
                 <span className="text-xl w-6 text-center">🌙</span>
                 <span className="text-sm font-medium text-white">Night Mode</span>
             </div>
-            <Toggle active={nightMode} onToggle={() => setNightMode(!nightMode)} />
+            <Toggle active={!!settings.nightMode} onToggle={() => updateSetting('nightMode', !settings.nightMode)} />
         </div>
         
         <div className="h-2" />
@@ -139,7 +126,7 @@ const MainMenu = ({ user, setCurrentView, nightMode, setNightMode, handleWalletC
     </div>
 );
 
-const ChatSettings = ({ setCurrentView, activeTheme, setActiveTheme, activeColor, setActiveColor }: any) => (
+const ChatSettings = ({ setCurrentView, settings, updateSetting }: any) => (
     <div className="flex flex-col h-full animate-fade-in">
         <Header title="Chat Settings" onBack={() => setCurrentView('main')} />
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
@@ -150,11 +137,11 @@ const ChatSettings = ({ setCurrentView, activeTheme, setActiveTheme, activeColor
                     {['Classic', 'Day', 'Tinted', 'Night'].map((theme, i) => (
                         <div 
                           key={theme} 
-                          onClick={() => setActiveTheme(theme)}
-                          className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 transition-all ${activeTheme === theme ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5 hover:bg-white/10'}`}
+                          onClick={() => updateSetting('activeTheme', theme)}
+                          className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 transition-all ${settings.activeTheme === theme ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5 hover:bg-white/10'}`}
                         >
-                            {activeTheme === theme && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
-                            <div className={`w-8 h-8 rounded-full border-2 ${activeTheme === theme ? 'border-[#53C8FF]' : 'border-white/20'}`} />
+                            {settings.activeTheme === theme && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
+                            <div className={`w-8 h-8 rounded-full border-2 ${settings.activeTheme === theme ? 'border-[#53C8FF]' : 'border-white/20'}`} />
                             <span className="text-[10px] absolute bottom-[-20px] text-white/60">{theme}</span>
                         </div>
                     ))}
@@ -164,8 +151,8 @@ const ChatSettings = ({ setCurrentView, activeTheme, setActiveTheme, activeColor
                     {['#53C8FF', '#8B5CF6', '#F472B6', '#FBBF24', '#34D399', '#60A5FA'].map(color => (
                         <button 
                           key={color} 
-                          onClick={() => setActiveColor(color)}
-                          className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform ${activeColor === color ? 'scale-110 border-white' : 'border-transparent hover:scale-110'}`} 
+                          onClick={() => updateSetting('activeColor', color)}
+                          className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform ${settings.activeColor === color ? 'scale-110 border-white' : 'border-transparent hover:scale-110'}`} 
                           style={{ backgroundColor: color }} 
                         />
                     ))}
@@ -188,52 +175,52 @@ const ChatSettings = ({ setCurrentView, activeTheme, setActiveTheme, activeColor
 
             {/* Stickers and emoji */}
             <Section title="Stickers and emoji">
-                <SettingRowToggle label="Large emoji" active={true} />
-                <SettingRowToggle label="Replace emoji automatically" active={true} />
-                <SettingRowToggle label="Suggest emoji replacements" active={true} />
-                <SettingRowToggle label="Suggest popular stickers by emoji" active={true} />
-                <SettingRowToggle label="Loop animated stickers" active={true} />
+                <SettingRowToggle label="Large emoji" active={!!settings.largeEmoji} onToggle={() => updateSetting('largeEmoji', !settings.largeEmoji)} />
+                <SettingRowToggle label="Replace emoji automatically" active={!!settings.replaceEmoji} onToggle={() => updateSetting('replaceEmoji', !settings.replaceEmoji)} />
+                <SettingRowToggle label="Suggest emoji replacements" active={!!settings.suggestEmoji} onToggle={() => updateSetting('suggestEmoji', !settings.suggestEmoji)} />
+                <SettingRowToggle label="Suggest popular stickers by emoji" active={!!settings.suggestStickers} onToggle={() => updateSetting('suggestStickers', !settings.suggestStickers)} />
+                <SettingRowToggle label="Loop animated stickers" active={!!settings.loopStickers} onToggle={() => updateSetting('loopStickers', !settings.loopStickers)} />
                 <SettingRow icon="☺" label="Manage sticker sets" />
                 <SettingRow icon="🙂" label="Choose emoji set" />
             </Section>
 
             {/* Messages */}
             <Section title="Messages">
-                <SettingRowRadio label="Send with Enter" active={true} />
-                <SettingRowRadio label="Send with Ctrl+Enter" active={false} />
+                <SettingRowRadio label="Send with Enter" active={!!settings.sendWithEnter} onSelect={() => updateSetting('sendWithEnter', true)} />
+                <SettingRowRadio label="Send with Ctrl+Enter" active={!settings.sendWithEnter} onSelect={() => updateSetting('sendWithEnter', false)} />
                 <div className="h-2" />
-                <SettingRowRadio label="Reply with double click" active={true} />
-                <SettingRowRadio label="Send reaction with double click" active={false} value="❤️" />
+                <SettingRowRadio label="Reply with double click" active={!!settings.replyDoubleClick} onSelect={() => updateSetting('replyDoubleClick', !settings.replyDoubleClick)} />
+                <SettingRowRadio label="Send reaction with double click" active={!!settings.reactionDoubleClick} value="❤️" onSelect={() => updateSetting('reactionDoubleClick', !settings.reactionDoubleClick)} />
                 <div className="h-2" />
-                <SettingRowToggle label="Reaction button on messages" active={true} />
+                <SettingRowToggle label="Reaction button on messages" active={!!settings.reactionButton} onToggle={() => updateSetting('reactionButton', !settings.reactionButton)} />
             </Section>
             
             {/* Sensitive Content */}
             <Section title="Sensitive content">
-                <SettingRowToggle label="Show 18+ Content" active={false} />
+                <SettingRowToggle label="Show 18+ Content" active={!!settings.showSensitiveContent} onToggle={() => updateSetting('showSensitiveContent', !settings.showSensitiveContent)} />
             </Section>
         </div>
     </div>
 );
 
-const PrivacySettings = ({ setCurrentView }: any) => (
+const PrivacySettings = ({ setCurrentView, settings, updateSetting }: any) => (
     <div className="flex flex-col h-full animate-fade-in">
        <Header title="Privacy" onBack={() => setCurrentView('main')} />
        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-           <SettingRow label="Phone number" value="My contacts" />
-           <SettingRow label="Last seen & online" value="Everybody" />
-           <SettingRow label="Profile photos" value="Everybody" />
-           <SettingRow label="Forwarded messages" value="Everybody" />
-           <SettingRow label="Calls" value="Everybody" />
-           <SettingRow label="Voice messages" value="Everybody" />
-           <SettingRow label="Messages" value="Everybody" />
+           <SettingRow label="Phone number" value={settings.phoneNumberPrivacy || "My contacts"} onClick={() => updateSetting('phoneNumberPrivacy', settings.phoneNumberPrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Last seen & online" value={settings.lastSeenPrivacy || "Everybody"} onClick={() => updateSetting('lastSeenPrivacy', settings.lastSeenPrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Profile photos" value={settings.profilePhotoPrivacy || "Everybody"} onClick={() => updateSetting('profilePhotoPrivacy', settings.profilePhotoPrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Forwarded messages" value={settings.forwardedMessagePrivacy || "Everybody"} onClick={() => updateSetting('forwardedMessagePrivacy', settings.forwardedMessagePrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Calls" value={settings.callsPrivacy || "Everybody"} onClick={() => updateSetting('callsPrivacy', settings.callsPrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Voice messages" value={settings.voiceMessagePrivacy || "Everybody"} onClick={() => updateSetting('voiceMessagePrivacy', settings.voiceMessagePrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
+           <SettingRow label="Messages" value={settings.messagePrivacy || "Everybody"} onClick={() => updateSetting('messagePrivacy', settings.messagePrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
            <div className="h-4" />
-           <SettingRow label="Groups & channels" value="Everybody" />
+           <SettingRow label="Groups & channels" value={settings.groupPrivacy || "Everybody"} onClick={() => updateSetting('groupPrivacy', settings.groupPrivacy === 'Everybody' ? 'My contacts' : 'Everybody')} />
            <div className="h-4" />
            <Section title="Security">
-               <SettingRow icon="🔒" label="Two-Step Verification" value="Off" />
-               <SettingRow icon="⏱️" label="Auto-Delete Messages" value="Off" />
-               <SettingRow icon="🔐" label="Local passcode" value="Off" />
+               <SettingRow icon="🔒" label="Two-Step Verification" value={settings.twoStepVerification ? "On" : "Off"} onClick={() => updateSetting('twoStepVerification', !settings.twoStepVerification)} />
+               <SettingRow icon="⏱️" label="Auto-Delete Messages" value={settings.autoDeleteMessages ? "On" : "Off"} onClick={() => updateSetting('autoDeleteMessages', !settings.autoDeleteMessages)} />
+               <SettingRow icon="🔐" label="Local passcode" value={settings.localPasscode ? "On" : "Off"} onClick={() => updateSetting('localPasscode', !settings.localPasscode)} />
                <SettingRow icon="🚫" label="Blocked users" value="2" />
                <SettingRow icon="💻" label="Active sessions" value="5" />
            </Section>
@@ -241,20 +228,34 @@ const PrivacySettings = ({ setCurrentView }: any) => (
     </div>
 );
 
-const ProfileSettings = ({ user, setCurrentView }: any) => {
+const ProfileSettings = ({ user, setCurrentView, onProfileUpdated }: any) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(user.name);
     const [editBio, setEditBio] = useState(user.bio);
-    // const [editPhone, setEditPhone] = useState(user.phone);
+    const [editPhone, setEditPhone] = useState(user.phone);
+
+    // Sync state with props when user updates
+    useEffect(() => {
+        setEditName(user.name);
+        setEditBio(user.bio);
+        setEditPhone(user.phone);
+    }, [user]);
 
     const handleSave = async () => {
         const { error } = await supabase.from('users').update({
             display_name: editName,
-            // bio: editBio, // Need to add bio to users table if not exists
-            // phone: editPhone // Need to add phone to users table if not exists
-        }).eq('username', user.username);
+            bio: editBio, 
+            phone: editPhone
+        }).eq('id', user.id); // Use ID for update
         
-        if (!error) setIsEditing(false);
+        if (!error) {
+            setIsEditing(false);
+            if (onProfileUpdated) onProfileUpdated();
+            showSuccess('Profile updated successfully!');
+        } else {
+            showError('Failed to update profile.');
+            console.error(error);
+        }
     };
 
     return (
@@ -299,7 +300,19 @@ const ProfileSettings = ({ user, setCurrentView }: any) => {
             </div>
             
             <Section title="Account">
-                <SettingRow icon="📱" label="Phone number" value={isEditing ? 'Editing...' : user.phone} />
+                <SettingRow 
+                    icon="📱" 
+                    label="Phone number" 
+                    value={
+                        isEditing ? (
+                            <input 
+                                value={editPhone}
+                                onChange={e => setEditPhone(e.target.value)}
+                                className="bg-transparent text-right text-[#53C8FF] border-b border-[#53C8FF] focus:outline-none w-32"
+                            />
+                        ) : user.phone
+                    } 
+                />
                 <SettingRow icon="🎂" label="Birthday" value="Feb 24, 1975" />
             </Section>
             
@@ -313,36 +326,36 @@ const ProfileSettings = ({ user, setCurrentView }: any) => {
     );
 };
 
-const PowerUsageSettings = ({ setCurrentView }: any) => (
+const PowerUsageSettings = ({ setCurrentView, settings, updateSetting }: any) => (
     <div className="flex flex-col h-full animate-fade-in">
       <Header title="Power Usage" onBack={() => setCurrentView('main')} />
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           <Section title="Power saving options">
-              <SettingRowToggle label="Animated Stickers" value="2/2" active={true} />
-              <SettingRowToggle label="Animated Emoji" value="4/4" active={true} />
-              <SettingRowToggle label="Animations in Chats" value="3/3" active={true} />
-              <SettingRowToggle label="Animations in Calls" active={true} />
-              <SettingRowToggle label="Interface animations" active={true} />
+              <SettingRowToggle label="Animated Stickers" value="2/2" active={settings.animatedStickers !== false} onToggle={() => updateSetting('animatedStickers', settings.animatedStickers === false)} />
+              <SettingRowToggle label="Animated Emoji" value="4/4" active={settings.animatedEmoji !== false} onToggle={() => updateSetting('animatedEmoji', settings.animatedEmoji === false)} />
+              <SettingRowToggle label="Animations in Chats" value="3/3" active={settings.animationsInChats !== false} onToggle={() => updateSetting('animationsInChats', settings.animationsInChats === false)} />
+              <SettingRowToggle label="Animations in Calls" active={settings.animationsInCalls !== false} onToggle={() => updateSetting('animationsInCalls', settings.animationsInCalls === false)} />
+              <SettingRowToggle label="Interface animations" active={settings.interfaceAnimations !== false} onToggle={() => updateSetting('interfaceAnimations', settings.interfaceAnimations === false)} />
           </Section>
           
           <Section title="Performance">
-              <SettingRowToggle label="Save Power on Low Battery" active={true} />
+              <SettingRowToggle label="Save Power on Low Battery" active={settings.savePowerOnLowBattery !== false} onToggle={() => updateSetting('savePowerOnLowBattery', settings.savePowerOnLowBattery === false)} />
               <p className="text-xs text-white/40 px-4 pb-4">Automatically disable all animations when your laptop is in a battery saving mode.</p>
           </Section>
       </div>
     </div>
 );
 
-const AdvancedSettings = ({ setCurrentView }: any) => (
+const AdvancedSettings = ({ setCurrentView, settings, updateSetting }: any) => (
     <div className="flex flex-col h-full animate-fade-in">
       <Header title="Advanced" onBack={() => setCurrentView('main')} />
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           <Section title="Data and storage">
-              <SettingRow icon="⇅" label="Connection type" value="Default (TCP used)" color="#53C8FF" />
-              <SettingRow icon="📁" label="Download path" value="Default folder" color="#53C8FF" />
+              <SettingRow icon="⇅" label="Connection type" value={settings.connectionType || "Default (TCP used)"} color="#53C8FF" onClick={() => updateSetting('connectionType', 'TCP (Custom)')} />
+              <SettingRow icon="📁" label="Download path" value={settings.downloadPath || "Default folder"} color="#53C8FF" />
               <SettingRow icon="💾" label="Manage local storage" />
               <SettingRow icon="⬇" label="Downloads" />
-              <SettingRowToggle label="Ask download path for each file" active={false} />
+              <SettingRowToggle label="Ask download path for each file" active={!!settings.askDownloadPath} onToggle={() => updateSetting('askDownloadPath', !settings.askDownloadPath)} />
           </Section>
           
           <Section title="Automatic media download">
@@ -352,19 +365,19 @@ const AdvancedSettings = ({ setCurrentView }: any) => (
           </Section>
 
           <Section title="Window title bar">
-              <SettingRowToggle label="Show chat name" active={true} />
-              <SettingRowToggle label="Total unread count" active={true} />
-              <SettingRowToggle label="Use system window frame" active={false} />
+              <SettingRowToggle label="Show chat name" active={settings.showChatName !== false} onToggle={() => updateSetting('showChatName', settings.showChatName === false)} />
+              <SettingRowToggle label="Total unread count" active={settings.showTotalUnread !== false} onToggle={() => updateSetting('showTotalUnread', settings.showTotalUnread === false)} />
+              <SettingRowToggle label="Use system window frame" active={!!settings.useSystemWindowFrame} onToggle={() => updateSetting('useSystemWindowFrame', !settings.useSystemWindowFrame)} />
           </Section>
 
           <Section title="System integration">
-              <SettingRowToggle label="Show tray icon" active={true} />
+              <SettingRowToggle label="Show tray icon" active={settings.showTrayIcon !== false} onToggle={() => updateSetting('showTrayIcon', settings.showTrayIcon === false)} />
           </Section>
       </div>
     </div>
 );
 
-const CallSettings = ({ setCurrentView }: any) => {
+const CallSettings = ({ setCurrentView, settings, updateSetting }: any) => {
     const [inputLevel, setInputLevel] = useState(0);
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -402,11 +415,11 @@ const CallSettings = ({ setCurrentView }: any) => {
       <Header title="Speakers and Camera" onBack={() => setCurrentView('main')} />
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           <Section title="Speakers and headphones">
-              <SettingRow label="Output device" value="Default" color="#53C8FF" />
+              <SettingRow label="Output device" value={settings.speakerDevice || "Default"} color="#53C8FF" onClick={() => updateSetting('speakerDevice', 'Headphones (CloudHop)')} />
           </Section>
 
           <Section title="Microphone">
-              <SettingRow label="Input device" value="Default" color="#53C8FF" />
+              <SettingRow label="Input device" value={settings.micDevice || "Default"} color="#53C8FF" onClick={() => updateSetting('micDevice', 'Microphone (CloudHop)')} />
               <div className="px-4 pb-4">
                    <div className="h-4 w-full bg-[#050819] rounded-full overflow-hidden flex gap-0.5 items-center p-1 border border-white/10">
                        {Array.from({length: 40}).map((_, i) => (
@@ -417,11 +430,11 @@ const CallSettings = ({ setCurrentView }: any) => {
           </Section>
 
           <Section title="Calls and video chats">
-              <SettingRowToggle label="Use the same devices for calls" active={true} />
+              <SettingRowToggle label="Use the same devices for calls" active={settings.sameDeviceForCalls !== false} onToggle={() => updateSetting('sameDeviceForCalls', settings.sameDeviceForCalls === false)} />
           </Section>
 
           <Section title="Camera">
-              <SettingRow label="Input device" value="Default" color="#53C8FF" />
+              <SettingRow label="Input device" value={settings.cameraDevice || "Default"} color="#53C8FF" onClick={() => updateSetting('cameraDevice', 'Webcam (CloudHop)')} />
               <div className="mx-4 mb-4 aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
                    {cameraStream ? (
                        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
@@ -438,7 +451,7 @@ const CallSettings = ({ setCurrentView }: any) => {
           </Section>
 
           <Section title="Other settings">
-              <SettingRowToggle label="Accept calls on this device" active={true} />
+              <SettingRowToggle label="Accept calls on this device" active={settings.acceptCallsOnDevice !== false} onToggle={() => updateSetting('acceptCallsOnDevice', settings.acceptCallsOnDevice === false)} />
               <SettingRow label="Open system sound preferences" />
           </Section>
       </div>
@@ -461,13 +474,12 @@ interface RabbitSettingsProps {
     avatar: string;
   };
   onChatCreated: () => void; // Callback to refresh chat list
+  onProfileUpdated?: () => void;
 }
 
-const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, onChatCreated }) => {
+const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, onChatCreated, onProfileUpdated }) => {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
-  const [nightMode, setNightMode] = useState(true);
-  const [activeTheme, setActiveTheme] = useState('Night');
-  const [activeColor, setActiveColor] = useState('#53C8FF');
+  const { settings, updateSetting } = useSettings(user.id);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -488,19 +500,50 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
       setModalOpen(true);
   };
 
-  // --- Mock Wallet Data ---
-  const walletData = {
-      balance: 120,
-      transactions: [
+  // --- Sub-Components for each view ---
+
+  const WalletModal = () => {
+      const [balance, setBalance] = useState(0);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+          if (modalOpen && modalType === 'wallet') {
+              fetchBalance();
+          }
+      }, [modalOpen, modalType]);
+
+      const fetchBalance = async () => {
+          setLoading(true);
+          const { data, error } = await supabase.from('users').select('wallet_balance').eq('id', user.id).single();
+          if (data) {
+              setBalance(data.wallet_balance || 0);
+          } else {
+              console.error('Error fetching balance:', error);
+          }
+          setLoading(false);
+      };
+
+      const handleEarn = async () => {
+          // Mock earning logic: increment balance by 10
+          const newBalance = balance + 10;
+          const { error } = await supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id);
+          
+          if (!error) {
+              setBalance(newBalance);
+              showSuccess('You earned 10 Credits!');
+          } else {
+              showError('Failed to update balance');
+          }
+      };
+
+      // Mock transactions for now (could be a real table later)
+      const transactions = [
           { type: "earn", amount: 20, description: "Joined HopSpace" },
           { type: "spend", amount: 10, description: "Sent sticker" },
           { type: "earn", amount: 50, description: "Hosted meeting" }
-      ]
-  };
+      ];
 
-  // --- Sub-Components for each view ---
-
-  const WalletModal = () => (
+      return (
       <Modal isOpen={modalOpen && modalType === 'wallet'} onClose={() => setModalOpen(false)} title="Hop Wallet">
           <div className="space-y-8 text-center">
               <div className="relative inline-block">
@@ -513,12 +556,14 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
               </div>
 
               <div>
-                  <h2 className="text-4xl font-black text-white mb-2">{walletData.balance} <span className="text-[#53C8FF] text-xl">Credits</span></h2>
+                  <h2 className="text-4xl font-black text-white mb-2">
+                      {loading ? '...' : balance} <span className="text-[#53C8FF] text-xl">Credits</span>
+                  </h2>
                   <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Available Balance</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                  <button className="py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">Earn More</button>
+                  <button onClick={handleEarn} className="py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">Earn More</button>
                   <button disabled className="py-3 bg-white/5 text-white/20 rounded-xl font-black uppercase tracking-widest cursor-not-allowed border border-white/5">Withdraw</button>
               </div>
 
@@ -527,7 +572,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
                       <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest">Recent Activity</h4>
                   </div>
                   <div className="max-h-40 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                      {walletData.transactions.map((tx, i) => (
+                      {transactions.map((tx, i) => (
                           <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors">
                               <div className="flex items-center gap-3">
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${tx.type === 'earn' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
@@ -542,10 +587,10 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
                       ))}
                   </div>
               </div>
-              {/* TODO: Implement GET /wallet, POST /wallet/transfer, GET /wallet/transactions */}
           </div>
       </Modal>
-  );
+      );
+  };
 
   const NewGroupModal = () => {
       const [groupName, setGroupName] = useState('');
@@ -759,22 +804,20 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
       switch(currentView) {
           case 'chat_settings': return <ChatSettings 
             setCurrentView={setCurrentView}
-            activeTheme={activeTheme}
-            setActiveTheme={setActiveTheme}
-            activeColor={activeColor}
-            setActiveColor={setActiveColor}
+            settings={settings}
+            updateSetting={updateSetting}
           />;
-          case 'privacy': return <PrivacySettings setCurrentView={setCurrentView} />;
-          case 'security': return <PrivacySettings setCurrentView={setCurrentView} />;
-          case 'profile': return <ProfileSettings user={user} setCurrentView={setCurrentView} />;
-          case 'power': return <PowerUsageSettings setCurrentView={setCurrentView} />;
-          case 'calls': return <CallSettings setCurrentView={setCurrentView} />;
-          case 'advanced': return <AdvancedSettings setCurrentView={setCurrentView} />;
+          case 'privacy': return <PrivacySettings setCurrentView={setCurrentView} settings={settings} updateSetting={updateSetting} />;
+          case 'security': return <PrivacySettings setCurrentView={setCurrentView} settings={settings} updateSetting={updateSetting} />;
+          case 'profile': return <ProfileSettings user={user} setCurrentView={setCurrentView} onProfileUpdated={onProfileUpdated} />;
+          case 'power': return <PowerUsageSettings setCurrentView={setCurrentView} settings={settings} updateSetting={updateSetting} />;
+          case 'calls': return <CallSettings setCurrentView={setCurrentView} settings={settings} updateSetting={updateSetting} />;
+          case 'advanced': return <AdvancedSettings setCurrentView={setCurrentView} settings={settings} updateSetting={updateSetting} />;
           default: return <MainMenu 
             user={user}
             setCurrentView={setCurrentView}
-            nightMode={nightMode}
-            setNightMode={setNightMode}
+            settings={settings}
+            updateSetting={updateSetting}
             handleWalletClick={handleWalletClick}
             handleNewGroupClick={handleNewGroupClick}
             handleNewChannelClick={handleNewChannelClick}
