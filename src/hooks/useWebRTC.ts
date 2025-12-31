@@ -19,10 +19,10 @@ interface WebRTCState {
   incomingCallFrom: string | null;
   toggleMic: () => void;
   toggleCamera: () => void;
-  isMicOn: boolean;
-  isCameraOn: boolean;
   switchCamera: () => void;
   toggleSpeaker: () => void;
+  isMicOn: boolean;
+  isCameraOn: boolean;
 }
 
 export const useWebRTC = (userId: string | undefined): WebRTCState => {
@@ -261,59 +261,31 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     cleanupCall();
   };
 
-  const toggleMic = async () => {
-    try {
-      if (!localStream) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setLocalStream(stream);
-        setIsMicOn(true);
-        return;
-      }
+  const toggleMic = () => {
+    if (!localStream) return; // Should not happen if call is active
       
-      const audioTracks = localStream.getAudioTracks();
-      if (audioTracks.length > 0) {
-        audioTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        setIsMicOn(audioTracks[0].enabled);
-      }
-    } catch (err) {
-      console.error("Mic toggle failed:", err);
+    const audioTracks = localStream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      audioTracks.forEach(track => {
+          track.enabled = !track.enabled;
+      });
+      setIsMicOn(audioTracks[0].enabled);
     }
   };
 
-  const toggleCamera = async () => {
-    try {
-      if (!localStream) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setLocalStream(stream);
-        setIsCameraOn(true);
-        return;
-      }
+  const toggleCamera = () => {
+    if (!localStream) return; // Should not happen if call is active
 
-      const videoTracks = localStream.getVideoTracks();
-      if (videoTracks.length > 0) {
-        videoTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        setIsCameraOn(videoTracks[0].enabled);
-      } else {
-        // If there are no video tracks, we might need to add one
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getVideoTracks().forEach(track => {
-             localStream.addTrack(track);
-             if (pc.current) {
-                 pc.current.addTrack(track, localStream);
-             }
-        });
-        setIsCameraOn(true);
-      }
-    } catch (err) {
-      console.error("Camera toggle failed:", err);
+    const videoTracks = localStream.getVideoTracks();
+    if (videoTracks.length > 0) {
+      videoTracks.forEach(track => {
+          track.enabled = !track.enabled;
+      });
+      setIsCameraOn(videoTracks[0].enabled);
     }
   };
 
-  const switchCamera = async () => {
+  const switchCamera = () => {
       // Mock implementation
       console.log("Switching camera...");
       // Real impl would require enumerating devices and replacing track
@@ -347,10 +319,13 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     remoteStream,
     startCall,
     acceptCall,
+    rejectCall, // Added missing property
     endCall,
     incomingCallFrom,
     toggleMic,
     toggleCamera,
+    switchCamera, // Added missing property
+    toggleSpeaker, // Added missing property
     isMicOn,
     isCameraOn
   };
