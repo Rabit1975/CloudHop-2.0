@@ -758,6 +758,8 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                                 </button>
                             </div>
                         )}
+                            </>
+                        )}
                       </div>
                   </div>
                 </div>
