@@ -7,18 +7,15 @@ import RabbitSettings from './RabbitSettings';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { supabase } from '../lib/supabaseClient';
 
-const Chat: React.FC = () => {
+interface ChatProps {
+    userId?: string;
+}
+
+const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Create a stable user ID for WebRTC testing and Supabase
-  const [userId] = useState(() => {
-    const stored = sessionStorage.getItem('cloudhop_userid');
-    if (stored) return stored;
-    const newId = crypto.randomUUID(); // Use UUID for Supabase compatibility
-    sessionStorage.setItem('cloudhop_userid', newId);
-    return newId;
-  });
+  // Removed internal userId generation. Using prop.
 
   const { 
     callState, 
