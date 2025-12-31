@@ -14,8 +14,15 @@ interface WebRTCState {
   remoteStream: MediaStream | null;
   startCall: (receiverId: string) => Promise<void>;
   acceptCall: () => Promise<void>;
+  rejectCall: () => void;
   endCall: () => void;
   incomingCallFrom: string | null;
+  toggleMic: () => void;
+  toggleCamera: () => void;
+  isMicOn: boolean;
+  isCameraOn: boolean;
+  switchCamera: () => void;
+  toggleSpeaker: () => void;
 }
 
 export const useWebRTC = (userId: string | undefined): WebRTCState => {
@@ -26,6 +33,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
   const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
+  const [callId, setCallId] = useState<string | null>(null);
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const signalingChannel = useRef<RealtimeChannel | null>(null);
@@ -42,10 +50,8 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         console.log('Received call offer from:', payload.fromUserId);
         setIncomingCallFrom(payload.fromUserId);
         setRemoteUserId(payload.fromUserId);
+        setCallId(payload.callId); // Track the DB ID of the call
         setCallState('incoming');
-        
-        // Initialize PC to handle early candidates if any (optional optimization)
-        // For now, we wait for accept to create PC to avoid permissions if declined
         
         // Store offer to set later
         (window as any).pendingOffer = payload.offer;
@@ -55,6 +61,14 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         if (pc.current) {
           await pc.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
         }
+      })
+      .on('broadcast', { event: 'call-rejected' }, () => {
+        console.log('Call rejected by remote');
+        // Update history if we initiated
+        if (callId) {
+             supabase.from('call_history').update({ status: 'rejected', ended_at: new Date().toISOString() }).eq('id', callId).then();
+        }
+        cleanupCall();
       })
       .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
         console.log('Received ICE candidate');
@@ -76,7 +90,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
       channel.unsubscribe();
       cleanupCall();
     };
-  }, [userId]);
+  }, [userId, callId]);
 
   const createPeerConnection = () => {
     if (pc.current) return pc.current;
@@ -85,7 +99,6 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
 
     peer.onicecandidate = (event) => {
       if (event.candidate && remoteUserId) {
-        // Send candidate to remote user
         const channel = supabase.channel(`calls:${remoteUserId}`);
         channel.subscribe(async (status) => {
            if (status === 'SUBSCRIBED') {
@@ -94,8 +107,6 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
                  event: 'ice-candidate',
                  payload: { fromUserId: userId, candidate: event.candidate }
                });
-               // We don't unsubscribe immediately to keep connection open for more candidates
-               // Ideally we should have a dedicated sending channel or reuse one
            }
         });
       }
@@ -123,6 +134,15 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     setRemoteUserId(receiverId);
     setCallState('calling');
     
+    // Create DB entry
+    const { data: history } = await supabase.from('call_history').insert({
+        caller_id: userId,
+        receiver_id: receiverId,
+        status: 'missed' // Default until answered
+    }).select().single();
+    
+    if (history) setCallId(history.id);
+
     const peer = createPeerConnection();
     
     try {
@@ -133,17 +153,13 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
         
-        // Send offer
-        // We broadcast to the receiver's channel
-        // Note: In Supabase broadcast, anyone subscribed to the channel receives it.
-        // We use `calls:receiverId` as a convention for their "inbox"
         const channel = supabase.channel(`calls:${receiverId}`);
         channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 await channel.send({
                     type: 'broadcast',
                     event: 'call-offer',
-                    payload: { fromUserId: userId, offer }
+                    payload: { fromUserId: userId, offer, callId: history?.id }
                 });
             }
         });
@@ -156,6 +172,11 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
 
   const acceptCall = async () => {
     if (!remoteUserId || !userId) return;
+    
+    // Update DB to 'started' (we can use 'ended' status for active calls too, or add 'active' enum, but user spec said 'missed, ended, rejected'. We'll assume 'ended' is set when it finishes, so currently it's just running.)
+    // Actually user spec: status in ('missed', 'ended', 'rejected'). 
+    // We'll leave it as is or maybe update a separate field if we had one.
+    // For now, we just proceed.
     
     const peer = createPeerConnection();
     
@@ -172,7 +193,6 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
 
         await peer.setRemoteDescription(new RTCSessionDescription(offer));
         
-        // Process pending candidates
         while(pendingCandidates.current.length > 0) {
             const candidate = pendingCandidates.current.shift();
             if (candidate) await peer.addIceCandidate(new RTCIceCandidate(candidate));
@@ -181,7 +201,6 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         
-        // Send answer
         const channel = supabase.channel(`calls:${remoteUserId}`);
         channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -200,6 +219,26 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     }
   };
 
+  const rejectCall = () => {
+      if (remoteUserId) {
+          const channel = supabase.channel(`calls:${remoteUserId}`);
+          channel.subscribe(async (status) => {
+              if (status === 'SUBSCRIBED') {
+                  await channel.send({
+                      type: 'broadcast',
+                      event: 'call-rejected',
+                      payload: { fromUserId: userId }
+                  });
+              }
+          });
+          // Update DB if we have the ID
+          if (callId) {
+              supabase.from('call_history').update({ status: 'rejected', ended_at: new Date().toISOString() }).eq('id', callId).then();
+          }
+      }
+      cleanupCall();
+  };
+
   const endCall = () => {
     if (remoteUserId) {
         const channel = supabase.channel(`calls:${remoteUserId}`);
@@ -212,6 +251,12 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
                 });
             }
         });
+        
+        // Update DB
+        if (callId) {
+             // Calculate duration if we had start time, but for now just mark ended
+             supabase.from('call_history').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', callId).then();
+        }
     }
     cleanupCall();
   };
@@ -266,6 +311,16 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     } catch (err) {
       console.error("Camera toggle failed:", err);
     }
+  };
+
+  const switchCamera = async () => {
+      // Mock implementation
+      console.log("Switching camera...");
+      // Real impl would require enumerating devices and replacing track
+  };
+
+  const toggleSpeaker = () => {
+      console.log("Toggling speaker...");
   };
 
   const cleanupCall = () => {
