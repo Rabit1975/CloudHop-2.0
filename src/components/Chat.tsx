@@ -45,19 +45,23 @@ const Chat: React.FC = () => {
   // const [selectedChat, setSelectedChat] = useState(0);
   // const [chatMessages, setChatMessages] = useState...
 
+  const [userProfile, setUserProfile] = useState<any>(null);
+
   // Load Chats on Mount
   useEffect(() => {
       const fetchChats = async () => {
           // Check if user exists, if not create one
-          const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+          let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
           if (!user) {
-              await supabase.from('users').insert({ 
+              const { data: newUser } = await supabase.from('users').insert({ 
                   id: userId, 
                   username: `user_${userId.substr(0,8)}`, 
                   display_name: 'New Rabbit',
                   avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
-              });
+              }).select().single();
+              user = newUser;
           }
+          setUserProfile(user);
 
           // Fetch chats (for now, fetch all public chats or create a default one)
           let { data: existingChats } = await supabase.from('chats').select('*');
@@ -151,12 +155,18 @@ const Chat: React.FC = () => {
     }
   }, [remoteStream]);
   
-  const currentUser = {
-    name: 'Mr. Rabbit',
-    phone: '+1 904 203 0390',
-    username: 'rebelrabbit75',
-    bio: '23 y.o. designer from San Francisco',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rabbit'
+  const currentUser = userProfile ? {
+    name: userProfile.display_name || 'Anonymous Rabbit',
+    phone: '+1 555 0199', // Placeholder as DB doesn't have phone
+    username: userProfile.username,
+    bio: 'Ready to hop!', // Placeholder
+    avatar: userProfile.avatar_url
+  } : {
+    name: 'Loading...',
+    phone: '',
+    username: '',
+    bio: '',
+    avatar: ''
   };
 
   useEffect(() => {

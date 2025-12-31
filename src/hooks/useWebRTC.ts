@@ -252,6 +252,16 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
             track.enabled = !track.enabled;
         });
         setIsCameraOn(videoTracks[0].enabled);
+      } else {
+        // If there are no video tracks, we might need to add one
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getVideoTracks().forEach(track => {
+             localStream.addTrack(track);
+             if (pc.current) {
+                 pc.current.addTrack(track, localStream);
+             }
+        });
+        setIsCameraOn(true);
       }
     } catch (err) {
       console.error("Camera toggle failed:", err);
