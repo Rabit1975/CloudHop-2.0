@@ -23,7 +23,148 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
   const [activeTheme, setActiveTheme] = useState('Night');
   const [activeColor, setActiveColor] = useState('#53C8FF');
 
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'wallet' | 'new_group' | 'new_channel' | null>(null);
+
+  const handleWalletClick = () => {
+      setModalType('wallet');
+      setModalOpen(true);
+  };
+
+  const handleNewGroupClick = () => {
+      setModalType('new_group');
+      setModalOpen(true);
+  };
+
+  const handleNewChannelClick = () => {
+      setModalType('new_channel');
+      setModalOpen(true);
+  };
+
+  // --- Mock Wallet Data ---
+  const walletData = {
+      balance: 120,
+      transactions: [
+          { type: "earn", amount: 20, description: "Joined HopSpace" },
+          { type: "spend", amount: 10, description: "Sent sticker" },
+          { type: "earn", amount: 50, description: "Hosted meeting" }
+      ]
+  };
+
   // --- Sub-Components for each view ---
+
+  const WalletModal = () => (
+      <Modal isOpen={modalOpen && modalType === 'wallet'} onClose={() => setModalOpen(false)} title="Hop Wallet">
+          <div className="space-y-8 text-center">
+              <div className="relative inline-block">
+                  <div className="w-24 h-24 bg-gradient-to-tr from-[#53C8FF] to-purple-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(83,200,255,0.4)] animate-pulse-slow">
+                      <span className="text-5xl">🐰</span>
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-[#0E1430] border border-[#53C8FF] rounded-full px-3 py-1">
+                      <span className="text-xs font-black text-[#53C8FF] uppercase tracking-wider">Level 5</span>
+                  </div>
+              </div>
+
+              <div>
+                  <h2 className="text-4xl font-black text-white mb-2">{walletData.balance} <span className="text-[#53C8FF] text-xl">Credits</span></h2>
+                  <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Available Balance</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                  <button className="py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">Earn More</button>
+                  <button disabled className="py-3 bg-white/5 text-white/20 rounded-xl font-black uppercase tracking-widest cursor-not-allowed border border-white/5">Withdraw</button>
+              </div>
+
+              <div className="bg-[#050819] rounded-2xl p-1 border border-white/5 text-left">
+                  <div className="px-4 py-3 border-b border-white/5">
+                      <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest">Recent Activity</h4>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                      {walletData.transactions.map((tx, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors">
+                              <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${tx.type === 'earn' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                      {tx.type === 'earn' ? '↗' : '↘'}
+                                  </div>
+                                  <span className="text-sm font-bold text-white">{tx.description}</span>
+                              </div>
+                              <span className={`text-sm font-black ${tx.type === 'earn' ? 'text-green-400' : 'text-white/40'}`}>
+                                  {tx.type === 'earn' ? '+' : '-'}{tx.amount}
+                              </span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              {/* TODO: Implement GET /wallet, POST /wallet/transfer, GET /wallet/transactions */}
+          </div>
+      </Modal>
+  );
+
+  const NewGroupModal = () => (
+      <Modal isOpen={modalOpen && modalType === 'new_group'} onClose={() => setModalOpen(false)} title="New Group">
+           <div className="space-y-6">
+               <div className="flex items-center gap-4">
+                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-2xl border-2 border-dashed border-white/20 hover:border-[#53C8FF] cursor-pointer transition-colors">
+                       📷
+                   </div>
+                   <div className="flex-1 space-y-2">
+                       <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Group Name</label>
+                       <input className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" placeholder="e.g. Crypto Bros" />
+                   </div>
+               </div>
+               
+               <div className="space-y-2">
+                   <label className="text-xs font-black uppercase tracking-widest text-white/40">Add Members</label>
+                   <div className="h-40 bg-[#050819] border border-white/10 rounded-xl overflow-y-auto custom-scrollbar p-2">
+                       {['Alice', 'Bob', 'Charlie', 'Dave', 'Eve'].map(name => (
+                           <div key={name} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold">{name[0]}</div>
+                               <span className="text-sm font-medium text-white">{name}</span>
+                               <div className="w-4 h-4 border-2 border-white/20 rounded ml-auto"></div>
+                           </div>
+                       ))}
+                   </div>
+               </div>
+
+               <button className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Group</button>
+               {/* Future API: POST /groups/create */}
+           </div>
+      </Modal>
+  );
+
+  const NewChannelModal = () => (
+      <Modal isOpen={modalOpen && modalType === 'new_channel'} onClose={() => setModalOpen(false)} title="New Channel">
+          <div className="space-y-6">
+               <div className="flex justify-center py-4">
+                   <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center text-4xl border-2 border-dashed border-white/20 hover:border-[#53C8FF] cursor-pointer transition-colors hover:scale-105">
+                       📢
+                   </div>
+               </div>
+               
+               <div className="space-y-2">
+                   <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Channel Name</label>
+                   <input className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" placeholder="e.g. Daily News" />
+               </div>
+
+               <div className="space-y-2">
+                   <label className="text-xs font-black uppercase tracking-widest text-white/40">Description (Optional)</label>
+                   <textarea className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none text-sm h-24 resize-none" placeholder="What is this channel about?" />
+               </div>
+
+               <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                   <div>
+                       <div className="text-xs font-bold text-white">Private Channel</div>
+                       <div className="text-[10px] text-white/40">Only via invite link</div>
+                   </div>
+                   <Toggle active={false} />
+               </div>
+
+               <button className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Channel</button>
+               {/* Future API: POST /channels/create */}
+           </div>
+      </Modal>
+  );
 
   const MainMenu = () => (
     <div className="flex flex-col h-full animate-fade-in">
@@ -45,10 +186,10 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
       {/* Menu Items */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         <MenuItem icon="👤" label="My Profile" onClick={() => setCurrentView('profile')} />
-        <MenuItem icon="👛" label="Wallet" badge="NEW" onClick={() => {}} />
+        <MenuItem icon="👛" label="Wallet" badge="NEW" onClick={handleWalletClick} />
         <div className="h-2" />
-        <MenuItem icon="👥" label="New Group" onClick={() => {}} />
-        <MenuItem icon="📢" label="New Channel" onClick={() => {}} />
+        <MenuItem icon="👥" label="New Group" onClick={handleNewGroupClick} />
+        <MenuItem icon="📢" label="New Channel" onClick={handleNewChannelClick} />
         <div className="h-2" />
         <MenuItem icon="📞" label="Calls" onClick={() => setCurrentView('calls')} />
         <MenuItem icon="🔖" label="Saved Messages" onClick={() => {}} />
@@ -314,9 +455,14 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
   if (!isOpen) return null;
 
   return (
-    <div className="absolute inset-y-0 left-0 w-80 bg-[#0E1430] border-r border-white/10 shadow-2xl z-[100] animate-slide-in-left flex flex-col font-sans">
-       {renderContent()}
-    </div>
+    <>
+      <div className="absolute inset-y-0 left-0 w-80 bg-[#0E1430] border-r border-white/10 shadow-2xl z-[100] animate-slide-in-left flex flex-col font-sans">
+         {renderContent()}
+      </div>
+      <WalletModal />
+      <NewGroupModal />
+      <NewChannelModal />
+    </>
   );
 };
 
