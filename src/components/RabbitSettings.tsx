@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import Modal from './Modal';
 import { supabase } from '../lib/supabaseClient';
-import { showSuccess, showError } from '../utils/toast'; // Import toast utilities
+import { showSuccess, showError } from '../utils/toast';
 
-// --- Helper Components (Moved to top) ---
+// --- Helper Components ---
 
 const Header = ({ title, onBack }: { title: string, onBack: () => void }) => (
     <div className="h-14 flex items-center gap-4 px-4 border-b border-white/5 bg-[#080C22]/50 shrink-0">
@@ -33,7 +33,7 @@ const Section = ({ title, children }: { title: string, children: React.ReactNode
 );
 
 const Toggle = ({ active, onToggle }: { active: boolean; onToggle?: () => void }) => (
-    <button onClick={onToggle} className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#53C8FF]' : 'bg-white/20'}`}>
+    <button onClick={(e) => { e.stopPropagation(); if(onToggle) onToggle(); }} className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#53C8FF]' : 'bg-white/20'}`}>
         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${active ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
 );
@@ -56,10 +56,18 @@ const SettingRow: React.FC<{ icon?: string; label: string; value?: string; badge
 
 const SettingRowToggle: React.FC<{ label: string; value?: string; active: boolean; onToggle?: () => void }> = ({ label, value, active: initialActive, onToggle }) => {
     const [active, setActive] = useState(initialActive);
+    
+    // Sync internal state if prop changes
+    useEffect(() => {
+        setActive(initialActive);
+    }, [initialActive]);
+
     const handleToggle = () => {
-        setActive(!active);
+        const newState = !active;
+        setActive(newState);
         if (onToggle) onToggle();
     };
+
     return (
         <div onClick={handleToggle} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
             <span className="text-sm text-white font-medium">{label}</span>
@@ -81,6 +89,360 @@ const SettingRowRadio: React.FC<{ label: string; active: boolean; value?: string
             <span className="text-sm text-white font-medium flex-1">{label}</span>
             {value && <span className="text-sm">{value}</span>}
         </div>
+    );
+};
+
+// --- Sub-Components moved outside ---
+
+const MainMenu = ({ user, setCurrentView, nightMode, setNightMode, handleWalletClick, handleNewGroupClick, handleNewChannelClick }: any) => (
+    <div className="flex flex-col h-full animate-fade-in">
+      {/* Profile Header */}
+      <div className="p-6 pb-4 flex items-center gap-4 border-b border-white/5 bg-[#1A2348]/50">
+        <div className="relative">
+            <img src={user.avatar} className="w-16 h-16 rounded-full object-cover border-2 border-[#53C8FF]" alt="Profile" />
+            <button className="absolute bottom-0 right-0 bg-[#53C8FF] text-[#0A0F1F] p-1.5 rounded-full hover:scale-110 transition-transform">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+        </div>
+        <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-white truncate">{user.name}</h3>
+            <p className="text-sm text-[#53C8FF] truncate">{user.phone}</p>
+            <p className="text-xs text-white/40 truncate">@{user.username}</p>
+        </div>
+      </div>
+
+      {/* Menu Items */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+        <MenuItem icon="👤" label="My Profile" onClick={() => setCurrentView('profile')} />
+        <MenuItem icon="👛" label="Wallet" badge="NEW" onClick={handleWalletClick} />
+        <div className="h-2" />
+        <MenuItem icon="👥" label="New Group" onClick={handleNewGroupClick} />
+        <MenuItem icon="📢" label="New Channel" onClick={handleNewChannelClick} />
+        <div className="h-2" />
+        <MenuItem icon="📞" label="Calls" onClick={() => setCurrentView('calls')} />
+        <MenuItem icon="🔖" label="Saved Messages" onClick={() => {}} />
+        <MenuItem icon="⚙️" label="Settings" onClick={() => setCurrentView('chat_settings')} />
+        
+        <div className="h-2" />
+        <div className="flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => setNightMode(!nightMode)}>
+            <div className="flex items-center gap-4">
+                <span className="text-xl w-6 text-center">🌙</span>
+                <span className="text-sm font-medium text-white">Night Mode</span>
+            </div>
+            <Toggle active={nightMode} onToggle={() => setNightMode(!nightMode)} />
+        </div>
+        
+        <div className="h-2" />
+        <MenuItem icon="🔋" label="Power Usage" onClick={() => setCurrentView('power')} />
+        <MenuItem icon="🔧" label="Advanced" onClick={() => setCurrentView('advanced')} />
+      </div>
+    </div>
+);
+
+const ChatSettings = ({ setCurrentView, activeTheme, setActiveTheme, activeColor, setActiveColor }: any) => (
+    <div className="flex flex-col h-full animate-fade-in">
+        <Header title="Chat Settings" onBack={() => setCurrentView('main')} />
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+            
+            {/* Themes */}
+            <Section title="Themes">
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                    {['Classic', 'Day', 'Tinted', 'Night'].map((theme, i) => (
+                        <div 
+                          key={theme} 
+                          onClick={() => setActiveTheme(theme)}
+                          className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 transition-all ${activeTheme === theme ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5 hover:bg-white/10'}`}
+                        >
+                            {activeTheme === theme && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
+                            <div className={`w-8 h-8 rounded-full border-2 ${activeTheme === theme ? 'border-[#53C8FF]' : 'border-white/20'}`} />
+                            <span className="text-[10px] absolute bottom-[-20px] text-white/60">{theme}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="h-6" />
+                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                    {['#53C8FF', '#8B5CF6', '#F472B6', '#FBBF24', '#34D399', '#60A5FA'].map(color => (
+                        <button 
+                          key={color} 
+                          onClick={() => setActiveColor(color)}
+                          className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform ${activeColor === color ? 'scale-110 border-white' : 'border-transparent hover:scale-110'}`} 
+                          style={{ backgroundColor: color }} 
+                        />
+                    ))}
+                </div>
+            </Section>
+
+            {/* Theme Settings */}
+            <Section title="Theme Settings">
+                <SettingRow icon="🎨" label="Your name color" badge="NEW" value="Mr." color="#F472B6" />
+                <SettingRow icon="🌙" label="Auto-night mode" value="System" />
+                <SettingRow icon="🅰️" label="Font family" value="Default" />
+            </Section>
+
+            {/* Chat Wallpaper */}
+            <Section title="Chat Wallpaper">
+                <div className="h-24 bg-[#050819] rounded-xl border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#53C8FF] transition-colors">
+                    <span className="text-xs text-[#53C8FF] font-bold">Choose from gallery</span>
+                </div>
+            </Section>
+
+            {/* Stickers and emoji */}
+            <Section title="Stickers and emoji">
+                <SettingRowToggle label="Large emoji" active={true} />
+                <SettingRowToggle label="Replace emoji automatically" active={true} />
+                <SettingRowToggle label="Suggest emoji replacements" active={true} />
+                <SettingRowToggle label="Suggest popular stickers by emoji" active={true} />
+                <SettingRowToggle label="Loop animated stickers" active={true} />
+                <SettingRow icon="☺" label="Manage sticker sets" />
+                <SettingRow icon="🙂" label="Choose emoji set" />
+            </Section>
+
+            {/* Messages */}
+            <Section title="Messages">
+                <SettingRowRadio label="Send with Enter" active={true} />
+                <SettingRowRadio label="Send with Ctrl+Enter" active={false} />
+                <div className="h-2" />
+                <SettingRowRadio label="Reply with double click" active={true} />
+                <SettingRowRadio label="Send reaction with double click" active={false} value="❤️" />
+                <div className="h-2" />
+                <SettingRowToggle label="Reaction button on messages" active={true} />
+            </Section>
+            
+            {/* Sensitive Content */}
+            <Section title="Sensitive content">
+                <SettingRowToggle label="Show 18+ Content" active={false} />
+            </Section>
+        </div>
+    </div>
+);
+
+const PrivacySettings = ({ setCurrentView }: any) => (
+    <div className="flex flex-col h-full animate-fade-in">
+       <Header title="Privacy" onBack={() => setCurrentView('main')} />
+       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+           <SettingRow label="Phone number" value="My contacts" />
+           <SettingRow label="Last seen & online" value="Everybody" />
+           <SettingRow label="Profile photos" value="Everybody" />
+           <SettingRow label="Forwarded messages" value="Everybody" />
+           <SettingRow label="Calls" value="Everybody" />
+           <SettingRow label="Voice messages" value="Everybody" />
+           <SettingRow label="Messages" value="Everybody" />
+           <div className="h-4" />
+           <SettingRow label="Groups & channels" value="Everybody" />
+           <div className="h-4" />
+           <Section title="Security">
+               <SettingRow icon="🔒" label="Two-Step Verification" value="Off" />
+               <SettingRow icon="⏱️" label="Auto-Delete Messages" value="Off" />
+               <SettingRow icon="🔐" label="Local passcode" value="Off" />
+               <SettingRow icon="🚫" label="Blocked users" value="2" />
+               <SettingRow icon="💻" label="Active sessions" value="5" />
+           </Section>
+       </div>
+    </div>
+);
+
+const ProfileSettings = ({ user, setCurrentView }: any) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState(user.name);
+    const [editBio, setEditBio] = useState(user.bio);
+    // const [editPhone, setEditPhone] = useState(user.phone);
+
+    const handleSave = async () => {
+        const { error } = await supabase.from('users').update({
+            display_name: editName,
+            // bio: editBio, // Need to add bio to users table if not exists
+            // phone: editPhone // Need to add phone to users table if not exists
+        }).eq('username', user.username);
+        
+        if (!error) setIsEditing(false);
+    };
+
+    return (
+    <div className="flex flex-col h-full animate-fade-in">
+        <Header title="Edit Profile" onBack={() => setCurrentView('main')} />
+        <div className="p-6 flex flex-col items-center border-b border-white/5">
+             <div className="relative group cursor-pointer">
+                <img src={user.avatar} className="w-24 h-24 rounded-full object-cover" />
+                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-2xl">📷</span>
+                </div>
+             </div>
+             {isEditing ? (
+                 <input 
+                  value={editName} 
+                  onChange={e => setEditName(e.target.value)}
+                  className="mt-4 text-xl font-bold text-white bg-transparent border-b border-[#53C8FF] text-center focus:outline-none"
+                 />
+             ) : (
+                 <h3 className="mt-4 text-xl font-bold text-white">{editName}</h3>
+             )}
+             <p className="text-sm text-[#53C8FF]">Online</p>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+            <div className="bg-white/5 rounded-xl p-4 space-y-4">
+                <div>
+                    <label className="text-xs text-[#53C8FF] font-bold">Bio</label>
+                    {isEditing ? (
+                        <textarea 
+                          value={editBio}
+                          onChange={e => setEditBio(e.target.value)}
+                          className="w-full bg-transparent text-sm text-white border-b border-white/20 focus:border-[#53C8FF] focus:outline-none resize-none mt-1"
+                        />
+                    ) : (
+                        <p className="text-sm text-white">{editBio}</p>
+                    )}
+                </div>
+                <div className="border-t border-white/10 pt-4">
+                     <label className="text-xs text-[#53C8FF] font-bold">Username</label>
+                     <p className="text-sm text-white">@{user.username}</p>
+                </div>
+            </div>
+            
+            <Section title="Account">
+                <SettingRow icon="📱" label="Phone number" value={isEditing ? 'Editing...' : user.phone} />
+                <SettingRow icon="🎂" label="Birthday" value="Feb 24, 1975" />
+            </Section>
+            
+            {isEditing ? (
+                <button onClick={handleSave} className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest">Save Changes</button>
+            ) : (
+                <button onClick={() => setIsEditing(true)} className="w-full py-3 bg-white/10 text-white rounded-xl font-bold uppercase tracking-widest hover:bg-white/20">Edit Profile</button>
+            )}
+        </div>
+    </div>
+    );
+};
+
+const PowerUsageSettings = ({ setCurrentView }: any) => (
+    <div className="flex flex-col h-full animate-fade-in">
+      <Header title="Power Usage" onBack={() => setCurrentView('main')} />
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+          <Section title="Power saving options">
+              <SettingRowToggle label="Animated Stickers" value="2/2" active={true} />
+              <SettingRowToggle label="Animated Emoji" value="4/4" active={true} />
+              <SettingRowToggle label="Animations in Chats" value="3/3" active={true} />
+              <SettingRowToggle label="Animations in Calls" active={true} />
+              <SettingRowToggle label="Interface animations" active={true} />
+          </Section>
+          
+          <Section title="Performance">
+              <SettingRowToggle label="Save Power on Low Battery" active={true} />
+              <p className="text-xs text-white/40 px-4 pb-4">Automatically disable all animations when your laptop is in a battery saving mode.</p>
+          </Section>
+      </div>
+    </div>
+);
+
+const AdvancedSettings = ({ setCurrentView }: any) => (
+    <div className="flex flex-col h-full animate-fade-in">
+      <Header title="Advanced" onBack={() => setCurrentView('main')} />
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+          <Section title="Data and storage">
+              <SettingRow icon="⇅" label="Connection type" value="Default (TCP used)" color="#53C8FF" />
+              <SettingRow icon="📁" label="Download path" value="Default folder" color="#53C8FF" />
+              <SettingRow icon="💾" label="Manage local storage" />
+              <SettingRow icon="⬇" label="Downloads" />
+              <SettingRowToggle label="Ask download path for each file" active={false} />
+          </Section>
+          
+          <Section title="Automatic media download">
+              <SettingRow icon="👤" label="In private chats" />
+              <SettingRow icon="👥" label="In groups" />
+              <SettingRow icon="📢" label="In channels" />
+          </Section>
+
+          <Section title="Window title bar">
+              <SettingRowToggle label="Show chat name" active={true} />
+              <SettingRowToggle label="Total unread count" active={true} />
+              <SettingRowToggle label="Use system window frame" active={false} />
+          </Section>
+
+          <Section title="System integration">
+              <SettingRowToggle label="Show tray icon" active={true} />
+          </Section>
+      </div>
+    </div>
+);
+
+const CallSettings = ({ setCurrentView }: any) => {
+    const [inputLevel, setInputLevel] = useState(0);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+    
+    // Simulate mic level
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setInputLevel(Math.random() * 100);
+        }, 100);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Camera Preview
+    React.useEffect(() => {
+        let stream: MediaStream | null = null;
+        const startCamera = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                setCameraStream(stream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (e) {
+                console.error("Camera access denied", e);
+            }
+        };
+        startCamera();
+        return () => {
+            stream?.getTracks().forEach(t => t.stop());
+        };
+    }, []);
+
+    return (
+    <div className="flex flex-col h-full animate-fade-in">
+      <Header title="Speakers and Camera" onBack={() => setCurrentView('main')} />
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+          <Section title="Speakers and headphones">
+              <SettingRow label="Output device" value="Default" color="#53C8FF" />
+          </Section>
+
+          <Section title="Microphone">
+              <SettingRow label="Input device" value="Default" color="#53C8FF" />
+              <div className="px-4 pb-4">
+                   <div className="h-4 w-full bg-[#050819] rounded-full overflow-hidden flex gap-0.5 items-center p-1 border border-white/10">
+                       {Array.from({length: 40}).map((_, i) => (
+                         <div key={i} className={`h-2 flex-1 rounded-sm transition-all duration-75 ${i < (inputLevel / 2.5) ? 'bg-[#53C8FF] shadow-[0_0_10px_#53C8FF]' : 'bg-white/5'}`}></div>
+                       ))}
+                   </div>
+              </div>
+          </Section>
+
+          <Section title="Calls and video chats">
+              <SettingRowToggle label="Use the same devices for calls" active={true} />
+          </Section>
+
+          <Section title="Camera">
+              <SettingRow label="Input device" value="Default" color="#53C8FF" />
+              <div className="mx-4 mb-4 aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
+                   {cameraStream ? (
+                       <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                   ) : (
+                       <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
+                           <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-[#53C8FF] animate-spin" />
+                           <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Accessing Camera...</span>
+                       </div>
+                   )}
+                   <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur px-2 py-1 rounded-md">
+                       <span className="text-[10px] font-bold text-white uppercase tracking-wider">Preview</span>
+                   </div>
+              </div>
+          </Section>
+
+          <Section title="Other settings">
+              <SettingRowToggle label="Accept calls on this device" active={true} />
+              <SettingRow label="Open system sound preferences" />
+          </Section>
+      </div>
+    </div>
     );
 };
 
@@ -283,7 +645,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
                    </div>
                </div>
 
-               <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+               <div onClick={() => setIsPrivate(!isPrivate)} className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
                    <div>
                        <div className="text-xs font-bold text-white">Private Group</div>
                        <div className="text-[10px] text-white/40">Only via invite link</div>
@@ -392,369 +754,31 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
   );
   };
 
-  const MainMenu = () => (
-    <div className="flex flex-col h-full animate-fade-in">
-      {/* Profile Header */}
-      <div className="p-6 pb-4 flex items-center gap-4 border-b border-white/5 bg-[#1A2348]/50">
-        <div className="relative">
-            <img src={user.avatar} className="w-16 h-16 rounded-full object-cover border-2 border-[#53C8FF]" alt="Profile" />
-            <button className="absolute bottom-0 right-0 bg-[#53C8FF] text-[#0A0F1F] p-1.5 rounded-full hover:scale-110 transition-transform">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </button>
-        </div>
-        <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-white truncate">{user.name}</h3>
-            <p className="text-sm text-[#53C8FF] truncate">{user.phone}</p>
-            <p className="text-xs text-white/40 truncate">@{user.username}</p>
-        </div>
-      </div>
-
-      {/* Menu Items */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-        <MenuItem icon="👤" label="My Profile" onClick={() => setCurrentView('profile')} />
-        <MenuItem icon="👛" label="Wallet" badge="NEW" onClick={handleWalletClick} />
-        <div className="h-2" />
-        <MenuItem icon="👥" label="New Group" onClick={handleNewGroupClick} />
-        <MenuItem icon="📢" label="New Channel" onClick={handleNewChannelClick} />
-        <div className="h-2" />
-        <MenuItem icon="📞" label="Calls" onClick={() => setCurrentView('calls')} />
-        <MenuItem icon="🔖" label="Saved Messages" onClick={() => {}} />
-        <MenuItem icon="⚙️" label="Settings" onClick={() => setCurrentView('chat_settings')} />
-        
-        <div className="h-2" />
-        <div className="flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => setNightMode(!nightMode)}>
-            <div className="flex items-center gap-4">
-                <span className="text-xl w-6 text-center">🌙</span>
-                <span className="text-sm font-medium text-white">Night Mode</span>
-            </div>
-            <Toggle active={nightMode} onToggle={() => setNightMode(!nightMode)} />
-        </div>
-        
-        <div className="h-2" />
-        <MenuItem icon="🔋" label="Power Usage" onClick={() => setCurrentView('power')} />
-        <MenuItem icon="🔧" label="Advanced" onClick={() => setCurrentView('advanced')} />
-      </div>
-    </div>
-  );
-
-  const ChatSettings = () => (
-    <div className="flex flex-col h-full animate-fade-in">
-        <Header title="Chat Settings" onBack={() => setCurrentView('main')} />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            
-            {/* Themes */}
-            <Section title="Themes">
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                    {['Classic', 'Day', 'Tinted', 'Night'].map((theme, i) => (
-                        <div 
-                          key={theme} 
-                          onClick={() => setActiveTheme(theme)}
-                          className={`relative aspect-[3/4] rounded-lg border-2 cursor-pointer flex items-end justify-center pb-2 transition-all ${activeTheme === theme ? 'border-[#53C8FF] bg-[#1A2348]' : 'border-transparent bg-white/5 hover:bg-white/10'}`}
-                        >
-                            {activeTheme === theme && <div className="absolute top-2 right-2 w-2 h-2 bg-[#53C8FF] rounded-full" />}
-                            <div className={`w-8 h-8 rounded-full border-2 ${activeTheme === theme ? 'border-[#53C8FF]' : 'border-white/20'}`} />
-                            <span className="text-[10px] absolute bottom-[-20px] text-white/60">{theme}</span>
-                        </div>
-                    ))}
-                </div>
-                <div className="h-6" />
-                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                    {['#53C8FF', '#8B5CF6', '#F472B6', '#FBBF24', '#34D399', '#60A5FA'].map(color => (
-                        <button 
-                          key={color} 
-                          onClick={() => setActiveColor(color)}
-                          className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform ${activeColor === color ? 'scale-110 border-white' : 'border-transparent hover:scale-110'}`} 
-                          style={{ backgroundColor: color }} 
-                        />
-                    ))}
-                </div>
-            </Section>
-
-            {/* Theme Settings */}
-            <Section title="Theme Settings">
-                <SettingRow icon="🎨" label="Your name color" badge="NEW" value="Mr." color="#F472B6" />
-                <SettingRow icon="🌙" label="Auto-night mode" value="System" />
-                <SettingRow icon="🅰️" label="Font family" value="Default" />
-            </Section>
-
-            {/* Chat Wallpaper */}
-            <Section title="Chat Wallpaper">
-                <div className="h-24 bg-[#050819] rounded-xl border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#53C8FF] transition-colors">
-                    <span className="text-xs text-[#53C8FF] font-bold">Choose from gallery</span>
-                </div>
-            </Section>
-
-            {/* Stickers and emoji */}
-            <Section title="Stickers and emoji">
-                <SettingRowToggle label="Large emoji" active={true} />
-                <SettingRowToggle label="Replace emoji automatically" active={true} />
-                <SettingRowToggle label="Suggest emoji replacements" active={true} />
-                <SettingRowToggle label="Suggest popular stickers by emoji" active={true} />
-                <SettingRowToggle label="Loop animated stickers" active={true} />
-                <SettingRow icon="☺" label="Manage sticker sets" />
-                <SettingRow icon="🙂" label="Choose emoji set" />
-            </Section>
-
-            {/* Messages */}
-            <Section title="Messages">
-                <SettingRowRadio label="Send with Enter" active={true} />
-                <SettingRowRadio label="Send with Ctrl+Enter" active={false} />
-                <div className="h-2" />
-                <SettingRowRadio label="Reply with double click" active={true} />
-                <SettingRowRadio label="Send reaction with double click" active={false} value="❤️" />
-                <div className="h-2" />
-                <SettingRowToggle label="Reaction button on messages" active={true} />
-            </Section>
-            
-            {/* Sensitive Content */}
-            <Section title="Sensitive content">
-                <SettingRowToggle label="Show 18+ Content" active={false} />
-            </Section>
-        </div>
-    </div>
-  );
-
-  const PrivacySettings = () => (
-     <div className="flex flex-col h-full animate-fade-in">
-        <Header title="Privacy" onBack={() => setCurrentView('main')} />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-            <SettingRow label="Phone number" value="My contacts" />
-            <SettingRow label="Last seen & online" value="Everybody" />
-            <SettingRow label="Profile photos" value="Everybody" />
-            <SettingRow label="Forwarded messages" value="Everybody" />
-            <SettingRow label="Calls" value="Everybody" />
-            <SettingRow label="Voice messages" value="Everybody" />
-            <SettingRow label="Messages" value="Everybody" />
-            <div className="h-4" />
-            <SettingRow label="Groups & channels" value="Everybody" />
-            <div className="h-4" />
-            <Section title="Security">
-                <SettingRow icon="🔒" label="Two-Step Verification" value="Off" />
-                <SettingRow icon="⏱️" label="Auto-Delete Messages" value="Off" />
-                <SettingRow icon="🔐" label="Local passcode" value="Off" />
-                <SettingRow icon="🚫" label="Blocked users" value="2" />
-                <SettingRow icon="💻" label="Active sessions" value="5" />
-            </Section>
-        </div>
-     </div>
-  );
-
-  const ProfileSettings = () => {
-      const [isEditing, setIsEditing] = useState(false);
-      const [editName, setEditName] = useState(user.name);
-      const [editBio, setEditBio] = useState(user.bio);
-      const [editPhone, setEditPhone] = useState(user.phone);
-
-      const handleSave = async () => {
-          const { error } = await supabase.from('users').update({
-              display_name: editName,
-              // bio: editBio, // Need to add bio to users table if not exists
-              // phone: editPhone // Need to add phone to users table if not exists
-          }).eq('username', user.username);
-          
-          if (!error) setIsEditing(false);
-      };
-
-      return (
-      <div className="flex flex-col h-full animate-fade-in">
-          <Header title="Edit Profile" onBack={() => setCurrentView('main')} />
-          <div className="p-6 flex flex-col items-center border-b border-white/5">
-               <div className="relative group cursor-pointer">
-                  <img src={user.avatar} className="w-24 h-24 rounded-full object-cover" />
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-2xl">📷</span>
-                  </div>
-               </div>
-               {isEditing ? (
-                   <input 
-                    value={editName} 
-                    onChange={e => setEditName(e.target.value)}
-                    className="mt-4 text-xl font-bold text-white bg-transparent border-b border-[#53C8FF] text-center focus:outline-none"
-                   />
-               ) : (
-                   <h3 className="mt-4 text-xl font-bold text-white">{editName}</h3>
-               )}
-               <p className="text-sm text-[#53C8FF]">Online</p>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 space-y-4">
-                  <div>
-                      <label className="text-xs text-[#53C8FF] font-bold">Bio</label>
-                      {isEditing ? (
-                          <textarea 
-                            value={editBio}
-                            onChange={e => setEditBio(e.target.value)}
-                            className="w-full bg-transparent text-sm text-white border-b border-white/20 focus:border-[#53C8FF] focus:outline-none resize-none mt-1"
-                          />
-                      ) : (
-                          <p className="text-sm text-white">{editBio}</p>
-                      )}
-                  </div>
-                  <div className="border-t border-white/10 pt-4">
-                       <label className="text-xs text-[#53C8FF] font-bold">Username</label>
-                       <p className="text-sm text-white">@{user.username}</p>
-                  </div>
-              </div>
-              
-              <Section title="Account">
-                  <SettingRow icon="📱" label="Phone number" value={isEditing ? 'Editing...' : user.phone} />
-                  <SettingRow icon="🎂" label="Birthday" value="Feb 24, 1975" />
-              </Section>
-              
-              {isEditing ? (
-                  <button onClick={handleSave} className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest">Save Changes</button>
-              ) : (
-                  <button onClick={() => setIsEditing(true)} className="w-full py-3 bg-white/10 text-white rounded-xl font-bold uppercase tracking-widest hover:bg-white/20">Edit Profile</button>
-              )}
-          </div>
-      </div>
-      );
-  };
-
-  const PowerUsageSettings = () => (
-      <div className="flex flex-col h-full animate-fade-in">
-        <Header title="Power Usage" onBack={() => setCurrentView('main')} />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            <Section title="Power saving options">
-                <SettingRowToggle label="Animated Stickers" value="2/2" active={true} />
-                <SettingRowToggle label="Animated Emoji" value="4/4" active={true} />
-                <SettingRowToggle label="Animations in Chats" value="3/3" active={true} />
-                <SettingRowToggle label="Animations in Calls" active={true} />
-                <SettingRowToggle label="Interface animations" active={true} />
-            </Section>
-            
-            <Section title="Performance">
-                <SettingRowToggle label="Save Power on Low Battery" active={true} />
-                <p className="text-xs text-white/40 px-4 pb-4">Automatically disable all animations when your laptop is in a battery saving mode.</p>
-            </Section>
-        </div>
-      </div>
-  );
-
-  const AdvancedSettings = () => (
-      <div className="flex flex-col h-full animate-fade-in">
-        <Header title="Advanced" onBack={() => setCurrentView('main')} />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            <Section title="Data and storage">
-                <SettingRow icon="⇅" label="Connection type" value="Default (TCP used)" color="#53C8FF" />
-                <SettingRow icon="📁" label="Download path" value="Default folder" color="#53C8FF" />
-                <SettingRow icon="💾" label="Manage local storage" />
-                <SettingRow icon="⬇" label="Downloads" />
-                <SettingRowToggle label="Ask download path for each file" active={false} />
-            </Section>
-            
-            <Section title="Automatic media download">
-                <SettingRow icon="👤" label="In private chats" />
-                <SettingRow icon="👥" label="In groups" />
-                <SettingRow icon="📢" label="In channels" />
-            </Section>
-
-            <Section title="Window title bar">
-                <SettingRowToggle label="Show chat name" active={true} />
-                <SettingRowToggle label="Total unread count" active={true} />
-                <SettingRowToggle label="Use system window frame" active={false} />
-            </Section>
-
-            <Section title="System integration">
-                <SettingRowToggle label="Show tray icon" active={true} />
-            </Section>
-        </div>
-      </div>
-  );
-
-  const CallSettings = () => {
-      const [inputLevel, setInputLevel] = useState(0);
-      const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-      const videoRef = React.useRef<HTMLVideoElement>(null);
-      
-      // Simulate mic level
-      React.useEffect(() => {
-          const interval = setInterval(() => {
-              setInputLevel(Math.random() * 100);
-          }, 100);
-          return () => clearInterval(interval);
-      }, []);
-
-      // Camera Preview
-      React.useEffect(() => {
-          let stream: MediaStream | null = null;
-          const startCamera = async () => {
-              try {
-                  stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                  setCameraStream(stream);
-                  if (videoRef.current) {
-                      videoRef.current.srcObject = stream;
-                  }
-              } catch (e) {
-                  console.error("Camera access denied", e);
-              }
-          };
-          startCamera();
-          return () => {
-              stream?.getTracks().forEach(t => t.stop());
-          };
-      }, []);
-
-      return (
-      <div className="flex flex-col h-full animate-fade-in">
-        <Header title="Speakers and Camera" onBack={() => setCurrentView('main')} />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            <Section title="Speakers and headphones">
-                <SettingRow label="Output device" value="Default" color="#53C8FF" />
-            </Section>
-
-            <Section title="Microphone">
-                <SettingRow label="Input device" value="Default" color="#53C8FF" />
-                <div className="px-4 pb-4">
-                     <div className="h-4 w-full bg-[#050819] rounded-full overflow-hidden flex gap-0.5 items-center p-1 border border-white/10">
-                         {Array.from({length: 40}).map((_, i) => (
-                           <div key={i} className={`h-2 flex-1 rounded-sm transition-all duration-75 ${i < (inputLevel / 2.5) ? 'bg-[#53C8FF] shadow-[0_0_10px_#53C8FF]' : 'bg-white/5'}`}></div>
-                         ))}
-                     </div>
-                </div>
-            </Section>
-
-            <Section title="Calls and video chats">
-                <SettingRowToggle label="Use the same devices for calls" active={true} />
-            </Section>
-
-            <Section title="Camera">
-                <SettingRow label="Input device" value="Default" color="#53C8FF" />
-                <div className="mx-4 mb-4 aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
-                     {cameraStream ? (
-                         <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
-                     ) : (
-                         <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
-                             <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-[#53C8FF] animate-spin" />
-                             <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Accessing Camera...</span>
-                         </div>
-                     )}
-                     <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur px-2 py-1 rounded-md">
-                         <span className="text-[10px] font-bold text-white uppercase tracking-wider">Preview</span>
-                     </div>
-                </div>
-            </Section>
-
-            <Section title="Other settings">
-                <SettingRowToggle label="Accept calls on this device" active={true} />
-                <SettingRow label="Open system sound preferences" />
-            </Section>
-        </div>
-      </div>
-      );
-  };
-
   // --- Render Content ---
   const renderContent = () => {
       switch(currentView) {
-          case 'chat_settings': return <ChatSettings />;
-          case 'privacy': return <PrivacySettings />;
-          case 'security': return <PrivacySettings />;
-          case 'profile': return <ProfileSettings />;
-          case 'power': return <PowerUsageSettings />;
-          case 'calls': return <CallSettings />;
-          case 'advanced': return <AdvancedSettings />;
-          default: return <MainMenu />;
+          case 'chat_settings': return <ChatSettings 
+            setCurrentView={setCurrentView}
+            activeTheme={activeTheme}
+            setActiveTheme={setActiveTheme}
+            activeColor={activeColor}
+            setActiveColor={setActiveColor}
+          />;
+          case 'privacy': return <PrivacySettings setCurrentView={setCurrentView} />;
+          case 'security': return <PrivacySettings setCurrentView={setCurrentView} />;
+          case 'profile': return <ProfileSettings user={user} setCurrentView={setCurrentView} />;
+          case 'power': return <PowerUsageSettings setCurrentView={setCurrentView} />;
+          case 'calls': return <CallSettings setCurrentView={setCurrentView} />;
+          case 'advanced': return <AdvancedSettings setCurrentView={setCurrentView} />;
+          default: return <MainMenu 
+            user={user}
+            setCurrentView={setCurrentView}
+            nightMode={nightMode}
+            setNightMode={setNightMode}
+            handleWalletClick={handleWalletClick}
+            handleNewGroupClick={handleNewGroupClick}
+            handleNewChannelClick={handleNewChannelClick}
+          />;
       }
   };
 
@@ -762,7 +786,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
 
   return (
     <>
-      <div className="absolute inset-y-0 left-0 w-80 bg-[#0E1430] border-r border-white/10 shadow-2xl z-[100] animate-slide-in-left flex flex-col font-sans">
+      <div className="absolute inset-y-0 left-0 w-80 bg-[#0E1430] border-r border-white/10 shadow-2xl z-[200] animate-slide-in-left flex flex-col font-sans">
          {renderContent()}
       </div>
       <WalletModal />

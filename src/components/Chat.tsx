@@ -475,6 +475,46 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const handleToggleReaction = async (messageId: string, emoji: string) => {
     if (!userId) return;
 
+    // Optimistic Update
+    setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+            const existingReactions = msg.reactions || [];
+            const reactionIndex = existingReactions.findIndex(r => r.emoji === emoji);
+            const hasReacted = existingReactions[reactionIndex]?.reactedByCurrentUser;
+
+            let updatedReactions;
+            if (reactionIndex > -1) {
+                updatedReactions = [...existingReactions];
+                if (hasReacted) {
+                    // Remove reaction
+                    updatedReactions[reactionIndex] = {
+                        ...updatedReactions[reactionIndex],
+                        count: updatedReactions[reactionIndex].count - 1,
+                        reactedByCurrentUser: false
+                    };
+                    updatedReactions = updatedReactions.filter(r => r.count > 0);
+                } else {
+                    // Add reaction (existing emoji)
+                    updatedReactions[reactionIndex] = {
+                        ...updatedReactions[reactionIndex],
+                        count: updatedReactions[reactionIndex].count + 1,
+                        reactedByCurrentUser: true
+                    };
+                }
+            } else {
+                // Add new reaction
+                updatedReactions = [...existingReactions, {
+                    emoji,
+                    count: 1,
+                    reactedByCurrentUser: true
+                }];
+            }
+            return { ...msg, reactions: updatedReactions };
+        }
+        return msg;
+    }));
+    setShowReactionPickerFor(null);
+
     const message = messages.find(m => m.id === messageId);
     const hasReacted = message?.reactions?.some(r => r.emoji === emoji && r.reactedByCurrentUser);
 
@@ -492,7 +532,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             .insert({ message_id: messageId, user_id: userId, emoji });
         if (error) console.error('Error inserting reaction:', error);
     }
-    setShowReactionPickerFor(null);
   };
 
   // --- Edit & Delete Handlers ---
