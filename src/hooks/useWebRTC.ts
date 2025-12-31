@@ -216,21 +216,45 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     cleanupCall();
   };
 
-  const toggleMic = () => {
-    if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
+  const toggleMic = async () => {
+    try {
+      if (!localStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setLocalStream(stream);
+        setIsMicOn(true);
+        return;
+      }
+      
+      const audioTracks = localStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach(track => {
             track.enabled = !track.enabled;
         });
-        setIsMicOn(!isMicOn);
+        setIsMicOn(audioTracks[0].enabled);
+      }
+    } catch (err) {
+      console.error("Mic toggle failed:", err);
     }
   };
 
-  const toggleCamera = () => {
-    if (localStream) {
-        localStream.getVideoTracks().forEach(track => {
+  const toggleCamera = async () => {
+    try {
+      if (!localStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setLocalStream(stream);
+        setIsCameraOn(true);
+        return;
+      }
+
+      const videoTracks = localStream.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks.forEach(track => {
             track.enabled = !track.enabled;
         });
-        setIsCameraOn(!isCameraOn);
+        setIsCameraOn(videoTracks[0].enabled);
+      }
+    } catch (err) {
+      console.error("Camera toggle failed:", err);
     }
   };
 
