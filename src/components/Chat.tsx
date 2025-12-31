@@ -5,16 +5,17 @@ import { GoogleGenAI } from '@google/genai';
 import { Icons } from '../constants';
 import RabbitSettings from './RabbitSettings';
 import { useWebRTC } from '../hooks/useWebRTC';
+import { supabase } from '../lib/supabaseClient';
 
 const Chat: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Create a stable user ID for WebRTC testing
+  // Create a stable user ID for WebRTC testing and Supabase
   const [userId] = useState(() => {
     const stored = sessionStorage.getItem('cloudhop_userid');
     if (stored) return stored;
-    const newId = 'user_' + Math.random().toString(36).substr(2, 9);
+    const newId = crypto.randomUUID(); // Use UUID for Supabase compatibility
     sessionStorage.setItem('cloudhop_userid', newId);
     return newId;
   });
@@ -22,6 +23,98 @@ const Chat: React.FC = () => {
   const { callState, localStream, remoteStream, startCall, acceptCall, endCall, incomingCallFrom } = useWebRTC(userId);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  // --- Real-time Chat State ---
+  const [chats, setChats] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+
+  // Load Chats on Mount
+  useEffect(() => {
+      const fetchChats = async () => {
+          // Check if user exists, if not create one
+          const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+          if (!user) {
+              await supabase.from('users').insert({ 
+                  id: userId, 
+                  username: `user_${userId.substr(0,8)}`, 
+                  display_name: 'New Rabbit',
+                  avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
+              });
+          }
+
+          // Fetch chats (for now, fetch all public chats or create a default one)
+          let { data: existingChats } = await supabase.from('chats').select('*');
+          
+          if (!existingChats || existingChats.length === 0) {
+              // Create a default public chat
+              const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
+              if (newChat) existingChats = [newChat];
+          }
+          
+          if (existingChats) {
+              setChats(existingChats);
+              setSelectedChatId(existingChats[0].id);
+          }
+      };
+      fetchChats();
+  }, [userId]);
+
+  // Load Messages & Subscribe to Realtime
+  useEffect(() => {
+      if (!selectedChatId) return;
+
+      const fetchMessages = async () => {
+          const { data } = await supabase
+              .from('messages')
+              .select(`
+                  *,
+                  users (
+                      username,
+                      avatar_url
+                  )
+              `)
+              .eq('chat_id', selectedChatId)
+              .order('created_at', { ascending: true });
+          
+          if (data) setMessages(data);
+      };
+
+      fetchMessages();
+
+      // Subscribe to new messages
+      const channel = supabase
+          .channel(`chat:${selectedChatId}`)
+          .on('postgres_changes', { 
+              event: 'INSERT', 
+              schema: 'public', 
+              table: 'messages', 
+              filter: `chat_id=eq.${selectedChatId}` 
+          }, async (payload) => {
+              // Fetch the user details for the new message
+              const { data: userData } = await supabase.from('users').select('username, avatar_url').eq('id', payload.new.sender_id).single();
+              const newMessage = { ...payload.new, users: userData };
+              setMessages(prev => [...prev, newMessage]);
+          })
+          .subscribe();
+
+      return () => {
+          supabase.removeChannel(channel);
+      };
+  }, [selectedChatId]);
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || !selectedChatId) return;
+    
+    const { error } = await supabase.from('messages').insert({
+        chat_id: selectedChatId,
+        sender_id: userId,
+        content: message
+    });
+
+    if (error) console.error('Error sending message:', error);
+    setMessage('');
+  };
 
   useEffect(() => {
     if (localStream && localVideoRef.current) {
@@ -124,8 +217,8 @@ const Chat: React.FC = () => {
     finally { setAiIsTyping(false); }
   };
 
-  const currentChat = chats[selectedChat];
-  const messages = chatMessages[currentChat.id] || [];
+  const currentChat = chats.find(c => c.id === selectedChatId) || { name: 'Loading...', avatar: '' };
+  // const messages is now state
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
@@ -140,12 +233,12 @@ const Chat: React.FC = () => {
           <input type="text" placeholder="Search" className="flex-1 bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" />
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {chats.map((chat, i) => (
-            <div key={i} onClick={() => setSelectedChat(i)} className={`p-4 flex items-center gap-3 cursor-pointer border-l-2 ${selectedChat === i ? 'bg-[#53C8FF]/5 border-[#53C8FF]' : 'border-transparent hover:bg-white/5'}`}>
-              <img src={chat.avatar} className="w-10 h-10 rounded-xl" alt="" />
+          {chats.map((chat) => (
+            <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`p-4 flex items-center gap-3 cursor-pointer border-l-2 ${selectedChatId === chat.id ? 'bg-[#53C8FF]/5 border-[#53C8FF]' : 'border-transparent hover:bg-white/5'}`}>
+              <img src={chat.is_group ? 'https://picsum.photos/seed/group/50' : 'https://picsum.photos/seed/user/50'} className="w-10 h-10 rounded-xl" alt="" />
               <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center"><span className="font-black text-xs uppercase truncate tracking-widest">{chat.name}</span></div>
-                <p className="text-[10px] text-white/40 truncate italic font-bold">{chat.lastMsg}</p>
+                <div className="flex justify-between items-center"><span className="font-black text-xs uppercase truncate tracking-widest">{chat.title || 'Untitled Chat'}</span></div>
+                <p className="text-[10px] text-white/40 truncate italic font-bold">Tap to chat</p>
               </div>
             </div>
           ))}
@@ -258,9 +351,14 @@ const Chat: React.FC = () => {
           {activeTab === 'messages' ? (
             <>
               {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'} group animate-fade-in`}>
-                  <div className={`p-4 rounded-2xl text-xs font-medium leading-relaxed max-w-[80%] shadow-xl ${msg.isMe ? 'bg-[#1A2348] border border-[#53C8FF]/30' : 'bg-white/5 border border-white/5'}`}>
-                    {msg.text}
+                <div key={i} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} group animate-fade-in`}>
+                  <div className={`flex flex-col ${msg.sender_id === userId ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                      {msg.sender_id !== userId && (
+                          <span className="text-[9px] text-white/40 mb-1 ml-2">{msg.users?.username || 'Unknown'}</span>
+                      )}
+                      <div className={`p-4 rounded-2xl text-xs font-medium leading-relaxed shadow-xl ${msg.sender_id === userId ? 'bg-[#1A2348] border border-[#53C8FF]/30' : 'bg-white/5 border border-white/5'}`}>
+                        {msg.content}
+                      </div>
                   </div>
                 </div>
               ))}
