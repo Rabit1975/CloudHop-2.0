@@ -66,6 +66,7 @@ export interface Message {
   sender_id: string; // Changed from senderId to sender_id to match DB
   content: string; // Changed from text to content to match DB
   created_at: string; // Added created_at
+  edited_at?: string; // Added edited_at
   chat_id: string; // Added chat_id
   users?: { username: string; avatar_url: string; }; // User data for sender
   reactions?: ReactionSummary[]; // Added for reactions

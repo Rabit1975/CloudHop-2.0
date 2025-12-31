@@ -252,6 +252,22 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               const newMessage = { ...payload.new, users: userData, reactions: [] };
               setMessages(prev => [...prev, newMessage]);
           })
+          .on('postgres_changes', { 
+              event: 'UPDATE', 
+              schema: 'public', 
+              table: 'messages', 
+              filter: `chat_id=eq.${selectedChatId}` 
+          }, (payload) => {
+              setMessages(prev => prev.map(msg => msg.id === payload.new.id ? { ...msg, ...payload.new } : msg));
+          })
+          .on('postgres_changes', { 
+              event: 'DELETE', 
+              schema: 'public', 
+              table: 'messages', 
+              filter: `chat_id=eq.${selectedChatId}` 
+          }, (payload) => {
+              setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+          })
           .on('presence', { event: 'sync' }, () => {
               const newState = chatChannel.presenceState();
               const users = new Set<string>();
@@ -310,6 +326,11 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [remoteIdInput, setRemoteIdInput] = useState(''); 
   const [isCalling, setIsCalling] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+
+  // --- Message Editing & Deletion State ---
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
 
   const handleTyping = async () => {
     if (!selectedChatId) return;
@@ -429,6 +450,53 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     setShowReactionPickerFor(null);
   };
 
+  // --- Edit & Delete Handlers ---
+  const handleEditStart = (msg: Message) => {
+      setEditingMessageId(msg.id);
+      setEditContent(msg.content);
+      setShowReactionPickerFor(null);
+  };
+
+  const handleEditCancel = () => {
+      setEditingMessageId(null);
+      setEditContent('');
+  };
+
+  const handleEditSave = async () => {
+      if (!editingMessageId || !editContent.trim()) return;
+      
+      const { error } = await supabase
+          .from('messages')
+          .update({ content: editContent, edited_at: new Date().toISOString() })
+          .eq('id', editingMessageId);
+
+      if (error) {
+          console.error('Error updating message:', error);
+      } else {
+          setEditingMessageId(null);
+          setEditContent('');
+      }
+  };
+
+  const handleDeleteStart = (messageId: string) => {
+      setDeletingMessageId(messageId);
+      setShowReactionPickerFor(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+      if (!deletingMessageId) return;
+
+      const { error } = await supabase
+          .from('messages')
+          .delete()
+          .eq('id', deletingMessageId);
+
+      if (error) {
+          console.error('Error deleting message:', error);
+      }
+      setDeletingMessageId(null);
+  };
+
   const getReactionTooltipText = (reaction: ReactionSummary) => {
     if (reaction.reactedByCurrentUser) {
       return reaction.count > 1 
@@ -443,6 +511,36 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
+      <AnimatePresence>
+      {deletingMessageId && (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        >
+            <div className="bg-[#0E1430] border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
+                <h3 className="text-lg font-bold text-white mb-2">Delete Message?</h3>
+                <p className="text-sm text-white/60 mb-6">Are you sure you want to delete this message? This action cannot be undone.</p>
+                <div className="flex justify-end gap-3">
+                    <button 
+                        onClick={() => setDeletingMessageId(null)}
+                        className="px-4 py-2 rounded-xl text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleDeleteConfirm}
+                        className="px-4 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+
       {callState !== 'idle' && (
         <CallOverlay
           callState={callState}
@@ -558,36 +656,72 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                       {msg.sender_id !== userId && (
                           <span className="text-[9px] text-white/40 mb-1 ml-2">{msg.users?.username || 'Unknown'}</span>
                       )}
+                      
                       <div 
                         className={`p-4 rounded-2xl text-xs font-medium leading-relaxed shadow-xl relative ${msg.sender_id === userId ? 'bg-[#1A2348] border border-[#53C8FF]/30' : 'bg-white/5 border border-white/5'}`}
-                        onClick={() => setShowReactionPickerFor(msg.id === showReactionPickerFor ? null : msg.id)}
+                        onClick={() => {
+                            if (editingMessageId !== msg.id) {
+                                setShowReactionPickerFor(msg.id === showReactionPickerFor ? null : msg.id);
+                            }
+                        }}
                       >
-                        {msg.content}
-                        
-                        <AnimatePresence>
-                        {showReactionPickerFor === msg.id && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 10 }}
-                                className={`absolute z-10 flex gap-1 p-2 bg-[#080C22] border border-[#53C8FF]/20 rounded-full shadow-lg ${msg.sender_id === userId ? 'right-0 -top-12' : 'left-0 -top-12'}`}
-                            >
-                                {REACTION_EMOJIS.map(emoji => (
-                                    <motion.button 
-                                        key={emoji} 
-                                        whileHover={{ scale: 1.2 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        className="text-lg p-1"
-                                        onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, emoji); }}
+                        {editingMessageId === msg.id ? (
+                            <div className="flex flex-col gap-2 min-w-[200px]" onClick={e => e.stopPropagation()}>
+                                <textarea
+                                    value={editContent}
+                                    onChange={e => setEditContent(e.target.value)}
+                                    className="w-full bg-black/20 text-white rounded p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#53C8FF] resize-none"
+                                    rows={2}
+                                    autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={handleEditCancel} className="text-[10px] text-white/50 hover:text-white">Cancel</button>
+                                    <button onClick={handleEditSave} className="text-[10px] bg-[#53C8FF] text-[#0A0F1F] px-2 py-1 rounded font-bold">Save</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {msg.content}
+                                {msg.edited_at && <span className="text-[8px] text-white/30 ml-1 italic">(edited)</span>}
+                                
+                                <AnimatePresence>
+                                {showReactionPickerFor === msg.id && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className={`absolute z-10 flex flex-col gap-2 p-2 bg-[#080C22] border border-[#53C8FF]/20 rounded-xl shadow-lg ${msg.sender_id === userId ? 'right-0 -top-24' : 'left-0 -top-24'}`}
                                     >
-                                        {emoji}
-                                    </motion.button>
-                                ))}
-                            </motion.div>
-                        )}
-                        </AnimatePresence>
+                                        <div className="flex gap-1">
+                                            {REACTION_EMOJIS.map(emoji => (
+                                                <motion.button 
+                                                    key={emoji} 
+                                                    whileHover={{ scale: 1.2 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    className="text-lg p-1"
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, emoji); }}
+                                                >
+                                                    {emoji}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                        {msg.sender_id === userId && (
+                                            <div className="flex gap-2 border-t border-white/10 pt-2 justify-end px-1">
+                                                <button onClick={(e) => { e.stopPropagation(); handleEditStart(msg); }} className="flex items-center gap-1 text-[10px] text-white/60 hover:text-[#53C8FF]">
+                                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                    Edit
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteStart(msg.id); }} className="flex items-center gap-1 text-[10px] text-white/60 hover:text-red-500">
+                                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
 
-                        {msg.reactions && msg.reactions.length > 0 && (
+                                {msg.reactions && msg.reactions.length > 0 && (
                             <div className={`flex gap-1 mt-2 ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
                                 {msg.reactions.map(reaction => (
                                     <motion.button 
