@@ -55,12 +55,20 @@ export interface User {
   badges?: string[];
 }
 
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+  reactedByCurrentUser: boolean;
+}
+
 export interface Message {
   id: string;
-  senderId: string;
-  text: string;
-  timestamp: string;
-  isMe?: boolean;
+  sender_id: string; // Changed from senderId to sender_id to match DB
+  content: string; // Changed from text to content to match DB
+  created_at: string; // Added created_at
+  chat_id: string; // Added chat_id
+  users?: { username: string; avatar_url: string; }; // User data for sender
+  reactions?: ReactionSummary[]; // Added for reactions
 }
 
 // --- New Types for Real Data ---
