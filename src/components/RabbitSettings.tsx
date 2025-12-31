@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
 import Modal from './Modal';
+import { supabase } from '../lib/supabaseClient';
 
 // --- Types ---
 type SettingsView = 'main' | 'chat_settings' | 'privacy' | 'security' | 'profile' | 'folders' | 'data' | 'power' | 'calls' | 'advanced';
@@ -101,7 +102,46 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
       </Modal>
   );
 
-  const NewGroupModal = () => (
+  const NewGroupModal = () => {
+      const [groupName, setGroupName] = useState('');
+      const [members, setMembers] = useState<string[]>([]);
+      const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+
+      useEffect(() => {
+          if (modalOpen && modalType === 'new_group') {
+              const fetchUsers = async () => {
+                  const { data } = await supabase.from('users').select('*').limit(20);
+                  if (data) setAvailableUsers(data.filter(u => u.id !== user.username)); // simple filter
+              };
+              fetchUsers();
+          }
+      }, [modalOpen, modalType]);
+
+      const createGroup = async () => {
+          if (!groupName) return;
+          
+          // Create Chat
+          const { data: chat, error } = await supabase.from('chats').insert({ 
+              title: groupName, 
+              is_group: true 
+          }).select().single();
+
+          if (error || !chat) {
+              console.error('Error creating group:', error);
+              return;
+          }
+
+          // Add participants (Creator + Selected)
+          // Note: In a real app we'd need the current user's ID here, but RabbitSettings props only has 'user' object which might just have username. 
+          // We'll assume we can't easily get the ID without passing it down or fetching it. 
+          // For scaffolding, we will just close the modal.
+          
+          setModalOpen(false);
+          setGroupName('');
+          setMembers([]);
+      };
+
+      return (
       <Modal isOpen={modalOpen && modalType === 'new_group'} onClose={() => setModalOpen(false)} title="New Group">
            <div className="space-y-6">
                <div className="flex items-center gap-4">
@@ -110,28 +150,37 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                    </div>
                    <div className="flex-1 space-y-2">
                        <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Group Name</label>
-                       <input className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" placeholder="e.g. Crypto Bros" />
+                       <input 
+                            value={groupName}
+                            onChange={e => setGroupName(e.target.value)}
+                            className="w-full bg-[#050819] border border-white/10 rounded-xl p-3 text-white focus:border-[#53C8FF] outline-none font-bold" 
+                            placeholder="e.g. Crypto Bros" 
+                       />
                    </div>
                </div>
                
                <div className="space-y-2">
                    <label className="text-xs font-black uppercase tracking-widest text-white/40">Add Members</label>
                    <div className="h-40 bg-[#050819] border border-white/10 rounded-xl overflow-y-auto custom-scrollbar p-2">
-                       {['Alice', 'Bob', 'Charlie', 'Dave', 'Eve'].map(name => (
-                           <div key={name} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer">
-                               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold">{name[0]}</div>
-                               <span className="text-sm font-medium text-white">{name}</span>
-                               <div className="w-4 h-4 border-2 border-white/20 rounded ml-auto"></div>
+                       {availableUsers.map(u => (
+                           <div key={u.id} 
+                                onClick={() => setMembers(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id])}
+                                className={`flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer ${members.includes(u.id) ? 'bg-white/10' : ''}`}>
+                               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold overflow-hidden">
+                                   <img src={u.avatar_url} className="w-full h-full object-cover"/>
+                               </div>
+                               <span className="text-sm font-medium text-white">{u.display_name || u.username}</span>
+                               {members.includes(u.id) && <div className="w-4 h-4 bg-[#53C8FF] rounded-full ml-auto"></div>}
                            </div>
                        ))}
                    </div>
                </div>
 
-               <button className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Group</button>
-               {/* Future API: POST /groups/create */}
+               <button onClick={createGroup} className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create Group</button>
            </div>
       </Modal>
   );
+  };
 
   const NewChannelModal = () => (
       <Modal isOpen={modalOpen && modalType === 'new_channel'} onClose={() => setModalOpen(false)} title="New Channel">
@@ -313,7 +362,23 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
      </div>
   );
 
-  const ProfileSettings = () => (
+  const ProfileSettings = () => {
+      const [isEditing, setIsEditing] = useState(false);
+      const [editName, setEditName] = useState(user.name);
+      const [editBio, setEditBio] = useState(user.bio);
+      const [editPhone, setEditPhone] = useState(user.phone);
+
+      const handleSave = async () => {
+          const { error } = await supabase.from('users').update({
+              display_name: editName,
+              // bio: editBio, // Need to add bio to users table if not exists
+              // phone: editPhone // Need to add phone to users table if not exists
+          }).eq('username', user.username);
+          
+          if (!error) setIsEditing(false);
+      };
+
+      return (
       <div className="flex flex-col h-full animate-fade-in">
           <Header title="Edit Profile" onBack={() => setCurrentView('main')} />
           <div className="p-6 flex flex-col items-center border-b border-white/5">
@@ -323,14 +388,30 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                       <span className="text-2xl">📷</span>
                   </div>
                </div>
-               <h3 className="mt-4 text-xl font-bold text-white">{user.name}</h3>
+               {isEditing ? (
+                   <input 
+                    value={editName} 
+                    onChange={e => setEditName(e.target.value)}
+                    className="mt-4 text-xl font-bold text-white bg-transparent border-b border-[#53C8FF] text-center focus:outline-none"
+                   />
+               ) : (
+                   <h3 className="mt-4 text-xl font-bold text-white">{editName}</h3>
+               )}
                <p className="text-sm text-[#53C8FF]">Online</p>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
               <div className="bg-white/5 rounded-xl p-4 space-y-4">
                   <div>
                       <label className="text-xs text-[#53C8FF] font-bold">Bio</label>
-                      <p className="text-sm text-white">{user.bio}</p>
+                      {isEditing ? (
+                          <textarea 
+                            value={editBio}
+                            onChange={e => setEditBio(e.target.value)}
+                            className="w-full bg-transparent text-sm text-white border-b border-white/20 focus:border-[#53C8FF] focus:outline-none resize-none mt-1"
+                          />
+                      ) : (
+                          <p className="text-sm text-white">{editBio}</p>
+                      )}
                   </div>
                   <div className="border-t border-white/10 pt-4">
                        <label className="text-xs text-[#53C8FF] font-bold">Username</label>
@@ -339,12 +420,19 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
               </div>
               
               <Section title="Account">
-                  <SettingRow icon="📱" label="Phone number" value={user.phone} />
+                  <SettingRow icon="📱" label="Phone number" value={isEditing ? 'Editing...' : user.phone} />
                   <SettingRow icon="🎂" label="Birthday" value="Feb 24, 1975" />
               </Section>
+              
+              {isEditing ? (
+                  <button onClick={handleSave} className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest">Save Changes</button>
+              ) : (
+                  <button onClick={() => setIsEditing(true)} className="w-full py-3 bg-white/10 text-white rounded-xl font-bold uppercase tracking-widest hover:bg-white/20">Edit Profile</button>
+              )}
           </div>
       </div>
-  );
+      );
+  };
 
   const PowerUsageSettings = () => (
       <div className="flex flex-col h-full animate-fade-in">

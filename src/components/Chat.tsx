@@ -40,6 +40,9 @@ const Chat: React.FC = () => {
   const [chats, setChats] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<any>(null);
 
   // Unused state removal
   // const [selectedChat, setSelectedChat] = useState(0);
@@ -102,7 +105,7 @@ const Chat: React.FC = () => {
 
       fetchMessages();
 
-      // Subscribe to new messages
+      // Subscribe to new messages & Presence
       const channel = supabase
           .channel(`chat:${selectedChatId}`)
           .on('postgres_changes', { 
@@ -116,12 +119,49 @@ const Chat: React.FC = () => {
               const newMessage = { ...payload.new, users: userData };
               setMessages(prev => [...prev, newMessage]);
           })
-          .subscribe();
+          .on('presence', { event: 'sync' }, () => {
+              const newState = channel.presenceState();
+              const users = new Set<string>();
+              for (const id in newState) {
+                  // @ts-ignore
+                  newState[id].forEach((presence: any) => users.add(presence.user_id));
+              }
+              setOnlineUsers(users);
+          })
+          .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+              console.log('join', key, newPresences);
+          })
+          .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+              console.log('leave', key, leftPresences);
+          })
+          .on('broadcast', { event: 'typing' }, ({ payload }) => {
+              if (payload.userId !== userId) {
+                  setTypingUsers(prev => {
+                      const newSet = new Set(prev);
+                      newSet.add(payload.username);
+                      return newSet;
+                  });
+                  
+                  // Clear typing status after 3 seconds
+                  setTimeout(() => {
+                      setTypingUsers(prev => {
+                          const newSet = new Set(prev);
+                          newSet.delete(payload.username);
+                          return newSet;
+                      });
+                  }, 3000);
+              }
+          })
+          .subscribe(async (status) => {
+              if (status === 'SUBSCRIBED') {
+                  await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+              }
+          });
 
       return () => {
           supabase.removeChannel(channel);
       };
-  }, [selectedChatId]);
+  }, [selectedChatId, userId]);
 
   const [message, setMessage] = useState('');
   const [aiIsTyping, setAiIsTyping] = useState(false);
@@ -129,6 +169,24 @@ const Chat: React.FC = () => {
   const [isCalling, setIsCalling] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [remoteIdInput, setRemoteIdInput] = useState('');
+
+  const handleTyping = async () => {
+    if (!selectedChatId) return;
+    
+    // Throttle typing events
+    if (typingTimeoutRef.current) return;
+    
+    typingTimeoutRef.current = setTimeout(() => {
+        typingTimeoutRef.current = null;
+    }, 2000);
+
+    const channel = supabase.channel(`chat:${selectedChatId}`);
+    await channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId, username: currentUser.username }
+    });
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedChatId) return;
@@ -343,7 +401,14 @@ const Chat: React.FC = () => {
 
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#080C22]/40 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <h3 className="font-black text-xs uppercase tracking-[0.2em]">{currentChat.name}</h3>
+            <div>
+                <h3 className="font-black text-xs uppercase tracking-[0.2em]">{currentChat.title || 'General Lobby'}</h3>
+                {selectedChatId && (
+                    <p className="text-[9px] text-[#53C8FF] font-bold uppercase tracking-widest mt-0.5 animate-pulse">
+                        {onlineUsers.size} Online {typingUsers.size > 0 && `• ${Array.from(typingUsers).join(', ')} is typing...`}
+                    </p>
+                )}
+            </div>
             <div className="flex bg-[#050819] p-1 rounded-lg">
               <button onClick={() => setActiveTab('messages')} className={`px-4 py-1 text-[8px] font-black uppercase tracking-widest rounded-md ${activeTab === 'messages' ? 'bg-[#1A2348] text-[#53C8FF]' : 'text-white/20'}`}>Messages</button>
               <button onClick={() => setActiveTab('ai')} className={`px-4 py-1 text-[8px] font-black uppercase tracking-widest rounded-md ${activeTab === 'ai' ? 'bg-[#1A2348] text-[#53C8FF]' : 'text-white/20'}`}>AI Intelligence</button>
@@ -393,7 +458,16 @@ const Chat: React.FC = () => {
         {activeTab === 'messages' && (
           <div className="p-6 bg-[#080C22]/80 backdrop-blur-lg border-t border-white/5">
             <div className="flex items-end gap-3 bg-[#0D1A2A] border border-[#1E3A5F] rounded-3xl p-3">
-              <textarea rows={1} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={`Message ${currentChat.name}...`} className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-3 resize-none h-10 custom-scrollbar" />
+              <textarea 
+                  rows={1} 
+                  value={message} 
+                  onChange={(e) => {
+                      setMessage(e.target.value);
+                      handleTyping();
+                  }} 
+                  placeholder={`Message ${currentChat.title || 'chat'}...`} 
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-3 resize-none h-10 custom-scrollbar" 
+              />
               <button onClick={handleSendMessage} className="p-3 bg-[#53C8FF] text-[#0A0F1F] rounded-2xl transition-all"><Icons.Chat className="w-5 h-5"/></button>
             </div>
           </div>
