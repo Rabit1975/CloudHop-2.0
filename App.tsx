@@ -1,4 +1,3 @@
-
 // CloudHop 2.0 - Main Entry
 import React, { useState, useEffect } from 'react';
 import { View, User } from './src/types';
@@ -22,7 +21,7 @@ import { SpaceProvider } from './src/contexts/SpaceContext';
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.SPECTRUM);
   const [session, setSession] = useState<Session | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
+  // Removed showAuth state, Auth component will manage its own visibility
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -56,7 +55,6 @@ const App: React.FC = () => {
               xp: 0
           });
           setView(View.DASHBOARD);
-          setShowAuth(false);
       } else {
           setUser(null);
           setView(View.SPECTRUM);
@@ -70,7 +68,8 @@ const App: React.FC = () => {
     if (session) {
         setView(View.DASHBOARD);
     } else {
-        setShowAuth(true);
+        // If no session, show Auth component directly
+        setView(View.AUTH); // Assuming a new View.AUTH for the Auth component
     }
   };
 
@@ -87,14 +86,16 @@ const App: React.FC = () => {
       case View.MEETINGS: return <Meetings user={user} onNavigate={setView} />;
       case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;
-      case View.PROFILE: return <Profile />;
+      case View.PROFILE: return <Profile user={user} />;
       case View.SETTINGS: return <Settings />;
+      case View.AUTH: return <Auth onAuthSuccess={() => setView(View.DASHBOARD)} />; // Render Auth component
       default: return <Dashboard onNavigate={setView} />;
     }
   })();
 
-  if (showAuth && !session) {
-      return <Auth onAuthSuccess={() => setShowAuth(false)} />;
+  if (!session && view !== View.SPECTRUM && view !== View.AUTH) {
+      // If no session and not on landing or auth page, redirect to auth
+      return <Auth onAuthSuccess={() => setView(View.DASHBOARD)} />;
   }
 
   if (view === View.SPECTRUM) {

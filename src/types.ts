@@ -8,7 +8,8 @@ export enum View {
   ARCADE = 'arcade',
   PROFILE = 'profile',
   SETTINGS = 'settings',
-  AI_TOOLS = 'ai_tools'
+  AI_TOOLS = 'ai_tools',
+  AUTH = 'auth' // Added for authentication view
 }
 
 export interface Badge {
@@ -93,4 +94,16 @@ export interface CommunityInfo {
   sub: string; // e.g. "Broadcast Only (Beam)"
   role: 'Admin' | 'Member' | 'Guest';
   channels: Channel[];
+}
+
+export interface CallHistory {
+  id: string;
+  caller_id: string;
+  receiver_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration: number | null; // in seconds
+  status: 'missed' | 'ended' | 'rejected' | 'active';
+  caller?: { display_name: string; avatar_url: string; }; // Joined user data
+  receiver?: { display_name: string; avatar_url: string; }; // Joined user data
 }

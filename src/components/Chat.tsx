@@ -1,11 +1,13 @@
+"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-// Import Icons from constants to fix the "Cannot find name 'Icons'" error
 import { Icons } from '../constants';
 import RabbitSettings from './RabbitSettings';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { supabase } from '../lib/supabaseClient';
+import CallOverlay from './CallOverlay'; // Import the refactored CallOverlay
+import { CallHistory } from '../types'; // Import CallHistory type
 
 interface ChatProps {
     userId?: string;
@@ -15,23 +17,22 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Removed internal userId generation. Using prop.
-
   const { 
     callState, 
     localStream, 
     remoteStream, 
     startCall, 
     acceptCall, 
+    rejectCall, // Added rejectCall
     endCall, 
     incomingCallFrom,
     toggleMic,
     toggleCamera,
+    switchCamera, // Added switchCamera
+    toggleSpeaker, // Added toggleSpeaker
     isMicOn,
     isCameraOn
   } = useWebRTC(userId);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   // --- Real-time Chat State ---
   const [chats, setChats] = useState<any[]>([]);
@@ -40,16 +41,13 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<any>(null);
-
-  // Unused state removal
-  // const [selectedChat, setSelectedChat] = useState(0);
-  // const [chatMessages, setChatMessages] = useState...
+  const [callHistory, setCallHistory] = useState<CallHistory[]>([]); // State for call history
 
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Load Chats on Mount
+  // Load Chats and User Profile on Mount
   useEffect(() => {
-      const fetchChats = async () => {
+      const fetchInitialData = async () => {
           // Check if user exists, if not create one
           let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
           if (!user) {
@@ -76,8 +74,23 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               setChats(existingChats);
               setSelectedChatId(existingChats[0].id);
           }
+
+          // Fetch call history
+          const { data: historyData, error: historyError } = await supabase
+            .from('call_history')
+            .select(`
+                *,
+                caller:users!caller_id (display_name, avatar_url),
+                receiver:users!receiver_id (display_name, avatar_url)
+            `)
+            .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
+            .order('started_at', { ascending: false })
+            .limit(5);
+
+          if (historyError) console.error('Error fetching call history:', historyError);
+          else setCallHistory(historyData || []);
       };
-      fetchChats();
+      fetchInitialData();
   }, [userId]);
 
   // Load Messages & Subscribe to Realtime
@@ -159,7 +172,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                   await channel.track({ 
                       user_id: userId, 
                       online_at: new Date().toISOString(),
-                      username: currentUser.username 
+                      username: userProfile?.username || 'Anonymous' // Use userProfile
                   });
               }
           });
@@ -167,14 +180,12 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       return () => {
           supabase.removeChannel(channel);
       };
-  }, [selectedChatId, userId]);
+  }, [selectedChatId, userId, userProfile]); // Added userProfile to dependencies
 
   const [message, setMessage] = useState('');
   const [aiIsTyping, setAiIsTyping] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
-  const [isCalling, setIsCalling] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
-  const [remoteIdInput, setRemoteIdInput] = useState('');
+  const [remoteIdInput, setRemoteIdInput] = useState(''); // For testing calls
 
   const handleTyping = async () => {
     if (!selectedChatId) return;
@@ -190,7 +201,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     await channel.send({
         type: 'broadcast',
         event: 'typing',
-        payload: { userId, username: currentUser.username }
+        payload: { userId, username: userProfile?.username || 'Anonymous' } // Use userProfile
     });
   };
 
@@ -206,18 +217,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     if (error) console.error('Error sending message:', error);
     setMessage('');
   };
-
-  useEffect(() => {
-    if (localStream && localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
-  useEffect(() => {
-    if (remoteStream && remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
   
   const currentUser = userProfile ? {
     name: userProfile.display_name || 'Anonymous Rabbit',
@@ -231,33 +230,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     username: '',
     bio: '',
     avatar: ''
-  };
-
-  useEffect(() => {
-    if (callState === 'connected') {
-        setIsCalling(true);
-    } else if (callState === 'idle') {
-        setIsCalling(false);
-    } else if (callState === 'incoming') {
-        // Show incoming call UI
-        setIsCalling(true); 
-    }
-  }, [callState]);
-
-  useEffect(() => {
-    let interval: any;
-    if (callState === 'connected') {
-      interval = setInterval(() => setCallDuration(d => d + 1), 1000);
-    } else {
-      setCallDuration(0);
-    }
-    return () => clearInterval(interval);
-  }, [callState]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -286,10 +258,31 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   };
 
   const currentChat = chats.find(c => c.id === selectedChatId) || { name: 'Loading...', avatar: '' };
-  // const messages is now state
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
+      {/* Call Overlay - Renders when callState is not 'idle' */}
+      {callState !== 'idle' && (
+        <CallOverlay
+          callState={callState}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          incomingCallFrom={incomingCallFrom}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+          onEnd={endCall}
+          toggleMic={toggleMic}
+          toggleCamera={toggleCamera}
+          switchCamera={switchCamera}
+          toggleSpeaker={toggleSpeaker}
+          isMicOn={isMicOn}
+          isCameraOn={isCameraOn}
+          callerName={incomingCallFrom || 'Unknown'} // Use incomingCallFrom for caller name
+          callerAvatar={`https://api.dicebear.com/7.x/avataaars/svg?seed=${incomingCallFrom}`}
+          currentUserId={userId}
+        />
+      )}
+
       <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
         {/* Telegram Settings Drawer */}
         <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} />
@@ -310,101 +303,43 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               </div>
             </div>
           ))}
+
+          {/* Call History Section */}
+          {callHistory.length > 0 && (
+            <div className="mt-6 p-4 border-t border-white/5">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] mb-4">Recent Calls</h4>
+              <div className="space-y-2">
+                {callHistory.map((call) => {
+                  const otherUser = call.caller_id === userId ? call.receiver : call.caller;
+                  const isOutgoing = call.caller_id === userId;
+                  const callIcon = call.status === 'ended' ? '📞' : call.status === 'rejected' ? '🚫' : '⏳';
+                  const callColor = call.status === 'ended' ? 'text-[#3DD68C]' : call.status === 'rejected' ? 'text-red-400' : 'text-yellow-400';
+                  const callStatusText = call.status === 'ended' ? 'Ended' : call.status === 'rejected' ? 'Rejected' : 'Missed';
+
+                  return (
+                    <div key={call.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${callColor}`}>
+                        {callIcon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-white truncate">{otherUser?.display_name || 'Unknown User'}</span>
+                        <p className="text-[10px] text-white/40 truncate">
+                          {isOutgoing ? 'Outgoing' : 'Incoming'} • {callStatusText}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-white/30">
+                        {new Date(call.started_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex-1 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        
-        {/* Call Overlay */}
-        {isCalling && (
-          <div className="absolute inset-0 z-50 bg-[#0E1430] flex flex-col items-center justify-center animate-fade-in">
-             
-             {/* Testing ID Display */}
-             {callState === 'idle' && (
-                <div className="absolute top-4 left-4 bg-white/10 p-2 rounded text-xs">
-                    <p className="text-white/50">Your ID: <span className="text-white font-bold select-all">{userId}</span></p>
-                    <div className="flex gap-2 mt-2">
-                        <input 
-                            value={remoteIdInput}
-                            onChange={e => setRemoteIdInput(e.target.value)}
-                            placeholder="Enter Remote ID"
-                            className="bg-black/20 text-white px-2 py-1 rounded"
-                        />
-                        <button onClick={() => startCall(remoteIdInput)} className="bg-[#53C8FF] text-black px-2 py-1 rounded font-bold">Call</button>
-                    </div>
-                </div>
-             )}
-
-             <div className="relative mb-8 w-full max-w-2xl aspect-video bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center">
-                {remoteStream ? (
-                    <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                ) : (
-                    <>
-                        <img src={currentChat.avatar} className="w-32 h-32 rounded-full border-4 border-[#53C8FF] shadow-[0_0_50px_rgba(83,200,255,0.3)] relative z-10" />
-                        <div className="absolute inset-0 border-4 border-[#53C8FF] rounded-full animate-ping opacity-20 w-32 h-32 m-auto"></div>
-                    </>
-                )}
-                
-                {/* Local Video Picture-in-Picture */}
-                {localStream && (
-                    <div className="absolute bottom-4 right-4 w-48 aspect-video bg-black rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
-                        <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
-                    </div>
-                )}
-             </div>
-
-             <h2 className="text-2xl font-black text-white mb-2">
-                 {callState === 'incoming' ? 'Incoming Call...' : 
-                  callState === 'calling' ? 'Calling...' : 
-                  callState === 'connected' ? currentChat.name : 'Ready'}
-             </h2>
-             
-             {callState === 'incoming' && incomingCallFrom && (
-                 <p className="text-[#53C8FF] text-sm font-bold uppercase tracking-widest mb-12">From: {incomingCallFrom}</p>
-             )}
-
-             <p className="text-[#53C8FF] text-sm font-bold uppercase tracking-widest mb-12">
-                {callDuration > 0 ? formatTime(callDuration) : ''}
-             </p>
-             
-             <div className="flex items-center gap-6">
-                {callState === 'incoming' ? (
-                    <>
-                        <button onClick={acceptCall} className="p-6 rounded-full bg-green-500 hover:bg-green-600 transition-all text-white shadow-[0_0_30px_rgba(34,197,94,0.4)] hover:scale-110">
-                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        </button>
-                        <button onClick={endCall} className="p-6 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
-                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <button onClick={toggleMic} className={`p-4 rounded-full transition-all text-white ${isMicOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'}`}>
-                            {isMicOn ? (
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                            ) : (
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                            )}
-                        </button>
-                        <button onClick={toggleCamera} className={`p-4 rounded-full transition-all text-white ${isCameraOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'}`}>
-                            {isCameraOn ? (
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                            ) : (
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                            )}
-                        </button>
-                        <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
-                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11l-4-4-4 4"/></svg>
-                        </button>
-                        <button onClick={() => { endCall(); setIsCalling(false); }} className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
-                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
-                        </button>
-                    </>
-                )}
-             </div>
-          </div>
-        )}
-
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-[#080C22]/40 backdrop-blur-xl">
           <div className="flex items-center gap-4">
             <div>
@@ -421,7 +356,15 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-              <button onClick={() => setIsCalling(true)} className="p-2 hover:bg-white/10 rounded-full text-[#53C8FF] transition-all hover:scale-110">
+              {/* Test Call Button */}
+              <input 
+                  type="text" 
+                  value={remoteIdInput} 
+                  onChange={(e) => setRemoteIdInput(e.target.value)} 
+                  placeholder="Remote ID" 
+                  className="bg-white/5 text-white px-2 py-1 rounded-md text-xs w-24"
+              />
+              <button onClick={() => startCall(remoteIdInput)} className="p-2 hover:bg-white/10 rounded-full text-[#53C8FF] transition-all hover:scale-110">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               </button>
               <button className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { showError, showSuccess, showLoading, updateToast, dismissToast } from '../utils/toast'; // Import toast utilities
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" }
@@ -34,10 +35,12 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [callId, setCallId] = useState<string | null>(null);
+  const callStartTimeRef = useRef<number | null>(null); // To track call duration
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const signalingChannel = useRef<RealtimeChannel | null>(null);
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
+  const callToastId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -52,18 +55,29 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         setRemoteUserId(payload.fromUserId);
         setCallId(payload.callId); // Track the DB ID of the call
         setCallState('incoming');
+        showLoading(`Incoming call from ${payload.fromUserId}`, { id: 'incoming-call' });
         
         // Store offer to set later
         (window as any).pendingOffer = payload.offer;
       })
       .on('broadcast', { event: 'call-answer' }, async ({ payload }) => {
         console.log('Received call answer');
+        if (callToastId.current) {
+            updateToast(callToastId.current, 'success', 'Call connected!');
+            dismissToast(callToastId.current);
+            callToastId.current = null;
+        }
         if (pc.current) {
           await pc.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
         }
       })
       .on('broadcast', { event: 'call-rejected' }, () => {
         console.log('Call rejected by remote');
+        if (callToastId.current) {
+            updateToast(callToastId.current, 'error', 'Call rejected.');
+            dismissToast(callToastId.current);
+            callToastId.current = null;
+        }
         // Update history if we initiated
         if (callId) {
              supabase.from('call_history').update({ status: 'rejected', ended_at: new Date().toISOString() }).eq('id', callId).then();
@@ -80,6 +94,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
       })
       .on('broadcast', { event: 'call-end' }, () => {
         console.log('Call ended by remote');
+        showSuccess('Call ended.');
         cleanupCall();
       })
       .subscribe();
@@ -120,6 +135,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     peer.onconnectionstatechange = () => {
         if (peer.connectionState === 'connected') {
             setCallState('connected');
+            callStartTimeRef.current = Date.now(); // Record start time
         } else if (peer.connectionState === 'disconnected' || peer.connectionState === 'failed') {
             cleanupCall();
         }
@@ -130,16 +146,28 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
   };
 
   const startCall = async (receiverId: string) => {
-    if (!userId) return;
+    if (!userId) {
+        showError('User ID not available. Cannot start call.');
+        return;
+    }
     setRemoteUserId(receiverId);
     setCallState('calling');
+    callToastId.current = showLoading(`Calling ${receiverId}...`);
     
     // Create DB entry
-    const { data: history } = await supabase.from('call_history').insert({
+    const { data: history, error: dbError } = await supabase.from('call_history').insert({
         caller_id: userId,
         receiver_id: receiverId,
-        status: 'missed' // Default until answered
+        started_at: new Date().toISOString(),
+        status: 'active' // Set to active initially, update later
     }).select().single();
+    
+    if (dbError) {
+        showError('Failed to log call history.');
+        console.error('Supabase error:', dbError);
+        cleanupCall();
+        return;
+    }
     
     if (history) setCallId(history.id);
 
@@ -164,19 +192,24 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
             }
         });
         
-    } catch (e) {
+    } catch (e: any) {
+        showError(`Failed to get media access: ${e.message}`);
         console.error("Error starting call:", e);
         cleanupCall();
     }
   };
 
   const acceptCall = async () => {
-    if (!remoteUserId || !userId) return;
+    if (!remoteUserId || !userId) {
+        showError('Cannot accept call: missing user info.');
+        return;
+    }
+    dismissToast('incoming-call'); // Dismiss incoming call toast
     
-    // Update DB to 'started' (we can use 'ended' status for active calls too, or add 'active' enum, but user spec said 'missed, ended, rejected'. We'll assume 'ended' is set when it finishes, so currently it's just running.)
-    // Actually user spec: status in ('missed', 'ended', 'rejected'). 
-    // We'll leave it as is or maybe update a separate field if we had one.
-    // For now, we just proceed.
+    // Update DB to 'active'
+    if (callId) {
+        await supabase.from('call_history').update({ status: 'active' }).eq('id', callId);
+    }
     
     const peer = createPeerConnection();
     
@@ -187,7 +220,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
 
         const offer = (window as any).pendingOffer;
         if (!offer) {
-            console.error("No pending offer found");
+            showError("No pending offer found to accept.");
             return;
         }
 
@@ -213,7 +246,8 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
             }
         });
 
-    } catch (e) {
+    } catch (e: any) {
+        showError(`Failed to accept call: ${e.message}`);
         console.error("Error accepting call:", e);
         cleanupCall();
     }
@@ -236,6 +270,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
               supabase.from('call_history').update({ status: 'rejected', ended_at: new Date().toISOString() }).eq('id', callId).then();
           }
       }
+      dismissToast('incoming-call'); // Dismiss incoming call toast
       cleanupCall();
   };
 
@@ -253,8 +288,11 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         });
         
         // Update DB
-        if (callId) {
-             // Calculate duration if we had start time, but for now just mark ended
+        if (callId && callStartTimeRef.current) {
+             const duration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+             supabase.from('call_history').update({ status: 'ended', ended_at: new Date().toISOString(), duration }).eq('id', callId).then();
+        } else if (callId) {
+             // If call didn't connect, it might still be 'active' or 'missed'
              supabase.from('call_history').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', callId).then();
         }
     }
@@ -285,14 +323,54 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     }
   };
 
-  const switchCamera = () => {
-      // Mock implementation
-      console.log("Switching camera...");
-      // Real impl would require enumerating devices and replacing track
+  const switchCamera = async () => {
+      if (!localStream) return;
+
+      try {
+          const videoTracks = localStream.getVideoTracks();
+          if (videoTracks.length === 0) {
+              showError('No camera found to switch.');
+              return;
+          }
+
+          const currentCamera = videoTracks[0];
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+          if (videoDevices.length <= 1) {
+              showError('Only one camera available.');
+              return;
+          }
+
+          const currentDeviceId = currentCamera.getSettings().deviceId;
+          const nextDevice = videoDevices.find(device => device.deviceId !== currentDeviceId);
+
+          if (nextDevice) {
+              currentCamera.stop(); // Stop current track
+              localStream.removeTrack(currentCamera); // Remove from stream
+
+              const newStream = await navigator.mediaDevices.getUserMedia({
+                  video: { deviceId: { exact: nextDevice.deviceId } },
+                  audio: true // Keep audio enabled
+              });
+
+              const newVideoTrack = newStream.getVideoTracks()[0];
+              localStream.addTrack(newVideoTrack); // Add new track to existing stream
+              setLocalStream(newStream); // Update local stream state
+              showSuccess(`Switched to ${nextDevice.label || 'new camera'}`);
+          }
+      } catch (e: any) {
+          showError(`Failed to switch camera: ${e.message}`);
+          console.error("Error switching camera:", e);
+      }
   };
 
   const toggleSpeaker = () => {
-      console.log("Toggling speaker...");
+      // This is typically handled by system volume controls or specific audio output device selection.
+      // For a simple toggle, we can't directly control system speakers via WebRTC.
+      // A more advanced implementation would involve enumerating audio output devices and setting `sinkId` on video/audio elements.
+      showError('Speaker control is usually managed by system settings.');
+      console.log("Toggling speaker (mock action)");
   };
 
   const cleanupCall = () => {
@@ -311,6 +389,13 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     pendingCandidates.current = [];
     setIsMicOn(true);
     setIsCameraOn(true);
+    setCallId(null);
+    callStartTimeRef.current = null;
+    dismissToast('incoming-call'); // Ensure incoming call toast is dismissed
+    if (callToastId.current) {
+        dismissToast(callToastId.current);
+        callToastId.current = null;
+    }
   };
 
   return {
@@ -319,13 +404,13 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     remoteStream,
     startCall,
     acceptCall,
-    rejectCall, // Added missing property
+    rejectCall,
     endCall,
     incomingCallFrom,
     toggleMic,
     toggleCamera,
-    switchCamera, // Added missing property
-    toggleSpeaker, // Added missing property
+    switchCamera,
+    toggleSpeaker,
     isMicOn,
     isCameraOn
   };
