@@ -24,6 +24,8 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [incomingCallFrom, setIncomingCallFrom] = useState<string | null>(null);
   const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(true);
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const signalingChannel = useRef<RealtimeChannel | null>(null);
@@ -214,6 +216,24 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     cleanupCall();
   };
 
+  const toggleMic = () => {
+    if (localStream) {
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        setIsMicOn(!isMicOn);
+    }
+  };
+
+  const toggleCamera = () => {
+    if (localStream) {
+        localStream.getVideoTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        setIsCameraOn(!isCameraOn);
+    }
+  };
+
   const cleanupCall = () => {
     if (pc.current) {
         pc.current.close();
@@ -228,6 +248,8 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     setIncomingCallFrom(null);
     setRemoteUserId(null);
     pendingCandidates.current = [];
+    setIsMicOn(true);
+    setIsCameraOn(true);
   };
 
   return {
@@ -237,6 +259,10 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     startCall,
     acceptCall,
     endCall,
-    incomingCallFrom
+    incomingCallFrom,
+    toggleMic,
+    toggleCamera,
+    isMicOn,
+    isCameraOn
   };
 };
