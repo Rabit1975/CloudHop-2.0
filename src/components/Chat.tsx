@@ -6,8 +6,9 @@ import { Icons } from '../constants';
 import RabbitSettings from './RabbitSettings';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { supabase } from '../lib/supabaseClient';
-import CallOverlay from './CallOverlay'; // Import the refactored CallOverlay
-import { CallHistory, Message, ReactionSummary } from '../types'; // Import CallHistory and Message types
+import CallOverlay from './CallOverlay';
+import { CallHistory, Message, ReactionSummary } from '../types';
+import { motion, AnimatePresence } from 'framer-motion'; // Import motion from framer-motion
 
 interface ChatProps {
     userId?: string;
@@ -36,22 +37,38 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     isCameraOn
   } = useWebRTC(userId);
 
-  // --- Real-time Chat State ---
   const [chats, setChats] = useState<any[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]); // Use Message type
+  const [messages, setMessages] = useState<Message[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [onlineUsers, setOnlineUsers] = new useState<Set<string>>(new Set());
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<any>(null);
   const [callHistory, setCallHistory] = useState<CallHistory[]>([]); 
 
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [showReactionPickerFor, setShowReactionPickerFor] = useState<string | null>(null); // Message ID for which picker is open
+  const [showReactionPickerFor, setShowReactionPickerFor] = useState<string | null>(null);
+  const [hoveredReaction, setHoveredReaction] = useState<{ messageId: string; emoji: string; text: string } | null>(null);
+
+  // Long press state
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const LONG_PRESS_DURATION = 500; // milliseconds
+
+  const handlePressStart = (messageId: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setShowReactionPickerFor(messageId);
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   // Load Chats and User Profile on Mount
   useEffect(() => {
       const fetchInitialData = async () => {
-          // Check if user exists, if not create one
           let { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
           if (!user) {
               const { data: newUser } = await supabase.from('users').insert({ 
@@ -64,11 +81,9 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           }
           setUserProfile(user);
 
-          // Fetch chats (for now, fetch all public chats or create a default one)
           let { data: existingChats } = await supabase.from('chats').select('*');
           
           if (!existingChats || existingChats.length === 0) {
-              // Create a default public chat
               const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
               if (newChat) existingChats = [newChat];
           }
@@ -78,7 +93,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               setSelectedChatId(existingChats[0].id);
           }
 
-          // Fetch call history
           const { data: historyData, error: historyError } = await supabase
             .from('call_history')
             .select(`
@@ -100,7 +114,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   useEffect(() => {
       if (!selectedChatId || !userId) return;
 
-      let reactionsChannel: any; // Declare reactionsChannel here
+      let reactionsChannel: any;
 
       const fetchMessagesAndReactions = async () => {
           const { data: fetchedMessages, error: messagesError } = await supabase
@@ -135,7 +149,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               const reactionsForMessage = fetchedReactions?.filter(r => r.message_id === msg.id) || [];
               const reactionSummary: ReactionSummary[] = [];
               
-              // Aggregate reactions
               const emojiMap = new Map<string, { count: number; reactedByCurrentUser: boolean }>();
               reactionsForMessage.forEach(r => {
                   const current = emojiMap.get(r.emoji) || { count: 0, reactedByCurrentUser: false };
@@ -154,8 +167,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           
           setMessages(messagesWithReactions);
 
-          // Subscribe to message_reactions for real-time updates
-          // Only subscribe if there are message IDs to filter by
           if (messageIds.length > 0) {
             reactionsChannel = supabase
                 .channel(`message_reactions:${selectedChatId}`)
@@ -163,7 +174,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                     event: 'INSERT', 
                     schema: 'public', 
                     table: 'message_reactions', 
-                    filter: `message_id=in.(${messageIds.join(',')})` // Filter for relevant messages
+                    filter: `message_id=in.(${messageIds.join(',')})`
                 }, (payload) => {
                     const newReaction = payload.new as any;
                     setMessages(prevMessages => prevMessages.map(msg => {
@@ -172,7 +183,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                             const reactionIndex = existingReactions.findIndex(r => r.emoji === newReaction.emoji);
                             
                             if (reactionIndex > -1) {
-                                // Update existing reaction count
                                 const updatedReactions = [...existingReactions];
                                 updatedReactions[reactionIndex] = {
                                     ...updatedReactions[reactionIndex],
@@ -181,7 +191,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                                 };
                                 return { ...msg, reactions: updatedReactions };
                             } else {
-                                // Add new reaction
                                 return { 
                                     ...msg, 
                                     reactions: [...existingReactions, { 
@@ -212,9 +221,8 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                                 updatedReactions[reactionIndex] = {
                                     ...updatedReactions[reactionIndex],
                                     count: updatedReactions[reactionIndex].count - 1,
-                                    reactedByCurrentUser: updatedReactions[reactionIndex].reactedByCurrentUser && (deletedReaction.user_id !== userId) // Only set false if *this* user's reaction was deleted
+                                    reactedByCurrentUser: updatedReactions[reactionIndex].reactedByCurrentUser && (deletedReaction.user_id !== userId)
                                 };
-                                // Remove if count drops to 0
                                 return { ...msg, reactions: updatedReactions.filter(r => r.count > 0) };
                             }
                         }
@@ -227,7 +235,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
       fetchMessagesAndReactions();
 
-      // Subscribe to new messages & Presence
       const chatChannel = supabase
           .channel(`chat:${selectedChatId}`)
           .on('postgres_changes', { 
@@ -237,7 +244,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
               filter: `chat_id=eq.${selectedChatId}` 
           }, async (payload) => {
               const { data: userData } = await supabase.from('users').select('username, avatar_url').eq('id', payload.new.sender_id).single();
-              const newMessage = { ...payload.new, users: userData, reactions: [] }; // New messages start with no reactions
+              const newMessage = { ...payload.new, users: userData, reactions: [] };
               setMessages(prev => [...prev, newMessage]);
           })
           .on('presence', { event: 'sync' }, () => {
@@ -288,7 +295,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
       return () => {
           supabase.removeChannel(chatChannel);
-          if (reactionsChannel) supabase.removeChannel(reactionsChannel); // Unsubscribe reactions channel
+          if (reactionsChannel) supabase.removeChannel(reactionsChannel);
       };
   }, [selectedChatId, userId, userProfile]); 
 
@@ -373,7 +380,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     const hasReacted = message?.reactions?.some(r => r.emoji === emoji && r.reactedByCurrentUser);
 
     if (hasReacted) {
-        // Delete reaction
         const { error } = await supabase
             .from('message_reactions')
             .delete()
@@ -382,20 +388,28 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             .eq('emoji', emoji);
         if (error) console.error('Error deleting reaction:', error);
     } else {
-        // Insert reaction
         const { error } = await supabase
             .from('message_reactions')
             .insert({ message_id: messageId, user_id: userId, emoji });
         if (error) console.error('Error inserting reaction:', error);
     }
-    setShowReactionPickerFor(null); // Close picker after reaction
+    setShowReactionPickerFor(null);
+  };
+
+  const getReactionTooltipText = (reaction: ReactionSummary) => {
+    if (reaction.reactedByCurrentUser) {
+      return reaction.count > 1 
+        ? `You and ${reaction.count - 1} others reacted with ${reaction.emoji}`
+        : `You reacted with ${reaction.emoji}`;
+    } else {
+      return `${reaction.count} people reacted with ${reaction.emoji}`;
+    }
   };
 
   const currentChat = chats.find(c => c.id === selectedChatId) || { name: 'Loading...', avatar: '' };
 
   return (
     <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
-      {/* Call Overlay - Renders when callState is not 'idle' */}
       {callState !== 'idle' && (
         <CallOverlay
           callState={callState}
@@ -418,7 +432,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       )}
 
       <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        {/* Telegram Settings Drawer */}
         <RabbitSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} />
 
         <div className="p-4 border-b border-white/5 flex gap-2">
@@ -438,7 +451,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             </div>
           ))}
 
-          {/* Call History Section */}
           {callHistory.length > 0 && (
             <div className="mt-6 p-4 border-t border-white/5">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] mb-4">Recent Calls</h4>
@@ -490,7 +502,6 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-              {/* Test Call Button */}
               <input 
                   type="text" 
                   value={remoteIdInput} 
@@ -510,8 +521,16 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
         <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
           {activeTab === 'messages' ? (
             <>
-              {messages.map((msg, i) => (
-                <div key={msg.id} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} group animate-fade-in relative`}>
+              {messages.map((msg) => (
+                <div 
+                  key={msg.id} 
+                  className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} group animate-fade-in relative`}
+                  onMouseDown={() => handlePressStart(msg.id)}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={() => handlePressStart(msg.id)}
+                  onTouchEnd={handlePressEnd}
+                >
                   <div className={`flex flex-col ${msg.sender_id === userId ? 'items-end' : 'items-start'} max-w-[80%]`}>
                       {msg.sender_id !== userId && (
                           <span className="text-[9px] text-white/40 mb-1 ml-2">{msg.users?.username || 'Unknown'}</span>
@@ -522,33 +541,64 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                       >
                         {msg.content}
                         
-                        {/* Reaction Picker */}
+                        <AnimatePresence>
                         {showReactionPickerFor === msg.id && (
-                            <div className={`absolute z-10 flex gap-1 p-2 bg-[#080C22] border border-[#53C8FF]/20 rounded-full shadow-lg ${msg.sender_id === userId ? 'right-0 -top-12' : 'left-0 -top-12'}`}>
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                className={`absolute z-10 flex gap-1 p-2 bg-[#080C22] border border-[#53C8FF]/20 rounded-full shadow-lg ${msg.sender_id === userId ? 'right-0 -top-12' : 'left-0 -top-12'}`}
+                            >
                                 {REACTION_EMOJIS.map(emoji => (
-                                    <button 
+                                    <motion.button 
                                         key={emoji} 
-                                        className="text-lg p-1 hover:scale-125 transition-transform"
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        className="text-lg p-1"
                                         onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, emoji); }}
                                     >
                                         {emoji}
-                                    </button>
+                                    </motion.button>
                                 ))}
-                            </div>
+                            </motion.div>
                         )}
+                        </AnimatePresence>
 
-                        {/* Reaction Chips */}
                         {msg.reactions && msg.reactions.length > 0 && (
                             <div className={`flex gap-1 mt-2 ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
                                 {msg.reactions.map(reaction => (
-                                    <button 
+                                    <motion.button 
                                         key={reaction.emoji}
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.8, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
                                         onClick={(e) => { e.stopPropagation(); handleToggleReaction(msg.id, reaction.emoji); }}
-                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${reaction.reactedByCurrentUser ? 'bg-[#53C8FF] text-[#0A0F1F] border border-[#53C8FF]' : 'bg-white/10 text-white/70 border border-white/10 hover:bg-white/20'}`}
+                                        onMouseEnter={() => setHoveredReaction({ messageId: msg.id, emoji: reaction.emoji, text: getReactionTooltipText(reaction) })}
+                                        onMouseLeave={() => setHoveredReaction(null)}
+                                        className={`relative flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${reaction.reactedByCurrentUser ? 'bg-[#53C8FF] text-[#0A0F1F] border border-[#53C8FF]' : 'bg-white/10 text-white/70 border border-white/10 hover:bg-white/20'}`}
                                     >
                                         {reaction.emoji} {reaction.count}
-                                    </button>
+                                        <AnimatePresence>
+                                            {hoveredReaction?.messageId === msg.id && hoveredReaction.emoji === reaction.emoji && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: -25 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-md text-white text-[9px] whitespace-nowrap pointer-events-none"
+                                                >
+                                                    {hoveredReaction.text}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
                                 ))}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setShowReactionPickerFor(msg.id === showReactionPickerFor ? null : msg.id); }}
+                                    className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition-colors text-xs font-bold"
+                                >
+                                    +
+                                </button>
                             </div>
                         )}
                       </div>
