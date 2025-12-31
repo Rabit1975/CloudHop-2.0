@@ -29,6 +29,10 @@ const Chat: React.FC = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
+  // Unused state removal
+  // const [selectedChat, setSelectedChat] = useState(0);
+  // const [chatMessages, setChatMessages] = useState...
+
   // Load Chats on Mount
   useEffect(() => {
       const fetchChats = async () => {
@@ -137,7 +141,6 @@ const Chat: React.FC = () => {
   };
 
   const [message, setMessage] = useState('');
-  const [selectedChat, setSelectedChat] = useState(0);
   const [aiIsTyping, setAiIsTyping] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [isCalling, setIsCalling] = useState(false);
@@ -171,45 +174,24 @@ const Chat: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const [chats] = useState([
-    { id: '1', name: 'Sarah Chen', status: 'Online', lastMsg: 'mockups are ready.', time: '10:45 AM', avatar: 'https://picsum.photos/seed/sarah/50' },
-    { id: '2', name: 'Product Board', status: 'Offline', lastMsg: 'Sync updated.', time: 'Yesterday', avatar: 'https://picsum.photos/seed/game/50' },
-    { id: '3', name: 'Mike Ross', status: 'Away', lastMsg: 'Thanks!', time: 'Monday', avatar: 'https://picsum.photos/seed/mike/50' },
-  ]);
-
-  const [chatMessages, setChatMessages] = useState<{ [key: string]: any[] }>({
-    '1': [
-      { text: "Did you see the latest designs?", sender: "Sarah Chen", time: "10:42 AM", isMe: false },
-      { text: "Just checking them out now. Neon look is fire.", sender: "Me", time: "10:43 AM", isMe: true },
-    ]
-  });
-
   const scrollRef = useRef<HTMLDivElement>(null);
-
+  
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [chatMessages, selectedChat, aiIsTyping, activeTab]);
-
-  const handleSendMessage = async () => {
-    if (!message.trim()) return;
-    const currentChat = chats[selectedChat];
-    const chatId = currentChat.id;
-    const newMessage = { text: message, sender: "Me", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isMe: true };
-    
-    setChatMessages(prev => ({
-      ...prev,
-      [chatId]: [...(prev[chatId] || []), newMessage]
-    }));
-    setMessage('');
-  };
+  }, [messages, selectedChatId, aiIsTyping, activeTab]);
 
   const handleGenerateSummary = async () => {
+    if (!selectedChatId) return;
     setAiIsTyping(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const history = chatMessages[chats[selectedChat].id]?.map(m => `${m.sender}: ${m.text}`).join('\n') || "No messages yet.";
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) throw new Error("API Key missing");
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const history = messages.map(m => `${m.sender_id === userId ? 'Me' : m.users?.username}: ${m.content}`).join('\n') || "No messages yet.";
+      
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash-exp',
         contents: `Summarize this conversation into a few concise bullet points:\n\n${history}`,
       });
       setAiSummary(response.text || "No summary available.");
