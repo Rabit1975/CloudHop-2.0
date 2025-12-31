@@ -39,6 +39,7 @@ const App: React.FC = () => {
               level: 1,
               xp: 0
           });
+          registerServiceWorker(session.user.id);
       }
     });
 
@@ -55,6 +56,7 @@ const App: React.FC = () => {
               xp: 0
           });
           setView(View.DASHBOARD);
+          registerServiceWorker(session.user.id);
       } else {
           setUser(null);
           setView(View.SPECTRUM);
@@ -63,6 +65,35 @@ const App: React.FC = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const registerServiceWorker = async (userId: string) => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered with scope:', registration.scope);
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY 
+          });
+
+          // Save subscription to Supabase
+          const { error } = await supabase.from('push_subscriptions').upsert({
+            user_id: userId,
+            endpoint: subscription.endpoint,
+            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh') as ArrayBuffer) as any)),
+            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth') as ArrayBuffer) as any))
+          }, { onConflict: 'endpoint' });
+
+          if (error) console.error('Error saving push subscription:', error);
+        }
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+      }
+    }
+  };
 
   const handleStart = () => {
     if (session) {
