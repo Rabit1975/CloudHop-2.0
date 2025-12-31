@@ -22,41 +22,24 @@ serve(async (req) => {
     const input = await req.json();
     let userId, title, body, icon, clickAction, eventId;
 
-    // Initialize Supabase Client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    // --- Payload Parsing Strategy ---
+    let eventType, payload;
 
-    // Check if called via Webhook (Database Insert)
     if (input.record && input.table === 'notification_events') {
+      // 1. Supabase Webhook (Standard)
       const record = input.record;
       userId = record.user_id;
       eventId = record.id;
-      const payload = record.payload;
-      const eventType = record.event_type;
-
-      if (eventType === 'new_message') {
-        title = `New message from ${payload.sender_name || 'User'}`;
-        body = payload.content;
-        icon = '/assets/cloudhopq1.png';
-        clickAction = `/chat/${payload.chat_id}`;
-      } else if (eventType === 'incoming_call') {
-        title = 'Incoming Call';
-        body = 'Tap to answer';
-        icon = '/assets/cloudhopq1.png';
-        clickAction = '/'; 
-      } else {
-        // Unknown event type, just delete it to clear queue? Or ignore?
-        console.log('Unknown event type:', eventType);
-        if (eventId) {
-             await supabaseClient.from('notification_events').delete().eq('id', eventId);
-        }
-        return new Response(JSON.stringify({ message: 'Unknown event type' }), { headers: { 'Content-Type': 'application/json' } });
-      }
+      eventType = record.event_type;
+      payload = record.payload;
+    } else if (input.event_type && input.payload && input.user_id) {
+      // 2. Direct Invocation (User's Custom Payload)
+      userId = input.user_id;
+      eventType = input.event_type;
+      payload = input.payload;
+      // No eventId, so we won't try to delete it from DB
     } else {
-      // Direct call
+      // 3. Generic Direct Payload (Manual Title/Body)
       userId = input.user_id;
       title = input.title;
       body = input.body;
@@ -64,9 +47,45 @@ serve(async (req) => {
       clickAction = input.click_action;
     }
 
+    // --- Event Processing ---
+    if (eventType) {
+        if (eventType === 'new_message') {
+            title = `New message from ${payload.sender_name || 'User'}`;
+            body = payload.content;
+            icon = '/assets/cloudhopq1.png';
+            clickAction = `/chat/${payload.chat_id}`;
+        } else if (eventType === 'incoming_call') {
+            title = 'Incoming Call';
+            body = 'Tap to answer';
+            icon = '/assets/cloudhopq1.png';
+            clickAction = '/'; 
+        } else {
+            console.log('Unknown event type:', eventType);
+            // If it's a real DB event, we should probably clear it so it doesn't retry forever
+            if (eventId) {
+                 const supabaseClient = createClient(
+                    Deno.env.get('SUPABASE_URL') ?? '',
+                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+                    { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+                 );
+                 await supabaseClient.from('notification_events').delete().eq('id', eventId);
+            }
+            return new Response(JSON.stringify({ message: 'Unknown event type' }), { headers: { 'Content-Type': 'application/json' } });
+        }
+    }
+
     if (!userId || !title) {
         return new Response(JSON.stringify({ message: 'Missing userId or title' }), { status: 400 });
     }
+
+    // --- Push Sending Logic ---
+    
+    // Initialize Supabase Client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
 
     // Fetch user's push subscriptions
     const { data: subscriptions, error } = await supabaseClient

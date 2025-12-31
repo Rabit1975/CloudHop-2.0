@@ -722,7 +722,7 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
                 <p className="text-[10px] text-white/40 truncate italic font-bold">Tap to chat</p>
               </div>
             </div>
-          )))}
+          ))))}
         </div>
       </div>
 

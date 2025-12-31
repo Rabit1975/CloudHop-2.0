@@ -25,8 +25,8 @@ declare
   chat_participant uuid;
   sender_name text;
 begin
-  -- Get sender name for the notification
-  select username into sender_name from public.users where id = new.sender_id;
+  -- Get sender name for the notification (prefer display_name)
+  select coalesce(display_name, username, 'Someone') into sender_name from public.users where id = new.sender_id;
   
   -- Loop through all participants except the sender
   for chat_participant in
