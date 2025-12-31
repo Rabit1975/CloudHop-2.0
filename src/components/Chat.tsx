@@ -107,6 +107,13 @@ const Chat: React.FC = () => {
       };
   }, [selectedChatId]);
 
+  const [message, setMessage] = useState('');
+  const [aiIsTyping, setAiIsTyping] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [isCalling, setIsCalling] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [remoteIdInput, setRemoteIdInput] = useState('');
+
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedChatId) return;
     
@@ -139,13 +146,6 @@ const Chat: React.FC = () => {
     bio: '23 y.o. designer from San Francisco',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rabbit'
   };
-
-  const [message, setMessage] = useState('');
-  const [aiIsTyping, setAiIsTyping] = useState(false);
-  const [aiSummary, setAiSummary] = useState('');
-  const [isCalling, setIsCalling] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
-  const [remoteIdInput, setRemoteIdInput] = useState('');
 
   useEffect(() => {
     if (callState === 'connected') {
