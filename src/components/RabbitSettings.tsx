@@ -770,6 +770,6 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
       <NewChannelModal />
     </>
   );
-}; // End of RabbitSettings component
+};
 
 export default RabbitSettings;
