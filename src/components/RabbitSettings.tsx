@@ -768,6 +768,6 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
       <NewChannelModal />
     </>
   );
-}; // This is the crucial closing brace for the RabbitSettings functional component.
+}; // End of RabbitSettings component
 
 export default RabbitSettings;
