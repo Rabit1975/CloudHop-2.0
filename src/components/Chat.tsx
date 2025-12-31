@@ -119,17 +119,21 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           .on('presence', { event: 'sync' }, () => {
               const newState = channel.presenceState();
               const users = new Set<string>();
+              
+              // Map presence state to a unique set of user IDs
               for (const id in newState) {
                   // @ts-ignore
-                  newState[id].forEach((presence: any) => users.add(presence.user_id));
+                  newState[id].forEach((presence: any) => {
+                      if (presence.user_id) users.add(presence.user_id);
+                  });
               }
               setOnlineUsers(users);
           })
           .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-              console.log('join', key, newPresences);
+              console.log('User joined:', newPresences);
           })
           .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-              console.log('leave', key, leftPresences);
+              console.log('User left:', leftPresences);
           })
           .on('broadcast', { event: 'typing' }, ({ payload }) => {
               if (payload.userId !== userId) {
@@ -151,7 +155,12 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
           })
           .subscribe(async (status) => {
               if (status === 'SUBSCRIBED') {
-                  await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+                  // Track user presence with their ID
+                  await channel.track({ 
+                      user_id: userId, 
+                      online_at: new Date().toISOString(),
+                      username: currentUser.username 
+                  });
               }
           });
 
