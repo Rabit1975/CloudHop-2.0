@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import webpush from "https://esm.sh/web-push@3.6.3";
+// Minimal Supabase Client stub for Deno (or import official one if preferred)
+// For Edge Functions, usually 'esm.sh/@supabase/supabase-js' is used
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const vapidKeys = {
   publicKey: Deno.env.get('VAPID_PUBLIC_KEY')!,
@@ -63,7 +66,3 @@ serve(async (req) => {
     });
   }
 });
-
-// Minimal Supabase Client stub for Deno (or import official one if preferred)
-// For Edge Functions, usually 'esm.sh/@supabase/supabase-js' is used
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
