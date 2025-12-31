@@ -13,7 +13,7 @@ interface WebRTCState {
   callState: CallState;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
-  startCall: (receiverId: string) => Promise<void>;
+  startCall: (receiverId: string, chatId?: string) => Promise<void>;
   acceptCall: () => Promise<void>;
   rejectCall: () => void;
   endCall: () => void;
@@ -145,7 +145,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     return peer;
   };
 
-  const startCall = async (receiverId: string) => {
+  const startCall = async (receiverId: string, chatId?: string) => {
     if (!userId) {
         showError('User ID not available. Cannot start call.');
         return;
@@ -158,6 +158,7 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     const { data: history, error: dbError } = await supabase.from('call_history').insert({
         caller_id: userId,
         receiver_id: receiverId,
+        chat_id: chatId, // Optional, might be null if not in a chat or P2P
         started_at: new Date().toISOString(),
         status: 'active' // Set to active initially, update later
     }).select().single();

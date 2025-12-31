@@ -109,6 +109,7 @@ export interface CallHistory {
   id: string;
   caller_id: string;
   receiver_id: string;
+  chat_id?: string;
   started_at: string;
   ended_at: string | null;
   duration: number | null; // in seconds
