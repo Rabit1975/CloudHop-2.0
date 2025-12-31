@@ -4,10 +4,36 @@ import { GoogleGenAI } from '@google/genai';
 // Import Icons from constants to fix the "Cannot find name 'Icons'" error
 import { Icons } from '../constants';
 import RabbitSettings from './RabbitSettings';
+import { useWebRTC } from '../hooks/useWebRTC';
 
 const Chat: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Create a stable user ID for WebRTC testing
+  const [userId] = useState(() => {
+    const stored = sessionStorage.getItem('cloudhop_userid');
+    if (stored) return stored;
+    const newId = 'user_' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('cloudhop_userid', newId);
+    return newId;
+  });
+
+  const { callState, localStream, remoteStream, startCall, acceptCall, endCall, incomingCallFrom } = useWebRTC(userId);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (localStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
   
   const currentUser = {
     name: 'Mr. Rabbit',
@@ -23,16 +49,28 @@ const Chat: React.FC = () => {
   const [aiSummary, setAiSummary] = useState('');
   const [isCalling, setIsCalling] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [remoteIdInput, setRemoteIdInput] = useState('');
+
+  useEffect(() => {
+    if (callState === 'connected') {
+        setIsCalling(true);
+    } else if (callState === 'idle') {
+        setIsCalling(false);
+    } else if (callState === 'incoming') {
+        // Show incoming call UI
+        setIsCalling(true); 
+    }
+  }, [callState]);
 
   useEffect(() => {
     let interval: any;
-    if (isCalling) {
+    if (callState === 'connected') {
       interval = setInterval(() => setCallDuration(d => d + 1), 1000);
     } else {
       setCallDuration(0);
     }
     return () => clearInterval(interval);
-  }, [isCalling]);
+  }, [callState]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -119,28 +157,81 @@ const Chat: React.FC = () => {
         {/* Call Overlay */}
         {isCalling && (
           <div className="absolute inset-0 z-50 bg-[#0E1430] flex flex-col items-center justify-center animate-fade-in">
-             <div className="relative mb-8">
-                <img src={currentChat.avatar} className="w-32 h-32 rounded-full border-4 border-[#53C8FF] shadow-[0_0_50px_rgba(83,200,255,0.3)]" />
-                <div className="absolute inset-0 border-4 border-[#53C8FF] rounded-full animate-ping opacity-20"></div>
+             
+             {/* Testing ID Display */}
+             {callState === 'idle' && (
+                <div className="absolute top-4 left-4 bg-white/10 p-2 rounded text-xs">
+                    <p className="text-white/50">Your ID: <span className="text-white font-bold select-all">{userId}</span></p>
+                    <div className="flex gap-2 mt-2">
+                        <input 
+                            value={remoteIdInput}
+                            onChange={e => setRemoteIdInput(e.target.value)}
+                            placeholder="Enter Remote ID"
+                            className="bg-black/20 text-white px-2 py-1 rounded"
+                        />
+                        <button onClick={() => startCall(remoteIdInput)} className="bg-[#53C8FF] text-black px-2 py-1 rounded font-bold">Call</button>
+                    </div>
+                </div>
+             )}
+
+             <div className="relative mb-8 w-full max-w-2xl aspect-video bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center">
+                {remoteStream ? (
+                    <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                ) : (
+                    <>
+                        <img src={currentChat.avatar} className="w-32 h-32 rounded-full border-4 border-[#53C8FF] shadow-[0_0_50px_rgba(83,200,255,0.3)] relative z-10" />
+                        <div className="absolute inset-0 border-4 border-[#53C8FF] rounded-full animate-ping opacity-20 w-32 h-32 m-auto"></div>
+                    </>
+                )}
+                
+                {/* Local Video Picture-in-Picture */}
+                {localStream && (
+                    <div className="absolute bottom-4 right-4 w-48 aspect-video bg-black rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                        <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                    </div>
+                )}
              </div>
-             <h2 className="text-2xl font-black text-white mb-2">{currentChat.name}</h2>
+
+             <h2 className="text-2xl font-black text-white mb-2">
+                 {callState === 'incoming' ? 'Incoming Call...' : 
+                  callState === 'calling' ? 'Calling...' : 
+                  callState === 'connected' ? currentChat.name : 'Ready'}
+             </h2>
+             
+             {callState === 'incoming' && incomingCallFrom && (
+                 <p className="text-[#53C8FF] text-sm font-bold uppercase tracking-widest mb-12">From: {incomingCallFrom}</p>
+             )}
+
              <p className="text-[#53C8FF] text-sm font-bold uppercase tracking-widest mb-12">
-                {callDuration > 0 ? formatTime(callDuration) : 'Calling...'}
+                {callDuration > 0 ? formatTime(callDuration) : ''}
              </p>
              
              <div className="flex items-center gap-6">
-                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11l-4-4-4 4"/></svg>
-                </button>
-                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                </button>
-                <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                </button>
-                <button onClick={() => setIsCalling(false)} className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
-                </button>
+                {callState === 'incoming' ? (
+                    <>
+                        <button onClick={acceptCall} className="p-6 rounded-full bg-green-500 hover:bg-green-600 transition-all text-white shadow-[0_0_30px_rgba(34,197,94,0.4)] hover:scale-110">
+                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </button>
+                        <button onClick={endCall} className="p-6 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
+                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11l-4-4-4 4"/></svg>
+                        </button>
+                        <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        </button>
+                        <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white">
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                        <button onClick={() => { endCall(); setIsCalling(false); }} className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all text-white shadow-lg hover:scale-110">
+                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+                        </button>
+                    </>
+                )}
              </div>
           </div>
         )}

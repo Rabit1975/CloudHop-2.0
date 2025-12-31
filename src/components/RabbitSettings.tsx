@@ -397,7 +397,40 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
       </div>
   );
 
-  const CallSettings = () => (
+  const CallSettings = () => {
+      const [inputLevel, setInputLevel] = useState(0);
+      const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+      const videoRef = React.useRef<HTMLVideoElement>(null);
+      
+      // Simulate mic level
+      React.useEffect(() => {
+          const interval = setInterval(() => {
+              setInputLevel(Math.random() * 100);
+          }, 100);
+          return () => clearInterval(interval);
+      }, []);
+
+      // Camera Preview
+      React.useEffect(() => {
+          let stream: MediaStream | null = null;
+          const startCamera = async () => {
+              try {
+                  stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                  setCameraStream(stream);
+                  if (videoRef.current) {
+                      videoRef.current.srcObject = stream;
+                  }
+              } catch (e) {
+                  console.error("Camera access denied", e);
+              }
+          };
+          startCamera();
+          return () => {
+              stream?.getTracks().forEach(t => t.stop());
+          };
+      }, []);
+
+      return (
       <div className="flex flex-col h-full animate-fade-in">
         <Header title="Speakers and Camera" onBack={() => setCurrentView('main')} />
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
@@ -410,7 +443,7 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
                 <div className="px-4 pb-4">
                      <div className="h-4 w-full bg-[#050819] rounded-full overflow-hidden flex gap-0.5 items-center p-1 border border-white/10">
                          {Array.from({length: 40}).map((_, i) => (
-                           <div key={i} className={`h-2 flex-1 rounded-sm ${i < 15 ? 'bg-[#53C8FF]' : 'bg-white/10'}`}></div>
+                           <div key={i} className={`h-2 flex-1 rounded-sm transition-all duration-75 ${i < (inputLevel / 2.5) ? 'bg-[#53C8FF] shadow-[0_0_10px_#53C8FF]' : 'bg-white/5'}`}></div>
                          ))}
                      </div>
                 </div>
@@ -422,10 +455,17 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
 
             <Section title="Camera">
                 <SettingRow label="Input device" value="Default" color="#53C8FF" />
-                <div className="mx-4 mb-4 aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative">
-                     <img src="https://picsum.photos/seed/rabbitcam/400/225" className="w-full h-full object-cover opacity-80" />
-                     <div className="absolute inset-0 flex items-center justify-center">
-                         <div className="w-16 h-16 rounded-full border-4 border-[#53C8FF]/50 animate-pulse"></div>
+                <div className="mx-4 mb-4 aspect-video bg-black rounded-lg overflow-hidden border border-white/10 relative group">
+                     {cameraStream ? (
+                         <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                     ) : (
+                         <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
+                             <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-[#53C8FF] animate-spin" />
+                             <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Accessing Camera...</span>
+                         </div>
+                     )}
+                     <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur px-2 py-1 rounded-md">
+                         <span className="text-[10px] font-bold text-white uppercase tracking-wider">Preview</span>
                      </div>
                 </div>
             </Section>
@@ -436,7 +476,8 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user }
             </Section>
         </div>
       </div>
-  );
+      );
+  };
 
   // --- Render Content ---
   const renderContent = () => {
