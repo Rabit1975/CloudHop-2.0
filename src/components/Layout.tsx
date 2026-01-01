@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.CHAT]: 'RabbitChat',
     [View.WORLD]: 'HopHub',
     [View.MEETINGS]: 'HopMeets',
-    [View.CORE]: 'Hop Spaces — Private Hub',
+    [View.CORE]: 'HopSpaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
     [View.PROFILE]: 'Digital ID',
     [View.SETTINGS]: 'System Config',
