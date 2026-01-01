@@ -48,12 +48,30 @@ function createBlob(data: Float32Array): Blob {
 type MeetingStep = 'input' | 'prejoin' | 'active';
 type ViewMode = 'grid' | 'speaker';
 
-const Meetings: React.FC<MeetingsProps> = ({ user }) => {
+const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
+  // Ensure we always have a user identity
+  const user = useMemo(() => propUser || {
+      id: `guest-${Math.floor(Math.random() * 10000)}`,
+      name: 'Guest',
+      username: 'guest',
+      avatar: '',
+      status: 'online'
+  } as User, [propUser]);
+
   const [step, setStep] = useState<MeetingStep>('input');
   const [meetingId, setMeetingId] = useState('');
   
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  
+  // Real-time Presence Hook
+  const { participants: remoteParticipants } = useMeetingRoom(
+      step === 'active' ? meetingId : '', 
+      user, 
+      isMuted, 
+      isVideoOff
+  );
+
   const [liveTranscript, setLiveTranscript] = useState<string[]>([]);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -76,8 +94,11 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
   const [showVideoMenu, setShowVideoMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Manage participants state so we can add/remove them
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  // Local bots state (for testing)
+  const [bots, setBots] = useState<MeetingParticipant[]>([]);
+  
+  // Combine remote participants and local bots
+  const participants = [...remoteParticipants, ...bots];
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -491,7 +512,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user }) => {
                                  <div className="text-sm">{p.name}</div>
                               </div>
                               <div className="flex items-center gap-1 text-gray-500">
-                                 <button onClick={() => setParticipants(participants.filter(pt => pt.id !== p.id))} className="text-red-500 hover:bg-red-50 p-1 rounded">Remove</button>
+                                 <button onClick={() => setBots(bots.filter(pt => pt.id !== p.id))} className="text-red-500 hover:bg-red-50 p-1 rounded">Remove</button>
                               </div>
                            </div>
                         ))}
