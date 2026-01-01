@@ -53,7 +53,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </h1>
         
         <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-10 leading-relaxed animate-fade-in delay-200">
-          CloudHop is the next-generation platform that brings meetings, messaging, AI tools, and shared spaces together — all in one beautifully simple cloud.
+          Chat, meet, play — all in one cloud. It's like Discord, Zoom, and Telegram had a Neon baby!
         </p>
         
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in delay-300">
@@ -75,14 +75,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       <section id="features" className="py-24 px-6 bg-[#050819]">
          <div className="text-center mb-16 space-y-4">
              <h2 className="text-3xl md:text-4xl font-bold">The cloud where everyone belongs.</h2>
-             <p className="text-white/80 max-w-2xl mx-auto">Whether you're hosting a meeting, playing games with friends, joining a study group, or hanging out in a community — CloudHop keeps you connected effortlessly.</p>
+             <p className="text-white/80 max-w-2xl mx-auto">One platform. Infinite connections. Connection made cloud-simple.</p>
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             <FeatureCard 
               icon={<Icons.Meetings className="w-6 h-6 text-[#53C8FF]" />}
               title="Unified Communication"
-              desc="Messaging, voice, video, file sharing — all in one place."
+              desc="Video Meetings, Messaging & Channels, Social & Gaming Spaces, and Communities - all in one place."
             />
             <FeatureCard 
               icon={<Icons.AI className="w-6 h-6 text-[#53C8FF]" />}
@@ -99,6 +99,138 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               title="Beautiful. Simple. Yours."
               desc="A cloud experience that feels modern, friendly, and personal."
             />
+         </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-24 px-6 bg-[#0E1430] border-t border-white/5">
+         <div className="max-w-4xl mx-auto text-center space-y-12">
+             <div className="space-y-6">
+                 <h2 className="text-3xl md:text-4xl font-bold">Built for connection. Designed for everyone.</h2>
+                 <p className="text-white/80 leading-relaxed text-lg">
+                    CloudHop was created to bring people together — without the friction, clutter, or limitations of traditional platforms. 
+                    Meetings, messaging, AI features, and real-time hangouts belong in one seamless cloud. 
+                    Whether you’re joining from home, work, school, or anywhere in between, CloudHop makes connection effortless.
+                 </p>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                 <div className="bg-[#050819] p-8 rounded-2xl border border-white/5">
+                     <h3 className="text-[#53C8FF] font-bold uppercase tracking-widest mb-4">Our Mission</h3>
+                     <p className="text-white/70">To create a cloud platform where communication, community, and creativity thrive together.</p>
+                 </div>
+                 <div className="bg-[#050819] p-8 rounded-2xl border border-white/5">
+                     <h3 className="text-[#53C8FF] font-bold uppercase tracking-widest mb-4">Our Vision</h3>
+                     <p className="text-white/70">A world where connecting with anyone is instant, simple, and joyful.</p>
+                 </div>
+             </div>
+         </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 px-6 bg-[#050819]">
+         <div className="text-center mb-16 space-y-4">
+             <h2 className="text-3xl md:text-4xl font-bold">Simple, transparent pricing.</h2>
+             <p className="text-white/80">CloudHop offers flexible plans for casual users, creators, communities, and companies.</p>
+         </div>
+         
+         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+             {/* Free Plan */}
+             <div className="bg-[#0E1430] border border-white/5 rounded-3xl p-8 flex flex-col hover:border-[#53C8FF]/30 transition-all">
+                 <h3 className="text-xl font-bold text-[#53C8FF]">Free Plan</h3>
+                 <p className="text-sm text-white/50 mt-2 mb-6">For individuals, friends, and casual users</p>
+                 <div className="text-4xl font-bold mb-6">$0<span className="text-lg text-white/40 font-normal"> / forever</span></div>
+                 <ul className="space-y-3 text-sm text-white/70 flex-1 mb-8">
+                     <li className="flex gap-2">✓ Unlimited messaging & 1:1 chats</li>
+                     <li className="flex gap-2">✓ Up to 45-minute meetings</li>
+                     <li className="flex gap-2">✓ 1 Hop Space</li>
+                     <li className="flex gap-2">✓ 720p video & Basic screen share</li>
+                     <li className="flex gap-2">✓ 1GB cloud storage</li>
+                     <li className="flex gap-2">✓ Limited AI tools (5 actions/day)</li>
+                 </ul>
+                 <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">Get Started</button>
+             </div>
+
+             {/* Plus Plan */}
+             <div className="bg-[#0E1430] border border-white/5 rounded-3xl p-8 flex flex-col hover:border-[#53C8FF]/30 transition-all relative overflow-hidden">
+                 <h3 className="text-xl font-bold text-[#53C8FF]">Plus Plan</h3>
+                 <p className="text-sm text-white/50 mt-2 mb-6">For frequent users who want more freedom</p>
+                 <div className="text-4xl font-bold mb-6">$5.99<span className="text-lg text-white/40 font-normal"> / mo</span></div>
+                 <ul className="space-y-3 text-sm text-white/70 flex-1 mb-8">
+                     <li className="flex gap-2 text-white">Everything in Free, plus:</li>
+                     <li className="flex gap-2">✓ Unlimited meeting length</li>
+                     <li className="flex gap-2">✓ 1080p HD video</li>
+                     <li className="flex gap-2">✓ 5 Hop Spaces</li>
+                     <li className="flex gap-2">✓ 25GB cloud storage</li>
+                     <li className="flex gap-2">✓ 300 AI actions/month</li>
+                 </ul>
+                 <button className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] hover:bg-[#40b0e0] rounded-xl font-bold transition-all">Upgrade to Plus</button>
+             </div>
+
+             {/* Pro Plan */}
+             <div className="bg-[#0E1430] border-2 border-[#53C8FF] rounded-3xl p-8 flex flex-col transform scale-105 shadow-2xl shadow-[#53C8FF]/10 z-10 relative">
+                 <div className="absolute top-0 right-0 bg-[#53C8FF] text-[#0A0F1F] text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">Most Popular</div>
+                 <h3 className="text-xl font-bold text-[#53C8FF]">Pro Plan</h3>
+                 <p className="text-sm text-white/50 mt-2 mb-6">For professionals & community owners</p>
+                 <div className="text-4xl font-bold mb-6">$14.99<span className="text-lg text-white/40 font-normal"> / mo</span></div>
+                 <ul className="space-y-3 text-sm text-white/70 flex-1 mb-8">
+                     <li className="flex gap-2 text-white">Everything in Plus, plus:</li>
+                     <li className="flex gap-2">✓ Unlimited Hop Spaces</li>
+                     <li className="flex gap-2">✓ 4K video support</li>
+                     <li className="flex gap-2">✓ 100GB cloud storage</li>
+                     <li className="flex gap-2">✓ Advanced AI Assistant & Notes</li>
+                     <li className="flex gap-2">✓ Real-time translation</li>
+                 </ul>
+                 <button className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] hover:bg-[#40b0e0] rounded-xl font-bold transition-all shadow-lg shadow-[#53C8FF]/20">Get Pro</button>
+             </div>
+
+             {/* Teams Plan */}
+             <div className="bg-[#0E1430] border border-white/5 rounded-3xl p-8 flex flex-col hover:border-[#53C8FF]/30 transition-all">
+                 <h3 className="text-xl font-bold text-[#53C8FF]">Teams Plan</h3>
+                 <p className="text-sm text-white/50 mt-2 mb-6">For small–medium businesses</p>
+                 <div className="text-4xl font-bold mb-6">$8.99<span className="text-lg text-white/40 font-normal"> / user / mo</span></div>
+                 <ul className="space-y-3 text-sm text-white/70 flex-1 mb-8">
+                     <li className="flex gap-2 text-white">Everything in Pro, plus:</li>
+                     <li className="flex gap-2">✓ Admin dashboard</li>
+                     <li className="flex gap-2">✓ Team spaces (shared)</li>
+                     <li className="flex gap-2">✓ Unlimited storage per team</li>
+                     <li className="flex gap-2">✓ Meeting transcripts</li>
+                     <li className="flex gap-2">✓ Compliance mode</li>
+                 </ul>
+                 <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">Contact Sales</button>
+             </div>
+         </div>
+      </section>
+
+      {/* Support Section */}
+      <section id="support" className="py-24 px-6 bg-[#0E1430] border-t border-white/5">
+         <div className="max-w-4xl mx-auto space-y-12">
+             <div className="text-center space-y-4">
+                 <h2 className="text-3xl md:text-4xl font-bold">We’re here to help.</h2>
+                 <p className="text-white/60">Frequently asked questions about CloudHop.</p>
+             </div>
+             
+             <div className="grid gap-6">
+                 <div className="bg-[#050819] p-6 rounded-2xl border border-white/5">
+                     <h3 className="font-bold text-lg mb-2">What is CloudHop?</h3>
+                     <p className="text-white/70">CloudHop is a unified communication platform combining messaging, meetings, communities, and AI tools.</p>
+                 </div>
+                 <div className="bg-[#050819] p-6 rounded-2xl border border-white/5">
+                     <h3 className="font-bold text-lg mb-2">Is CloudHop free?</h3>
+                     <p className="text-white/70">Yes — CloudHop offers a free plan with optional paid upgrades.</p>
+                 </div>
+                 <div className="bg-[#050819] p-6 rounded-2xl border border-white/5">
+                     <h3 className="font-bold text-lg mb-2">Does CloudHop have AI features?</h3>
+                     <p className="text-white/70">Yes — CloudHop includes smart summaries, translation, meeting notes, and more.</p>
+                 </div>
+                 <div className="bg-[#050819] p-6 rounded-2xl border border-white/5">
+                     <h3 className="font-bold text-lg mb-2">Where can I download CloudHop?</h3>
+                     <p className="text-white/70">CloudHop is available for Windows, macOS, iOS, Android, and the web.</p>
+                 </div>
+             </div>
+             
+             <div className="text-center pt-8">
+                 <p className="text-white/60">Need more help? Email us at <a href="mailto:support@cloudhop.com" className="text-[#53C8FF] hover:underline">support@cloudhop.com</a></p>
+             </div>
          </div>
       </section>
 

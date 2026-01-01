@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
-import Billing from './Billing';
 import { useSettings } from '../hooks/useSettings';
 
 interface SettingsProps {
@@ -15,14 +14,20 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
   const [inputLevel, setInputLevel] = useState(0);
   const [isTestingMic, setIsTestingMic] = useState(false);
 
-  const { settings, updateSetting, loading } = useSettings(userId);
+  const { settings, profile, updateSetting, updateProfile, loading } = useSettings(userId);
 
   const menu = [
     { id: 'General', icon: '⚙️' },
-    { id: 'Video', icon: '🎥' },
+    { id: 'Video & effects', icon: '🎥' },
     { id: 'Audio', icon: '🔊' },
-    { id: 'Billing', icon: '💳' },
+    { id: 'Notifications & sounds', icon: '🔔' },
+    { id: 'Meetings', icon: '📅' },
+    { id: 'Recording', icon: '⏺️' },
+    { id: 'Share Screen', icon: '🖥️' },
+    { id: 'Team Chat', icon: '💬' },
     { id: 'Accessibility', icon: '♿' },
+    { id: 'Profile', icon: '👤' },
+    { id: 'Plans', icon: '💳' },
   ];
 
   useEffect(() => {
@@ -54,7 +59,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
   };
 
   useEffect(() => {
-    if (videoRef.current && stream && tab === 'Video') {
+    if (videoRef.current && stream && tab === 'Video & effects') {
       videoRef.current.srcObject = stream;
     }
   }, [stream, tab]);
@@ -64,7 +69,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
   return (
     <div className="max-w-7xl mx-auto flex flex-col md:flex-row bg-[#0E1430] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl min-h-[700px] animate-fade-in italic">
       {/* Settings Navigation */}
-      <div className="w-full md:w-72 bg-[#080C22] p-4 flex flex-row md:flex-col gap-1 border-r border-white/5">
+      <div className="w-full md:w-72 bg-[#080C22] p-4 flex flex-row md:flex-col gap-1 border-r border-white/5 overflow-x-auto md:overflow-visible">
         <div className="hidden md:flex items-center gap-3 px-6 py-8 mb-4 border-b border-white/5">
            <CloudHopLogo size={28} variant="neon" />
            <h3 className="text-xl font-black italic tracking-tighter text-[#53C8FF]">SETUP</h3>
@@ -73,7 +78,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
           <button
             key={item.id}
             onClick={() => setTab(item.id)}
-            className={`flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all italic ${
+            className={`flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all italic whitespace-nowrap ${
               tab === item.id 
                 ? 'bg-[#1A2348] text-[#53C8FF] border border-[#53C8FF]/20 shadow-lg shadow-[#53C8FF]/5' 
                 : 'text-white/30 hover:bg-white/5 hover:text-white'
@@ -89,7 +94,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-12 bg-[#0E1430] relative">
         <div className="mb-12 border-b border-white/5 pb-8">
           <h2 className="text-4xl font-black mb-2 uppercase italic tracking-tighter">{tab}</h2>
-          <p className="text-white/30 text-base font-medium italic">Calibration and workspace preferences.</p>
+          <p className="text-white/30 text-base font-medium italic">Configure your CloudHop experience.</p>
         </div>
         
         {tab === 'General' && (
@@ -148,7 +153,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
           </div>
         )}
 
-        {tab === 'Video' && (
+        {tab === 'Video & effects' && (
           <div className="space-y-12 animate-fade-in">
             <div className="space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Live Lens Preview</h4>
@@ -295,6 +300,46 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
           </div>
         )}
 
+        {tab === 'Notifications & sounds' && (
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="Notifications">
+                 <SettingItem title="Show notification banner" desc="Display a popup when you receive a message.">
+                    <Toggle active={settings.showNotificationBanner} onToggle={() => updateSetting('showNotificationBanner', !settings.showNotificationBanner)} />
+                 </SettingItem>
+                 <SettingItem title="Bounce dock icon" desc="Animate the dock icon on new activity.">
+                    <Toggle active={settings.bounceDockIcon} onToggle={() => updateSetting('bounceDockIcon', !settings.bounceDockIcon)} />
+                 </SettingItem>
+              </SettingGroup>
+              <SettingGroup title="Sounds">
+                 <SettingItem title="Play sound for incoming message">
+                    <Toggle active={settings.playSoundMessage} onToggle={() => updateSetting('playSoundMessage', !settings.playSoundMessage)} />
+                 </SettingItem>
+                 <SettingItem title="Play sound when someone joins or leaves">
+                    <Toggle active={settings.playSoundJoin} onToggle={() => updateSetting('playSoundJoin', !settings.playSoundJoin)} />
+                 </SettingItem>
+              </SettingGroup>
+           </div>
+        )}
+
+        {tab === 'Meetings' && (
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="General">
+                 <SettingItem title="Copy invite link when starting a meeting">
+                    <Toggle active={settings.copyInviteLinkOnStart} onToggle={() => updateSetting('copyInviteLinkOnStart', !settings.copyInviteLinkOnStart)} />
+                 </SettingItem>
+                 <SettingItem title="Always show meeting controls">
+                    <Toggle active={settings.alwaysShowControls} onToggle={() => updateSetting('alwaysShowControls', !settings.alwaysShowControls)} />
+                 </SettingItem>
+                 <SettingItem title="Ask me to confirm when I leave a meeting">
+                    <Toggle active={settings.confirmLeave} onToggle={() => updateSetting('confirmLeave', !settings.confirmLeave)} />
+                 </SettingItem>
+                 <SettingItem title="Show meeting timer">
+                    <Toggle active={settings.showMeetingTimer} onToggle={() => updateSetting('showMeetingTimer', !settings.showMeetingTimer)} />
+                 </SettingItem>
+              </SettingGroup>
+           </div>
+        )}
+
         {tab === 'Share Screen' && (
            <div className="space-y-12 animate-fade-in">
               <SettingGroup title="Window Size">
@@ -359,6 +404,92 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
            </div>
         )}
 
+        {tab === 'Team Chat' && (
+           <div className="space-y-12 animate-fade-in">
+              <SettingGroup title="General">
+                 <SettingItem title="Link Preview" desc="Show preview for links shared in chat.">
+                    <Toggle active={settings.linkPreview} onToggle={() => updateSetting('linkPreview', !settings.linkPreview)} />
+                 </SettingItem>
+                 <SettingItem title="File Transfer" desc="Allow sending files in chat.">
+                    <Toggle active={settings.fileTransfer} onToggle={() => updateSetting('fileTransfer', !settings.fileTransfer)} />
+                 </SettingItem>
+                 <SettingItem title="Play Animated GIFs" desc="Automatically play GIFs.">
+                    <Toggle active={settings.animatedGifs} onToggle={() => updateSetting('animatedGifs', !settings.animatedGifs)} />
+                 </SettingItem>
+                 <SettingItem title="Code Snippet Mode" desc="Enable syntax highlighting for code blocks.">
+                    <Toggle active={settings.codeSnippet} onToggle={() => updateSetting('codeSnippet', !settings.codeSnippet)} />
+                 </SettingItem>
+              </SettingGroup>
+           </div>
+        )}
+
+        {tab === 'Plans' && (
+           <div className="space-y-12 animate-fade-in">
+              <div className="text-center mb-8">
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter text-[#53C8FF]">Choose Your Plan</h3>
+                  <p className="text-white/60 mt-2">Flexible plans for casual users, creators, and teams.</p>
+              </div>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                 {/* Free Plan */}
+                 <div className="bg-[#050819] border border-white/5 rounded-2xl p-6 flex flex-col">
+                     <h3 className="text-lg font-bold text-[#53C8FF]">Free Plan</h3>
+                     <div className="text-3xl font-bold my-4">$0<span className="text-sm text-white/40 font-normal"> / forever</span></div>
+                     <ul className="space-y-2 text-xs text-white/70 flex-1 mb-6">
+                         <li>✓ Unlimited messaging & 1:1 chats</li>
+                         <li>✓ Up to 45-minute meetings</li>
+                         <li>✓ 1 Hop Space</li>
+                         <li>✓ 720p video</li>
+                         <li>✓ 1GB cloud storage</li>
+                     </ul>
+                     <button className="w-full py-3 bg-white/10 rounded-xl font-bold text-xs uppercase tracking-wider">Current Plan</button>
+                 </div>
+
+                 {/* Plus Plan */}
+                 <div className="bg-[#050819] border border-white/5 rounded-2xl p-6 flex flex-col">
+                     <h3 className="text-lg font-bold text-[#53C8FF]">Plus Plan</h3>
+                     <div className="text-3xl font-bold my-4">$5.99<span className="text-sm text-white/40 font-normal"> / mo</span></div>
+                     <ul className="space-y-2 text-xs text-white/70 flex-1 mb-6">
+                         <li>✓ Unlimited meeting length</li>
+                         <li>✓ 1080p HD video</li>
+                         <li>✓ 5 Hop Spaces</li>
+                         <li>✓ 25GB cloud storage</li>
+                         <li>✓ 300 AI actions/month</li>
+                     </ul>
+                     <button className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-bold text-xs uppercase tracking-wider">Upgrade</button>
+                 </div>
+
+                 {/* Pro Plan */}
+                 <div className="bg-[#050819] border-2 border-[#53C8FF] rounded-2xl p-6 flex flex-col relative overflow-hidden">
+                     <div className="absolute top-0 right-0 bg-[#53C8FF] text-[#0A0F1F] text-[9px] font-bold px-2 py-1 rounded-bl-lg uppercase">Popular</div>
+                     <h3 className="text-lg font-bold text-[#53C8FF]">Pro Plan</h3>
+                     <div className="text-3xl font-bold my-4">$14.99<span className="text-sm text-white/40 font-normal"> / mo</span></div>
+                     <ul className="space-y-2 text-xs text-white/70 flex-1 mb-6">
+                         <li>✓ Unlimited Hop Spaces</li>
+                         <li>✓ 4K video support</li>
+                         <li>✓ 100GB cloud storage</li>
+                         <li>✓ Advanced AI Assistant</li>
+                         <li>✓ Real-time translation</li>
+                     </ul>
+                     <button className="w-full py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-[#53C8FF]/20">Get Pro</button>
+                 </div>
+
+                 {/* Teams Plan */}
+                 <div className="bg-[#050819] border border-white/5 rounded-2xl p-6 flex flex-col">
+                     <h3 className="text-lg font-bold text-[#53C8FF]">Teams Plan</h3>
+                     <div className="text-3xl font-bold my-4">$8.99<span className="text-sm text-white/40 font-normal"> / user / mo</span></div>
+                     <ul className="space-y-2 text-xs text-white/70 flex-1 mb-6">
+                         <li>✓ Admin dashboard</li>
+                         <li>✓ Team spaces</li>
+                         <li>✓ Unlimited storage per team</li>
+                         <li>✓ Meeting transcripts</li>
+                         <li>✓ Compliance mode</li>
+                     </ul>
+                     <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-xs uppercase tracking-wider">Contact Sales</button>
+                 </div>
+              </div>
+           </div>
+        )}
+
         {tab === 'Accessibility' && (
            <div className="space-y-12 animate-fade-in">
               <SettingGroup title="Captions">
@@ -382,6 +513,48 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
                  </SettingItem>
               </SettingGroup>
            </div>
+        )}
+
+        {tab === 'Profile' && (
+          <div className="space-y-12 animate-fade-in">
+            <div className="flex flex-col items-center justify-center p-8 bg-[#050819] border border-white/5 rounded-2xl mb-8">
+               <div className="relative group mb-6">
+                  <img src={profile.avatar_url || 'https://via.placeholder.com/150'} className="w-32 h-32 rounded-full object-cover border-4 border-[#53C8FF] shadow-[0_0_40px_rgba(83,200,255,0.3)]" />
+                  <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <span className="text-2xl">📷</span>
+                  </div>
+               </div>
+               <h3 className="text-2xl font-black text-white italic tracking-tight">{profile.display_name || 'Cloud Hopper'}</h3>
+               <p className="text-[#53C8FF] font-medium">@{profile.username || 'username'}</p>
+            </div>
+
+            <SettingGroup title="My Profile">
+               <SettingItem title="Display Name" desc="How your name appears to other users.">
+                  <input 
+                    value={profile.display_name || ''}
+                    onChange={(e) => updateProfile({ display_name: e.target.value })}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white w-full md:w-80 focus:border-[#53C8FF] outline-none"
+                    placeholder="Enter your name"
+                  />
+               </SettingItem>
+               <SettingItem title="Phone Number">
+                  <input 
+                    value={profile.phone || ''}
+                    onChange={(e) => updateProfile({ phone: e.target.value })}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white w-full md:w-80 focus:border-[#53C8FF] outline-none"
+                    placeholder="+1 234 567 8900"
+                  />
+               </SettingItem>
+               <SettingItem title="Bio">
+                  <textarea 
+                    value={profile.bio || ''}
+                    onChange={(e) => updateProfile({ bio: e.target.value })}
+                    className="bg-[#050819] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white w-full md:w-80 focus:border-[#53C8FF] outline-none resize-none h-24"
+                    placeholder="Tell us about yourself..."
+                  />
+               </SettingItem>
+            </SettingGroup>
+          </div>
         )}
       </div>
     </div>

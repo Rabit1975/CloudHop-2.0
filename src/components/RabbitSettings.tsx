@@ -505,83 +505,186 @@ const RabbitSettings: React.FC<RabbitSettingsProps> = ({ isOpen, onClose, user, 
   const WalletModal = () => {
       const [balance, setBalance] = useState(0);
       const [loading, setLoading] = useState(true);
+      const [transactions, setTransactions] = useState<any[]>([]);
+      const [cards, setCards] = useState<any[]>([]); // Mock cards for now
+      const [showAddCard, setShowAddCard] = useState(false);
+      const [cardNumber, setCardNumber] = useState('');
+      const [biometricsEnabled, setBiometricsEnabled] = useState(false);
 
       useEffect(() => {
           if (modalOpen && modalType === 'wallet') {
-              fetchBalance();
+              initializeWallet();
           }
       }, [modalOpen, modalType]);
 
-      const fetchBalance = async () => {
+      const initializeWallet = async () => {
           setLoading(true);
-          const { data, error } = await supabase.from('users').select('wallet_balance').eq('id', user.id).single();
-          if (data) {
-              setBalance(data.wallet_balance || 0);
-          } else {
-              console.error('Error fetching balance:', error);
+          // 1. Get or Create Wallet
+          let { data: wallet, error } = await supabase.from('wallets').select('*').eq('user_id', user.id).single();
+          
+          if (!wallet && !error) {
+             // Create wallet if not exists
+             const { data: newWallet, error: createError } = await supabase.from('wallets').insert({ user_id: user.id }).select().single();
+             if (newWallet) wallet = newWallet;
+          }
+
+          if (wallet) {
+              setBalance(wallet.balance);
+              
+              // 2. Get Transactions
+              const { data: txs } = await supabase.from('transactions').select('*').eq('wallet_id', wallet.id).order('created_at', { ascending: false });
+              setTransactions(txs || []);
           }
           setLoading(false);
       };
 
-      const handleEarn = async () => {
-          // Mock earning logic: increment balance by 10
-          const newBalance = balance + 10;
-          const { error } = await supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id);
+      const handleAddFunds = async () => {
+          // Simulate deposit
+          const { data: wallet } = await supabase.from('wallets').select('id, balance').eq('user_id', user.id).single();
+          if (!wallet) return;
+
+          const amount = 100;
+          const newBalance = (Number(wallet.balance) + amount);
+
+          // Update Wallet
+          await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
           
-          if (!error) {
-              setBalance(newBalance);
-              showSuccess('You earned 10 Credits!');
+          // Add Transaction
+          await supabase.from('transactions').insert({
+              wallet_id: wallet.id,
+              amount: amount,
+              type: 'deposit',
+              description: 'Top-up via Card',
+              status: 'completed'
+          });
+
+          showSuccess('Added $100.00 to wallet');
+          initializeWallet();
+      };
+
+      const handleBiometricAuth = async () => {
+          // Simulate Biometric Challenge
+          if (window.PublicKeyCredential) {
+              try {
+                  // In a real app, we would verify with the server. 
+                  // Here we just check if the user can perform a local auth or just toggle it.
+                  // For demo, we'll just toggle.
+                  setBiometricsEnabled(!biometricsEnabled);
+                  showSuccess(biometricsEnabled ? "Biometrics Disabled" : "Biometrics Enabled");
+              } catch (e) {
+                  showError("Biometric authentication failed or cancelled.");
+              }
           } else {
-              showError('Failed to update balance');
+              showError("Biometrics not supported on this device.");
           }
       };
 
-      // Mock transactions for now (could be a real table later)
-      const transactions = [
-          { type: "earn", amount: 20, description: "Joined HopSpace" },
-          { type: "spend", amount: 10, description: "Sent sticker" },
-          { type: "earn", amount: 50, description: "Hosted meeting" }
-      ];
-
       return (
-      <Modal isOpen={modalOpen && modalType === 'wallet'} onClose={() => setModalOpen(false)} title="Hop Wallet">
-          <div className="space-y-8 text-center">
-              <div className="relative inline-block">
-                  <div className="w-24 h-24 bg-gradient-to-tr from-[#53C8FF] to-purple-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(83,200,255,0.4)] animate-pulse-slow">
-                      <span className="text-5xl">🐰</span>
+      <Modal isOpen={modalOpen && modalType === 'wallet'} onClose={() => setModalOpen(false)} title="CloudHop Wallet">
+          <div className="space-y-6">
+              {/* Card / Balance Card */}
+              <div className="bg-gradient-to-br from-[#1A2348] to-[#0E1430] p-6 rounded-2xl border border-white/10 relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 p-4 opacity-20">
+                      <CloudHopLogo size={120} variant="neon" />
                   </div>
-                  <div className="absolute -bottom-2 -right-2 bg-[#0E1430] border border-[#53C8FF] rounded-full px-3 py-1">
-                      <span className="text-xs font-black text-[#53C8FF] uppercase tracking-wider">Level 5</span>
+                  
+                  <div className="relative z-10">
+                      <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Total Balance</p>
+                      <h2 className="text-4xl font-black text-white mb-6">
+                          ${loading ? '...' : Number(balance).toFixed(2)}
+                      </h2>
+                      
+                      <div className="flex items-center gap-4">
+                           <button onClick={handleAddFunds} className="bg-[#53C8FF] text-[#0A0F1F] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-[#3DB8EF] transition-colors">
+                               + Add Funds
+                           </button>
+                           <button className="bg-white/10 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-white/20 transition-colors">
+                               Send
+                           </button>
+                      </div>
                   </div>
               </div>
 
-              <div>
-                  <h2 className="text-4xl font-black text-white mb-2">
-                      {loading ? '...' : balance} <span className="text-[#53C8FF] text-xl">Credits</span>
-                  </h2>
-                  <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Available Balance</p>
+              {/* Cards Section */}
+              <div className="space-y-2">
+                   <div className="flex items-center justify-between px-2">
+                       <h4 className="text-xs font-bold text-[#53C8FF] uppercase tracking-wider">Payment Methods</h4>
+                       <button onClick={() => setShowAddCard(!showAddCard)} className="text-xs text-white/40 hover:text-white">+ Add Card</button>
+                   </div>
+                   
+                   {showAddCard && (
+                       <div className="bg-white/5 p-4 rounded-xl space-y-3 animate-fade-in">
+                           <input 
+                             placeholder="Card Number (Mock)" 
+                             className="w-full bg-[#050819] border border-white/10 rounded-lg p-2 text-sm text-white focus:border-[#53C8FF] outline-none"
+                             value={cardNumber}
+                             onChange={e => setCardNumber(e.target.value)}
+                           />
+                           <div className="flex gap-2">
+                               <input placeholder="MM/YY" className="w-1/3 bg-[#050819] border border-white/10 rounded-lg p-2 text-sm text-white focus:border-[#53C8FF] outline-none" />
+                               <input placeholder="CVC" className="w-1/3 bg-[#050819] border border-white/10 rounded-lg p-2 text-sm text-white focus:border-[#53C8FF] outline-none" />
+                           </div>
+                           <button 
+                             onClick={() => { setCards([...cards, { last4: cardNumber.slice(-4) || '1234', brand: 'Visa' }]); setShowAddCard(false); setCardNumber(''); }}
+                             className="w-full bg-[#53C8FF]/20 text-[#53C8FF] py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-[#53C8FF]/30"
+                           >
+                               Save Card
+                           </button>
+                       </div>
+                   )}
+
+                   <div className="space-y-2">
+                       <div className="bg-[#1A1A1A] p-3 rounded-xl flex items-center gap-4 border border-white/5">
+                           <div className="w-10 h-6 bg-white rounded flex items-center justify-center">
+                               <span className="text-[8px] font-black text-blue-800 uppercase">Visa</span>
+                           </div>
+                           <div className="flex-1">
+                               <p className="text-sm font-bold text-white">•••• •••• •••• 4242</p>
+                           </div>
+                           <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"></div>
+                       </div>
+                       {cards.map((card, i) => (
+                           <div key={i} className="bg-[#1A1A1A] p-3 rounded-xl flex items-center gap-4 border border-white/5">
+                               <div className="w-10 h-6 bg-white rounded flex items-center justify-center">
+                                   <span className="text-[8px] font-black text-blue-800 uppercase">{card.brand}</span>
+                               </div>
+                               <div className="flex-1">
+                                   <p className="text-sm font-bold text-white">•••• •••• •••• {card.last4}</p>
+                               </div>
+                           </div>
+                       ))}
+                   </div>
+              </div>
+              
+              {/* Security Settings */}
+              <div className="bg-white/5 rounded-xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                      <div className="text-2xl">🔐</div>
+                      <div>
+                          <p className="text-sm font-bold text-white">Biometric Security</p>
+                          <p className="text-[10px] text-white/40">Use Fingerprint/FaceID for transactions</p>
+                      </div>
+                  </div>
+                  <Toggle active={biometricsEnabled} onToggle={handleBiometricAuth} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                  <button onClick={handleEarn} className="py-3 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg shadow-[#53C8FF]/20">Earn More</button>
-                  <button disabled className="py-3 bg-white/5 text-white/20 rounded-xl font-black uppercase tracking-widest cursor-not-allowed border border-white/5">Withdraw</button>
-              </div>
-
+              {/* Transactions */}
               <div className="bg-[#050819] rounded-2xl p-1 border border-white/5 text-left">
                   <div className="px-4 py-3 border-b border-white/5">
                       <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest">Recent Activity</h4>
                   </div>
                   <div className="max-h-40 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                      {transactions.length === 0 && <p className="text-center text-white/20 text-xs py-4">No transactions yet</p>}
                       {transactions.map((tx, i) => (
                           <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors">
                               <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${tx.type === 'earn' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                                      {tx.type === 'earn' ? '↗' : '↘'}
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${tx.type === 'deposit' || tx.type === 'earn' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                      {tx.type === 'deposit' || tx.type === 'earn' ? '↗' : '↘'}
                                   </div>
                                   <span className="text-sm font-bold text-white">{tx.description}</span>
                               </div>
-                              <span className={`text-sm font-black ${tx.type === 'earn' ? 'text-green-400' : 'text-white/40'}`}>
-                                  {tx.type === 'earn' ? '+' : '-'}{tx.amount}
+                              <span className={`text-sm font-black ${tx.type === 'deposit' || tx.type === 'earn' ? 'text-green-400' : 'text-white/40'}`}>
+                                  {tx.type === 'deposit' || tx.type === 'earn' ? '+' : '-'}{tx.amount}
                               </span>
                           </div>
                       ))}

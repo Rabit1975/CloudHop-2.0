@@ -94,7 +94,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView }) => {
       setResponse(text);
     } catch (error) {
       console.error("AI Error:", error);
-      setResponse("I'm having trouble connecting to the neural core. Please try again later.");
+      setResponse("I'm having trouble connecting to the neural core. Please ensure your Gemini API key is configured in settings.");
     } finally {
       setIsThinking(false);
     }

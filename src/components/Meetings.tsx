@@ -698,7 +698,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   );
 
   return (
-    <div className="h-full flex flex-col relative animate-fade-in">
+    <div className="h-full w-full flex flex-col relative bg-[#050819]">
       {step === 'input' && (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
            <div className="max-w-md w-full space-y-8">

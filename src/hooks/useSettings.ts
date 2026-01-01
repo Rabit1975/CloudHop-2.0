@@ -54,6 +54,24 @@ export interface UserSettings {
   captionFontSize?: number;
   alwaysShowCaptions?: boolean;
 
+  // Notifications & Sounds
+  playSoundMessage?: boolean;
+  playSoundJoin?: boolean;
+  showNotificationBanner?: boolean;
+  bounceDockIcon?: boolean;
+
+  // Meetings
+  copyInviteLinkOnStart?: boolean;
+  confirmLeave?: boolean;
+  showMeetingTimer?: boolean;
+  alwaysShowControls?: boolean;
+
+  // Team Chat
+  linkPreview?: boolean;
+  fileTransfer?: boolean;
+  animatedGifs?: boolean;
+  codeSnippet?: boolean;
+
   // Rabbit/Chat Settings
   nightMode?: boolean; // Overlaps with colorMode?
   activeTheme?: string;
@@ -84,8 +102,17 @@ export interface UserSettings {
   localPasscode?: boolean;
 }
 
+export interface UserProfile {
+  display_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  phone?: string;
+  username?: string;
+}
+
 export const useSettings = (userId?: string) => {
   const [settings, setSettings] = useState<UserSettings>({});
+  const [profile, setProfile] = useState<UserProfile>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -94,12 +121,19 @@ export const useSettings = (userId?: string) => {
     const fetchSettings = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('settings')
+        .select('settings, display_name, avatar_url, bio, phone, username')
         .eq('id', userId)
         .single();
       
-      if (data?.settings) {
-        setSettings(data.settings);
+      if (data) {
+        if (data.settings) setSettings(data.settings);
+        setProfile({
+          display_name: data.display_name,
+          avatar_url: data.avatar_url,
+          bio: data.bio,
+          phone: data.phone,
+          username: data.username
+        });
       }
       setLoading(false);
     };
@@ -120,7 +154,6 @@ export const useSettings = (userId?: string) => {
 
     if (error) {
       console.error('Error updating settings:', error);
-      // Revert? For now, we trust it works or next fetch will fix
     }
   };
 
@@ -140,5 +173,21 @@ export const useSettings = (userId?: string) => {
       }
   }
 
-  return { settings, updateSetting, updateSettings, loading };
+  const updateProfile = async (newValues: Partial<UserProfile>) => {
+    if (!userId) return;
+    
+    const newProfile = { ...profile, ...newValues };
+    setProfile(newProfile); // Optimistic update
+
+    const { error } = await supabase
+      .from('users')
+      .update(newValues)
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
+
+  return { settings, profile, updateSetting, updateSettings, updateProfile, loading };
 };
