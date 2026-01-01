@@ -65,8 +65,9 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   const [isMuted, setIsMuted] = useState(false);
   
   // Real-time Presence Hook
+  // Only connect if step is 'active' and meetingId is present.
   const { participants: remoteParticipants } = useMeetingRoom(
-      step === 'active' ? meetingId : '', 
+      step === 'active' && meetingId ? meetingId : '', 
       user, 
       isMuted, 
       isVideoOff
@@ -343,7 +344,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
                </div>
                <div className="flex flex-col">
                  <span className="text-xs font-bold flex items-center gap-2">
-                   Hop Meet
+                   {meetingId}
                    <svg className="w-3 h-3 text-white/50" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
                  </span>
                  {isRecording && <span className="text-[10px] text-red-500 flex items-center gap-1 animate-pulse">● Recording...</span>}
