@@ -20,9 +20,6 @@ importers:
       '@ai-sdk/react':
         specifier: ^3.0.5
         version: 3.0.5(react@19.2.3)(zod@4.3.4)
-      '@types/node':
-        specifier: ^25.0.3
-        version: 25.0.3
       ai:
         specifier: ^6.0.5
         version: 6.0.5(zod@4.3.4)
@@ -42,9 +39,15 @@ importers:
         specifier: ^4.21.0
         version: 4.21.0
     devDependencies:
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
       '@types/react':
         specifier: 19.2.7
         version: 19.2.7
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
 packages:
 
@@ -597,6 +600,11 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
@@ -1047,6 +1055,8 @@ snapshots:
       get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
+
+  typescript@5.9.3: {}
 
   undici-types@7.16.0: {}
 
