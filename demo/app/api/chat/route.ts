@@ -1,3 +1,4 @@
+h
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import 'dotenv/config';
