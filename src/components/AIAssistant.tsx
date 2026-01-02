@@ -60,15 +60,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView }) => {
     setResponse(null);
     
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = import.meta.env.VITE_AI_GATEWAY_API_KEY;
       if (!apiKey) {
         setResponse("Error: API Key not found. Please check your .env file.");
         setIsThinking(false);
         return;
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const model = 'gemini-2.0-flash-exp'; // Use a valid model name
+      // Configure Vercel AI Gateway
+      const openai = createOpenAI({
+        baseURL: 'https://gateway.ai.vercel.dev/openai/v1',
+        apiKey: apiKey,
+      });
+
+      // Use Novita via Gateway
+      const model = openai('novita/kat-coder');
 
       // Construct a context-aware system prompt
       const systemContext = `You are CloudHop AI, an intelligent assistant embedded in a collaboration platform.
@@ -83,18 +89,18 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView }) => {
       
       Your goal is to be helpful, concise, and professional. Use markdown for formatting.`;
 
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [
-          { role: 'user', parts: [{ text: systemContext + "\n\nUser Request: " + prompt }] }
-        ]
+      const result = await generateText({
+        model,
+        messages: [
+           { role: 'system', content: systemContext },
+           { role: 'user', content: prompt }
+        ],
       });
 
-      const text = response.text || "I couldn't generate a response.";
-      setResponse(text);
+      setResponse(result.text);
     } catch (error) {
       console.error("AI Error:", error);
-      setResponse("I'm having trouble connecting to the neural core. Please ensure your Gemini API key is configured in settings.");
+      setResponse("I'm having trouble connecting to the neural core. Please ensure your API key is correct.");
     } finally {
       setIsThinking(false);
     }

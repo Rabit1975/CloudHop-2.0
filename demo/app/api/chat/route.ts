@@ -20,12 +20,12 @@ export async function POST(req: Request) {
     const result = streamText({
       model,
       messages,
-      maxTokens: 16000,
+      maxOutputTokens: 16000,
       temperature: 0.7,
       topP: 1,
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('Error in route handler:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
