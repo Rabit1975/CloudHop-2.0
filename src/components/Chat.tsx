@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { Icons } from '../constants';
 import RabbitSettings from './RabbitSettings';
 import CallOverlay from './CallOverlay';
+import Modal from './Modal';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { supabase } from '../lib/supabaseClient';
 import { CallHistory, Message, ReactionSummary } from '../types';
@@ -60,10 +61,18 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
   const [activeTab, setActiveTab] = useState<'messages' | 'ai'>('messages');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // Replaced isSettingsOpen with isComposeOpen for the new flow
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [callHistory, setCallHistory] = useState<CallHistory[]>([]); 
   
+  // HopHub / Telegram Style State
+  const [activeFolder, setActiveFolder] = useState<string>('All');
+  const [createType, setCreateType] = useState<'group' | 'channel'>('group');
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+
   const { 
     callState, 
     localStream, 
@@ -154,7 +163,13 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       let { data: existingChats } = await supabase.from('chats').select('*');
       
       if (!existingChats || existingChats.length === 0) {
-          const { data: newChat } = await supabase.from('chats').insert({ title: 'General Lobby', is_group: true }).select().single();
+          // Default init if empty
+          const { data: newChat } = await supabase.from('chats').insert({ 
+              title: 'General Lobby', 
+              is_group: true,
+              type: 'group',
+              category: 'general'
+          }).select().single();
           if (newChat) existingChats = [newChat];
       }
       
@@ -593,6 +608,36 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       setDeletingMessageId(null);
   };
 
+  const handleCreateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    // Map 'group' | 'channel' to type
+    // If it's a DM, we might need different logic, but for now we only expose group/channel in UI
+    const type = createType;
+    const category = activeFolder === 'All' ? 'general' : activeFolder.toLowerCase();
+
+    const { data: newChat, error } = await supabase.from('chats').insert({
+        title: newName,
+        description: newDesc,
+        is_private: isPrivate,
+        created_by: userId,
+        type: type,
+        category: category,
+        is_group: true // Legacy support
+    }).select().single();
+
+    if (error) {
+        console.error("Error creating chat:", error);
+    } else {
+        setChats(prev => [newChat, ...prev]);
+        setSelectedChatId(newChat.id);
+        setIsComposeOpen(false);
+        setNewName('');
+        setNewDesc('');
+    }
+  };
+
   const getReactionTooltipText = (reaction: ReactionSummary) => {
     if (reaction.reactedByCurrentUser) {
       return reaction.count > 1 
@@ -605,13 +650,18 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
 
   const currentChat = chats.find(c => c.id === selectedChatId) || { title: 'General Lobby', avatar: '' };
 
-  // Filter chats based on search query
-  const filteredChats = chats.filter(chat => 
-    chat.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter chats based on search query AND folder
+  const filteredChats = chats.filter(chat => {
+    const matchesSearch = chat.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFolder = activeFolder === 'All' 
+        ? true 
+        : (chat.category?.toLowerCase() === activeFolder.toLowerCase() || (!chat.category && activeFolder === 'General'));
+    
+    return matchesSearch && matchesFolder;
+  });
 
   return (
-    <div className="h-full flex gap-6 overflow-hidden animate-fade-in italic">
+    <div className="h-full flex gap-1 rounded-[32px] overflow-hidden border border-white/5 bg-[#080C22] shadow-2xl animate-fade-in font-sans">
       <AnimatePresence>
       {deletingMessageId && (
         <motion.div 
@@ -642,6 +692,59 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       )}
       </AnimatePresence>
 
+      {/* Compose Modal */}
+      <Modal isOpen={isComposeOpen} onClose={() => setIsComposeOpen(false)} title={`New ${createType === 'group' ? 'Group' : 'Channel'}`}>
+         <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+             <button onClick={() => setCreateType('group')} className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${createType === 'group' ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/5 text-white/40'}`}>New Group</button>
+             <button onClick={() => setCreateType('channel')} className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${createType === 'channel' ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/5 text-white/40'}`}>New Channel</button>
+         </div>
+         
+         <form onSubmit={handleCreateChat} className="space-y-6">
+            <div className="flex items-center gap-4 justify-center py-4">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-3xl border-2 border-dashed border-white/20 hover:border-[#53C8FF] cursor-pointer transition-colors">
+                    📷
+                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">{createType} Name</label>
+                <input 
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none font-bold"
+                    placeholder={`e.g. ${createType === 'group' ? 'Crypto Talk' : 'Daily News'}`}
+                    required
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[#53C8FF]">Description (Optional)</label>
+                <input 
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    className="w-full bg-[#050819] border border-white/10 rounded-xl p-4 text-white focus:border-[#53C8FF] outline-none text-sm"
+                    placeholder="What is this community about?"
+                />
+            </div>
+
+            <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                <div>
+                    <div className="text-xs font-bold text-white">Private {createType === 'group' ? 'Group' : 'Channel'}</div>
+                    <div className="text-[10px] text-white/40">Only via invite link</div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsPrivate(!isPrivate)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${isPrivate ? 'bg-[#53C8FF]' : 'bg-white/10'}`}
+                >
+                   <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isPrivate ? 'translate-x-6' : ''}`} />
+                </button>
+            </div>
+
+            <button type="submit" className="w-full py-4 bg-[#53C8FF] text-[#0A0F1F] rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-transform shadow-lg shadow-[#53C8FF]/20">Create</button>
+         </form>
+      </Modal>
+
       {callState !== 'idle' && (
         <CallOverlay
           callState={callState}
@@ -662,68 +765,100 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
         />
       )}
 
-      <div className="w-80 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-        <RabbitSettings 
-            isOpen={isSettingsOpen} 
-            onClose={() => setIsSettingsOpen(false)} 
-            user={currentUser} 
-            onChatCreated={fetchInitialData} 
-            onProfileUpdated={fetchUserProfile}
-            onChatSelected={(id) => {
-                setSelectedChatId(id);
-                setIsSettingsOpen(false);
-            }}
-        />
-
-        <div className="p-4 border-b border-white/5 flex gap-2">
-          <button onClick={() => setIsSettingsOpen(true)} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
-             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div className="flex-1 flex gap-2">
-             <button onClick={() => setShowCallHistory(!showCallHistory)} className={`p-2 rounded-lg transition-colors ${showCallHistory ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-[#080C22] text-white/60 hover:text-white'}`}>
-                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+      {/* LEFT SIDEBAR: Unified Chat List */}
+      <div className="w-80 bg-[#050819] flex flex-col border-r border-white/5">
+         {/* Header */}
+         <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+             <div className="flex items-center gap-2">
+                 <button className="w-8 h-8 rounded-lg bg-[#53C8FF]/10 flex items-center justify-center text-[#53C8FF]">
+                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+                 </button>
+                 <span className="font-black italic tracking-tighter text-lg">HopHub</span>
+             </div>
+             <button 
+                onClick={() => setIsComposeOpen(true)}
+                className="w-10 h-10 rounded-full bg-[#53C8FF] text-[#0A0F1F] flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-[#53C8FF]/20"
+             >
+                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
              </button>
+         </div>
+
+         {/* Folders Bar */}
+         <div className="flex gap-1 p-2 overflow-x-auto custom-scrollbar border-b border-white/5 shrink-0">
+             {['All', 'Personal', 'Work', 'Crypto', 'Gaming'].map(folder => (
+                 <button 
+                    key={folder}
+                    onClick={() => setActiveFolder(folder)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${activeFolder === folder ? 'bg-[#53C8FF]/10 text-[#53C8FF]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+                 >
+                     {folder}
+                 </button>
+             ))}
+         </div>
+
+         {/* Search & Call History Toggle */}
+         <div className="p-2 border-b border-white/5 flex gap-2">
              <input 
                 type="text" 
-                placeholder="Search chats" 
+                placeholder="Search..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-[#080C22] border border-white/5 rounded-full py-2 pl-4 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" 
+                className="flex-1 bg-white/5 border border-transparent rounded-lg py-1.5 pl-3 text-xs focus:outline-none focus:border-[#53C8FF]/30 font-bold" 
              />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {showCallHistory ? (
-              <div className="p-4 space-y-2">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#53C8FF] mb-4">Recent Calls</h3>
-                  {callHistory.map(call => (
-                      <div key={call.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${call.status === 'missed' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+             <button onClick={() => setShowCallHistory(!showCallHistory)} className={`p-1.5 rounded-lg transition-colors ${showCallHistory ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/5 text-white/40 hover:text-white'}`}>
+                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+             </button>
+         </div>
+
+         {/* Chat List */}
+         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+             {showCallHistory ? (
+                  <div className="space-y-2">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-[#53C8FF] mb-2 px-2">Call History</h3>
+                      {callHistory.map(call => (
+                          <div key={call.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${call.status === 'missed' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/></svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold text-white truncate">{call.caller_id === userId ? 'Outgoing' : 'Incoming'}</p>
+                                  <p className="text-[10px] text-white/40">{new Date(call.started_at).toLocaleTimeString()}</p>
+                              </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-white truncate">{call.caller_id === userId ? 'Outgoing' : 'Incoming'}</p>
-                              <p className="text-[10px] text-white/40">{new Date(call.started_at).toLocaleTimeString()}</p>
-                          </div>
-                          <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${call.status === 'missed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>{call.status}</span>
-                      </div>
-                  ))}
-                  {callHistory.length === 0 && <p className="text-center text-white/20 text-xs mt-10">No recent calls</p>}
-              </div>
-          ) : (
-            filteredChats.length === 0 ? (
-                <p className="text-center text-white/20 text-xs mt-10">No chats found</p>
-            ) : (
-            filteredChats.map((chat) => (
-            <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`p-4 flex items-center gap-3 cursor-pointer border-l-2 ${selectedChatId === chat.id ? 'bg-[#53C8FF]/5 border-[#53C8FF]' : 'border-transparent hover:bg-white/5'}`}>
-              <img src={chat.is_group ? 'https://picsum.photos/seed/group/50' : 'https://picsum.photos/seed/user/50'} className="w-10 h-10 rounded-xl" alt="" />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center"><span className="font-black text-xs uppercase truncate tracking-widest">{chat.title || 'Untitled Chat'}</span></div>
-                <p className="text-[10px] text-white/40 truncate italic font-bold">Tap to chat</p>
-              </div>
-            </div>
-          ))))}
-        </div>
+                      ))}
+                  </div>
+             ) : (
+                 filteredChats.map(chat => (
+                 <button 
+                    key={chat.id}
+                    onClick={() => setSelectedChatId(chat.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedChatId === chat.id ? 'bg-[#53C8FF]/10 border border-[#53C8FF]/20' : 'hover:bg-white/5 border border-transparent'}`}
+                 >
+                     <div className="relative shrink-0">
+                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${selectedChatId === chat.id ? 'bg-[#53C8FF] text-[#0A0F1F]' : 'bg-white/10 text-white'}`}>
+                             {chat.is_group ? '👥' : (chat.title?.charAt(0) || '?')}
+                         </div>
+                         {chat.type && chat.type !== 'dm' && (
+                             <div className="absolute -bottom-1 -right-1 bg-[#050819] rounded-full p-0.5">
+                                 <div className="w-4 h-4 bg-white/10 rounded-full flex items-center justify-center text-[8px]">
+                                     {chat.type === 'channel' ? '📢' : '👥'}
+                                 </div>
+                             </div>
+                         )}
+                     </div>
+                     <div className="flex-1 min-w-0 text-left">
+                         <div className="flex items-center justify-between mb-0.5">
+                             <span className={`text-sm font-bold truncate ${selectedChatId === chat.id ? 'text-[#53C8FF]' : 'text-white'}`}>{chat.title || 'Untitled'}</span>
+                         </div>
+                         <div className="flex items-center justify-between">
+                             <p className="text-xs text-white/40 truncate max-w-[140px]">
+                                 {chat.description || 'Tap to chat'}
+                             </p>
+                         </div>
+                     </div>
+                 </button>
+             )))}
+         </div>
       </div>
 
       <div className="flex-1 flex flex-col bg-[#0E1430] border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">

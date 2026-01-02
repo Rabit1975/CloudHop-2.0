@@ -1,9 +1,8 @@
 export enum View {
   SPECTRUM = 'spectrum', // Landing / Overview
   DASHBOARD = 'dashboard',
-  CHAT = 'chat',
+  CHAT = 'chat', // Unified HopHub (RabbitChat + Communities)
   MEETINGS = 'meetings',
-  WORLD = 'world', // Hop World - Public Discovery
   CORE = 'core',   // Hop Core - Private Hybrid Hub
   ARCADE = 'arcade',
   PROFILE = 'profile',

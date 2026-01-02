@@ -138,9 +138,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView }) => {
                 <div>
                    <h3 className="text-sm font-black uppercase italic tracking-widest text-white">Hop AI</h3>
                    <div className="text-[10px] text-[#53C8FF] font-bold uppercase tracking-wider opacity-80">
-                      {currentView === View.WORLD ? 'Community Intelligence' : 
-                       currentView === View.MEETINGS ? 'Meeting Assistant' : 
+                      {currentView === View.MEETINGS ? 'Meeting Assistant' : 
                        currentView === View.DASHBOARD ? 'Personal Executive' : 
+                       currentView === View.CHAT ? 'HopHub Intelligence' :
                        'System Assistant'}
                    </div>
                 </div>

@@ -113,7 +113,6 @@ const App: React.FC = () => {
     switch (view) {
       case View.DASHBOARD: return <Dashboard onNavigate={setView} />;
       case View.CHAT: return <Chat userId={session?.user.id} />; // Pass userId to Chat
-      case View.WORLD: return <Communities />;
       case View.MEETINGS: return <Meetings user={user} onNavigate={setView} />;
       case View.CORE: return <Spaces onNavigate={setView} />;
       case View.ARCADE: return <GameHub />;

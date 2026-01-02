@@ -56,8 +56,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   const viewLabels: Record<View, string> = {
     [View.SPECTRUM]: 'The Spectrum',
     [View.DASHBOARD]: 'Home',
-    [View.CHAT]: 'RabbitChat',
-    [View.WORLD]: 'HopHub',
+    [View.CHAT]: 'HopHub',
+    [View.WORLD]: 'HopHub Legacy',
     [View.MEETINGS]: 'HopMeets',
     [View.CORE]: 'HopSpaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
