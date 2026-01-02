@@ -114,10 +114,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#050819]">
-        <header className="h-20 shrink-0 bg-[#080C22]/60 backdrop-blur-2xl flex items-center justify-between px-8 border-b border-white/5 z-10">
+      <div className={`flex-1 flex flex-col relative overflow-hidden ${contentBgClass}`}>
+        <header className={`h-20 shrink-0 backdrop-blur-2xl flex items-center justify-between px-8 border-b z-10 ${headerClass}`}>
           <div className="flex items-center gap-6">
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-xl transition-all text-white/80 hover:text-white" aria-label="Toggle Sidebar">
+            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl transition-all ${isLightMode ? 'hover:bg-gray-100 text-slate-600' : 'hover:bg-white/5 text-white/80 hover:text-white'}`} aria-label="Toggle Sidebar">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
             </button>
             <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-[#53C8FF] italic">{viewLabels[currentView]}</h2>

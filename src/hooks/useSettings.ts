@@ -139,6 +139,36 @@ export const useSettings = (userId?: string) => {
     };
 
     fetchSettings();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel(`user_settings:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${userId}`
+        },
+        (payload) => {
+          const newUser = payload.new as any;
+          if (newUser.settings) setSettings(newUser.settings);
+          setProfile(prev => ({
+            ...prev,
+            display_name: newUser.display_name,
+            avatar_url: newUser.avatar_url,
+            bio: newUser.bio,
+            phone: newUser.phone,
+            username: newUser.username
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const updateSetting = async (key: keyof UserSettings, value: any) => {
