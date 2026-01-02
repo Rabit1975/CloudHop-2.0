@@ -482,3 +482,9 @@ FAM | META SEQ | SST SEQ         | RANGE
   0 | 00000473 | 00000472 SST    |                        [=======================================================================]     | 3aefa6fd5cf2deb4-f42f94001fcb5351 (0 MiB, fresh)
   1 | 00000474 | 00000470 SST    |           O                                                                                          | 1b77b417aa0c9f4e-1b77b417aa0c9f4e (0 MiB, fresh)
   2 | 00000475 | 00000471 SST    |           O                                                                                          | 1b77b417aa0c9f4e-1b77b417aa0c9f4e (0 MiB, fresh)
+Time 2026-01-02T05:49:00.488839Z
+Commit 00000481 4 keys in 220ms 236µs
+FAM | META SEQ | SST SEQ         | RANGE
+  0 | 00000479 | 00000478 SST    |                        [=======================================================================]     | 3aefa6fd5cf2deb4-f42f94001fcb5351 (0 MiB, fresh)
+  1 | 00000480 | 00000476 SST    |           O                                                                                          | 1b77b417aa0c9f4e-1b77b417aa0c9f4e (0 MiB, fresh)
+  2 | 00000481 | 00000477 SST    |           O                                                                                          | 1b77b417aa0c9f4e-1b77b417aa0c9f4e (0 MiB, fresh)
