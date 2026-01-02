@@ -2,37 +2,29 @@ import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import 'dotenv/config';
 
+// Configure OpenAI to use Vercel AI Gateway
+// The key 'vck_...' is a Vercel Cloud Key, so we must use the Vercel Gateway endpoint.
+const openai = createOpenAI({
+  baseURL: 'https://gateway.ai.vercel.dev/openai/v1',
+  apiKey: process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY,
+});
+
 export async function POST(req: Request) {
   try {
-    // Extract the `messages` from the body of the request
     const { messages } = await req.json();
 
-    // Get a language model
-    // Using gpt-4o as requested in previous turns (or gpt-4o-mini as in user snippet)
-    // User snippet said 'gpt-4o-mini', I'll stick to that.
-    // Configure OpenAI to use Vercel AI Gateway
-    const openai = createOpenAI({
-      baseURL: 'https://gateway.ai.vercel.dev/openai/v1',
-      apiKey: process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY,
-    });
-    
-    const model = openai('gpt-4o-mini');
+    // Use Vercel AI Gateway to route to Novita
+    // We specify the provider/model format: 'novita/kat-coder'
+    const model = openai('novita/kat-coder');
 
-    // Call the language model with the prompt
     const result = streamText({
       model,
       messages,
-      maxTokens: 8192,
+      maxTokens: 16000,
       temperature: 0.7,
       topP: 1,
-      providerOptions: {
-        gateway: {
-          order: ['openai', 'anthropic'], // Example ordering as per docs
-        },
-      },
     });
 
-    // Respond with a streaming response
     return result.toDataStreamResponse();
   } catch (error) {
     console.error('Error in route handler:', error);
