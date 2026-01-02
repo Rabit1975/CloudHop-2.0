@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///E:/vercel/CloudHop-2.0/demo/app/chat.tsx"],"sourcesContent":["'use client'\n\nimport { useChat } from '@ai-sdk/react';\n\nexport default function Chat() {\n  const { messages, input, handleInputChange, handleSubmit } = useChat({\n    api: '/api/chat'\n  })\n\n  return (\n    <div>\n      <ul>\n        {messages.map((m, index) => (\n          <li key={index}>\n            {m.role === 'user' ? 'User: ' : 'AI: '}\n            {m.content}\n          </li>\n        ))}\n      </ul>\n    \n      <form onSubmit={handleSubmit}>\n        <label>\n          Say something...\n          <input value={input} onChange={handleInputChange} />\n        </label>\n        <button type=\"submit\">Send</button>\n      </form>\n    </div>\n  )\n}\n"],"names":[],"mappings":";;;;;AAEA;;;AAFA;;AAIe,SAAS;;IACtB,MAAM,EAAE,QAAQ,EAAE,KAAK,EAAE,iBAAiB,EAAE,YAAY,EAAE,GAAG,IAAA,sRAAO,EAAC;QACnE,KAAK;IACP;IAEA,qBACE,8SAAC;;0BACC,8SAAC;0BACE,SAAS,GAAG,CAAC,CAAC,GAAG,sBAChB,8SAAC;;4BACE,EAAE,IAAI,KAAK,SAAS,WAAW;4BAC/B,EAAE,OAAO;;uBAFH;;;;;;;;;;0BAOb,8SAAC;gBAAK,UAAU;;kCACd,8SAAC;;4BAAM;0CAEL,8SAAC;gCAAM,OAAO;gCAAO,UAAU;;;;;;;;;;;;kCAEjC,8SAAC;wBAAO,MAAK;kCAAS;;;;;;;;;;;;;;;;;;AAI9B;GAzBwB;;QACuC,sRAAO;;;KAD9C"}}]
+}
