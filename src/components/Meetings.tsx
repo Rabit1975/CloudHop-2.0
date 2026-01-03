@@ -48,6 +48,10 @@ function createBlob(data: Float32Array): Blob {
 type MeetingStep = 'input' | 'prejoin' | 'active';
 type ViewMode = 'grid' | 'speaker';
 
+interface MeetingsProps {
+  user?: User | null;
+}
+
 const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   // Ensure we always have a user identity
   const user = useMemo(() => propUser || {
