@@ -459,7 +459,14 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
                    
                    {/* Add Bot Button (For Testing) */}
                    <button 
-                     onClick={() => setParticipants([...participants, { id: Date.now().toString(), name: `Bot ${participants.length + 1}` }])}
+                     onClick={() => setBots([...bots, { 
+                        id: Date.now().toString(), 
+                        name: `Bot ${bots.length + 1}`,
+                        isMuted: false,
+                        isVideoOff: false,
+                        isSpeaking: false,
+                        joinedAt: new Date().toISOString()
+                     }])}
                      className="bg-[#1A1A1A] border border-white/10 border-dashed rounded flex flex-col items-center justify-center text-white/60 hover:text-white/80 hover:border-white/30 transition-all"
                      aria-label="Add Participant"
                    >
