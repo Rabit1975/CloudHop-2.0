@@ -205,6 +205,7 @@ export const api = {
 
   // Feed Methods
   getSpaceFeed: async (spaceId: string): Promise<ActivityItem[]> => {
+      // Return empty array if no feed exists for this space, instead of undefined
       return new Promise(resolve => setTimeout(() => resolve(feeds[spaceId] || []), 200));
   },
 

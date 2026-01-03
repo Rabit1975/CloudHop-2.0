@@ -21,6 +21,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   const [notifications, setNotifications] = useState<any[]>([]);
   
   const { events, clearEvents } = useWebSocket(user?.id || "guest", currentSpace.id);
+  const { isLightMode } = useSettings();
+  const contentBgClass = isLightMode ? 'bg-slate-50' : 'bg-[#050819]';
+  const headerClass = isLightMode ? 'bg-white/80 border-slate-200' : 'bg-[#050819]/80 border-white/5';
 
   useEffect(() => {
     if (events.length > 0) {
@@ -58,7 +61,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.SPECTRUM]: 'The Spectrum',
     [View.DASHBOARD]: 'Home',
     [View.CHAT]: 'HopHub',
-    [View.WORLD]: 'HopHub Legacy',
     [View.MEETINGS]: 'HopMeets',
     [View.CORE]: 'HopSpaces — Private Hub',
     [View.ARCADE]: 'GameHub Engine',
@@ -68,8 +70,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
     [View.AUTH]: 'Authentication' // Added missing entry
   };
 
+  const isLightMode = settings?.colorMode === 'Light Mode';
+  const bgClass = isLightMode ? 'bg-[#F0F2F5] text-slate-900' : 'bg-[#050819] text-white';
+  const sidebarClass = isLightMode ? 'bg-white border-gray-200' : 'bg-[#080C22] border-white/5';
+  const contentBgClass = isLightMode ? 'bg-[#F0F2F5]' : 'bg-[#050819]';
+  const headerClass = isLightMode ? 'bg-white/60 border-gray-200 text-slate-900' : 'bg-[#080C22]/60 border-white/5';
+
   return (
-    <div className={`flex h-screen bg-[#050819] overflow-hidden text-white italic selection:bg-[#53C8FF]/30`}>
+    <div className={`flex h-screen overflow-hidden italic selection:bg-[#53C8FF]/30 ${bgClass}`}>
       {/* Sidebar */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-24'} bg-[#080C22] flex flex-col transition-all duration-500 border-r border-white/5 relative z-20 shadow-[20px_0_60px_rgba(0,0,0,0.5)]`}>
         <button 
@@ -93,7 +101,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[#1A2348] text-[#53C8FF] shadow-[0_8px_20px_rgba(0,0,0,0.4)] ring-1 ring-[#53C8FF]/20' 
-                    : isLightMode ? 'text-slate-600 hover:bg-gray-100 hover:text-slate-900' : 'text-white/80 hover:bg-white/5 hover:text-white'
+                    : 'text-white/80 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 ${isActive ? 'text-[#53C8FF] scale-110' : 'group-hover:scale-110'}`} />

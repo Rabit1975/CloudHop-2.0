@@ -6,11 +6,11 @@ import Dashboard from './src/components/Dashboard';
 import Chat from './src/components/Chat';
 import Meetings from './src/components/Meetings';
 import Spaces from './src/components/Spaces';
-import Communities from './src/components/Communities';
 import GameHub from './src/components/GameHub';
 import Profile from './src/components/Profile';
 import Settings from './src/components/Settings';
 import AITools from './src/components/AITools';
+
 import Layout from './src/components/Layout';
 import Auth from './src/components/Auth';
 import { supabase } from './src/lib/supabaseClient';
