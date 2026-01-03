@@ -54,7 +54,7 @@ interface MeetingsProps {
 
 const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   // Ensure we always have a user identity
-  const user = useMemo(() => propUser || {
+  const user = React.useMemo(() => propUser || {
       id: `guest-${Math.floor(Math.random() * 10000)}`,
       name: 'Guest',
       username: 'guest',
