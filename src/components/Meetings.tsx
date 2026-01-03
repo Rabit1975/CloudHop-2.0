@@ -70,12 +70,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   
   // Real-time Presence Hook
   // Only connect if step is 'active' and meetingId is present.
-  const { participants: remoteParticipants } = useMeetingRoom(
-      step === 'active' && meetingId ? meetingId : '', 
-      user, 
-      isMuted, 
-      isVideoOff
-  );
+  const [remoteParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
 
   const [liveTranscript, setLiveTranscript] = useState<string[]>([]);
   const [showParticipants, setShowParticipants] = useState(false);

@@ -6,20 +6,22 @@ export interface MeetingParticipant {
   id: string;
   name: string;
   avatar?: string;
+  isSpeaking: boolean;
   isMuted: boolean;
   isVideoOff: boolean;
-  isSpeaking: boolean;
   joinedAt: string;
+  user_id?: string;
 }
 
-export const useMeetingRoom = (roomId: string, user: User | null | undefined, isMuted: boolean, isVideoOff: boolean) => {
+export function useMeetingRoom(meetingId: string, user: User, isMuted: boolean, isVideoOff: boolean) {
   const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!roomId || !user) return;
+    if (!meetingId || !user) return;
 
-    const channel = supabase.channel(`meeting:${roomId}`, {
+    // Join the channel for this meeting
+    const channel = supabase.channel(`meeting:${meetingId}`, {
       config: {
         presence: {
           key: user.id,
@@ -27,72 +29,70 @@ export const useMeetingRoom = (roomId: string, user: User | null | undefined, is
       },
     });
 
+    channelRef.current = channel;
+
     channel
       .on('presence', { event: 'sync' }, () => {
         const newState = channel.presenceState();
-        const users: MeetingParticipant[] = [];
+        const activeParticipants: MeetingParticipant[] = [];
         
         for (const key in newState) {
-          const state = newState[key] as any[];
-          if (state && state.length > 0) {
-            // Use the most recent presence state for this user
-            const p = state[0];
-            if (p.user_id !== user.id) { // Exclude self from remote participants list
-                users.push({
-                    id: p.user_id,
-                    name: p.name,
-                    avatar: p.avatar,
-                    isMuted: p.isMuted,
-                    isVideoOff: p.isVideoOff,
-                    isSpeaking: p.isSpeaking,
-                    joinedAt: p.joinedAt
-                });
-            }
-          }
+           const presence = newState[key][0] as any; // Supabase presence state
+           if (presence.user_id !== user.id) { // Don't include self in remote participants list
+               activeParticipants.push({
+                   id: presence.user_id,
+                   name: presence.name,
+                   avatar: presence.avatar,
+                   isSpeaking: presence.isSpeaking || false,
+                   isMuted: presence.isMuted || false,
+                   isVideoOff: presence.isVideoOff || false,
+                   joinedAt: presence.joined_at,
+                   user_id: presence.user_id
+               });
+           }
         }
-        setParticipants(users);
+        setParticipants(activeParticipants);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('User joined meeting:', newPresences);
+        console.log('User joined:', newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('User left meeting:', leftPresences);
+        console.log('User left:', leftPresences);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          // Track self
           await channel.track({
             user_id: user.id,
-            name: user.name,
+            name: user.name || 'Guest',
             avatar: user.avatar,
             isMuted,
             isVideoOff,
             isSpeaking: false,
-            joinedAt: new Date().toISOString(),
+            joined_at: new Date().toISOString(),
           });
         }
       });
 
-    channelRef.current = channel;
-
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [roomId, user?.id]); // Re-run if room or user changes
+  }, [meetingId, user.id]); // Re-subscribe if meeting ID or user changes
 
   // Update presence when local state changes
   useEffect(() => {
-      if (channelRef.current && user) {
+      if (channelRef.current && meetingId) {
           channelRef.current.track({
             user_id: user.id,
-            name: user.name,
+            name: user.name || 'Guest',
             avatar: user.avatar,
             isMuted,
             isVideoOff,
-            isSpeaking: false, // Todo: wire up VAD
-            joinedAt: new Date().toISOString(),
+            isSpeaking: false, // We'd need audio analysis to update this really
+            joined_at: new Date().toISOString(), // This should ideally persist from initial join
           });
       }
-  }, [isMuted, isVideoOff]);
+  }, [isMuted, isVideoOff, user.name]);
 
   return { participants };
-};
+}
