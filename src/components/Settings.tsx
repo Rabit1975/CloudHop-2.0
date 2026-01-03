@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons, CloudHopLogo } from '../constants';
-import { useSettings } from '../hooks/useSettings';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface SettingsProps {
   userId?: string;
@@ -14,7 +14,7 @@ const Settings: React.FC<SettingsProps> = ({ userId }) => {
   const [inputLevel, setInputLevel] = useState(0);
   const [isTestingMic, setIsTestingMic] = useState(false);
 
-  const { settings, profile, updateSetting, updateProfile, loading } = useSettings(userId);
+  const { settings, profile, updateSetting, updateProfile, loading } = useSettings();
 
   const menu = [
     { id: 'General', icon: '⚙️' },

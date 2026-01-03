@@ -18,6 +18,7 @@ import { supabase } from './src/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 import { SpaceProvider } from './src/contexts/SpaceContext';
+import { SettingsProvider } from './src/contexts/SettingsContext';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.SPECTRUM);
@@ -134,16 +135,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <SpaceProvider>
-      <Layout 
-        currentView={view} 
-        onNavigate={setView}
-        user={user}
-        onLogout={handleLogout}
-      >
-        {content}
-      </Layout>
-    </SpaceProvider>
+    <ErrorBoundary>
+      <SettingsProvider userId={session?.user.id}>
+        <SpaceProvider>
+          <Layout 
+            currentView={view} 
+            onNavigate={setView}
+            user={user}
+            onLogout={handleLogout}
+          >
+            {content}
+          </Layout>
+        </SpaceProvider>
+      </SettingsProvider>
+    </ErrorBoundary>
   );
 };
 
