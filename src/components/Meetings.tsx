@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { CloudHopLogo } from '../constants';
-import { User } from '../types';
+import { User, View } from '../types';
 import Settings from './Settings';
-import Modal from './Modal'; // Assuming Modal component exists, checking imports... wait, Modal is used in Communities.tsx
+import { useMeetingRoom, MeetingParticipant } from '../hooks/useMeetingRoom';
 
 // --- Types & Mocks ---
 
@@ -271,7 +271,7 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
     setShowParticipants(false);
     setShowChat(false);
     setIsRecording(false);
-    setParticipants([]); // Clear participants
+    setBots([]); // Clear participants
     setIsSharingScreen(false);
     setChatHistory([]);
   };
