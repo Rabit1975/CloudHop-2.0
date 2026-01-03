@@ -21,10 +21,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   const [notifications, setNotifications] = useState<any[]>([]);
   
   const { events, clearEvents } = useWebSocket(user?.id || "guest", currentSpace.id);
-  const { isLightMode } = useSettings();
-  const contentBgClass = isLightMode ? 'bg-slate-50' : 'bg-[#050819]';
-  const headerClass = isLightMode ? 'bg-white/80 border-slate-200' : 'bg-[#050819]/80 border-white/5';
-
+  // Removed duplicate variable declarations
+  
   useEffect(() => {
     if (events.length > 0) {
       const latest = events[events.length - 1];
