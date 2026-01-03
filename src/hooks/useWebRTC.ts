@@ -50,6 +50,8 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
     
     channel
       .on('broadcast', { event: 'call-offer' }, async ({ payload }) => {
+        if (payload.toUserId && payload.toUserId !== userId) return; // Client-side filtering as a backup
+
         console.log('Received call offer from:', payload.fromUserId);
         setIncomingCallFrom(payload.fromUserId);
         setRemoteUserId(payload.fromUserId);
@@ -186,10 +188,10 @@ export const useWebRTC = (userId: string | undefined): WebRTCState => {
         channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 await channel.send({
-                    type: 'broadcast',
-                    event: 'call-offer',
-                    payload: { fromUserId: userId, offer, callId: history?.id }
-                });
+            type: 'broadcast',
+            event: 'call-offer',
+            payload: { fromUserId: userId, toUserId: receiverId, offer, callId: history?.id }
+        });
             }
         });
         

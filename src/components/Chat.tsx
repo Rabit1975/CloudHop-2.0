@@ -192,24 +192,29 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
       let reactionsChannel: any;
 
       const fetchMessagesAndReactions = async () => {
+          // Pagination can be added here, starting with limit 50
           const { data: fetchedMessages, error: messagesError } = await supabase
               .from('messages')
               .select(`
-                  *,
+                  id, content, created_at, sender_id, chat_id, edited_at,
                   users (
                       username,
                       avatar_url
                   )
               `)
               .eq('chat_id', selectedChatId)
-              .order('created_at', { ascending: true });
+              .order('created_at', { ascending: false }) // Fetch latest first
+              .limit(50); // Limit initial load
           
           if (messagesError) {
               console.error('Error fetching messages:', messagesError);
               return;
           }
 
-          const messageIds = fetchedMessages?.map(m => m.id) || [];
+          // Reverse to show in correct order
+          const orderedMessages = (fetchedMessages || []).reverse();
+
+          const messageIds = orderedMessages.map(m => m.id) || [];
           const { data: fetchedReactions, error: reactionsError } = await supabase
               .from('message_reactions')
               .select('*')
@@ -612,6 +617,17 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
+    // Ensure we have a valid userId
+    let currentUserId = userId;
+    if (!currentUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) currentUserId = user.id;
+        else {
+            alert("You must be logged in to create a chat.");
+            return;
+        }
+    }
+
     // Map 'group' | 'channel' to type
     // If it's a DM, we might need different logic, but for now we only expose group/channel in UI
     const type = createType;
@@ -621,14 +637,15 @@ const Chat: React.FC<ChatProps> = ({ userId = '' }) => {
         title: newName,
         description: newDesc,
         is_private: isPrivate,
-        created_by: userId,
+        created_by: currentUserId,
         type: type,
         category: category,
-        is_group: true // Legacy support
+        is_group: true 
     }).select().single();
 
     if (error) {
         console.error("Error creating chat:", error);
+        alert(`Failed to create chat: ${error.message}`);
     } else {
         setChats(prev => [newChat, ...prev]);
         setSelectedChatId(newChat.id);
