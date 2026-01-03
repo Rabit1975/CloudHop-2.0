@@ -10,6 +10,7 @@ import GameHub from './src/components/GameHub';
 import Profile from './src/components/Profile';
 import Settings from './src/components/Settings';
 import AITools from './src/components/AITools';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 import Layout from './src/components/Layout';
 import Auth from './src/components/Auth';
