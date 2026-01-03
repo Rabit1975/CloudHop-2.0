@@ -7,19 +7,6 @@ import { useMeetingRoom, MeetingParticipant } from '../hooks/useMeetingRoom';
 
 // --- Types & Mocks ---
 
-interface Participant {
-  id: string;
-  name: string;
-  isSpeaking?: boolean;
-  isMuted?: boolean;
-  isVideoOff?: boolean;
-}
-
-interface MeetingsProps {
-  user?: User | null;
-  onNavigate: (view: View) => void;
-}
-
 // Start empty to let user be alone, or add bots via "Invite"
 const MOCK_PARTICIPANTS: MeetingParticipant[] = []; 
 
@@ -51,6 +38,7 @@ type ViewMode = 'grid' | 'speaker';
 
 interface MeetingsProps {
   user?: User | null;
+  onNavigate: (view: View) => void;
 }
 
 const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
@@ -60,7 +48,9 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
       name: 'Guest',
       username: 'guest',
       avatar: '',
-      status: 'online'
+      status: 'Online',
+      level: 1,
+      xp: 0
   } as User, [propUser]);
 
   const [step, setStep] = useState<MeetingStep>('input');
@@ -71,7 +61,12 @@ const Meetings: React.FC<MeetingsProps> = ({ user: propUser }) => {
   
   // Real-time Presence Hook
   // Only connect if step is 'active' and meetingId is present.
-  const [remoteParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
+  const { participants: remoteParticipants } = useMeetingRoom(
+      step === 'active' && meetingId ? meetingId : '', 
+      user, 
+      isMuted, 
+      isVideoOff
+  );
 
   const [liveTranscript, setLiveTranscript] = useState<string[]>([]);
   const [showParticipants, setShowParticipants] = useState(false);
