@@ -3,6 +3,7 @@ import { View, User } from '../types';
 import { CloudHopLogo, Icons } from '../constants';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSpace } from '../contexts/SpaceContext';
+import { useSettings } from '../hooks/useSettings';
 import AIAssistant from './AIAssistant';
 
 interface LayoutProps {
@@ -92,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-[#1A2348] text-[#53C8FF] shadow-[0_8px_20px_rgba(0,0,0,0.4)] ring-1 ring-[#53C8FF]/20' 
-                    : 'text-white/80 hover:bg-white/5 hover:text-white'
+                    : isLightMode ? 'text-slate-600 hover:bg-gray-100 hover:text-slate-900' : 'text-white/80 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 ${isActive ? 'text-[#53C8FF] scale-110' : 'group-hover:scale-110'}`} />
