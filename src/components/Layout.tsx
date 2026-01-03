@@ -16,6 +16,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user, onLogout }) => {
   const { currentSpace } = useSpace();
+  const { settings } = useSettings(user?.id);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
