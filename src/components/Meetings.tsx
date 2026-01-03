@@ -17,10 +17,11 @@ interface Participant {
 
 interface MeetingsProps {
   user?: User | null;
+  onNavigate: (view: View) => void;
 }
 
 // Start empty to let user be alone, or add bots via "Invite"
-const MOCK_PARTICIPANTS: Participant[] = []; 
+const MOCK_PARTICIPANTS: MeetingParticipant[] = []; 
 
 // --- Helper Functions ---
 
